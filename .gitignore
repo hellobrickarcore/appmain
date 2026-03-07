@@ -1,0 +1,78 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+
+# Production
+dist/
+build/
+
+# Large Models and Datasets
+server/models/
+server/data/
+server/**/*.pt
+server/**/*.onnx
+models/
+onnxtest/
+public/models/*.onnx
+public/models/*.pt
+public/models/*.pth
+!public/models/.gitkeep
+
+# Bulky Binaries & Media
+*.zip
+*.ttf
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.zip
+*.tar
+*.gz
+icon-source-1024.png
+
+# Environment Variables - NEVER COMMIT THESE!
+.env
+.env.local
+.env*.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+*.env.local
+**/.env
+**/.env.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+auth.log
+dataset.log
+detection.log
+xp.log
+ts_errors*.log
+vite_*.log
+
+# Editor
+.vscode/
+.idea/
+.cursor/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Capacitor
+ios/
+android/
+.capacitor/
