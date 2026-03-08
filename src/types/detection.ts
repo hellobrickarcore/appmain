@@ -4,94 +4,163 @@
  * GOLDEN RULES:
  * 1. All geometry is pixel-space, xyxy format.
  * 2. No 0–1000 normalization. No [ymin, xmin, ymax, xmax].
- * 3. Only brickDetectionService.ts converts raw backend responses into these types.
- * 5. 🔒 LOCK: THIS LOGIC IS CANONICAL. DO NOT MODIFY COORDINATE MATH OR 
+ * 3. Geometry, Identity, and Color have separate confidence channels.
+ * 4. 🔒 LOCK: THIS LOGIC IS CANONICAL. DO NOT MODIFY COORDINATE MATH OR 
  *    GEOMETRY CONTRACTS WITHOUT FORMAL APPROVAL.
  */
 
-// ─── Geometry ────────────────────────────────────────────────────
+export type GeometryType = 'bbox_xyxy' | 'polygon' | 'mask';
+export type LabelDisplayStatus = 'hidden' | 'tentative' | 'confirmed' | 'needs_review';
+export type ReviewStatus = 'unreviewed' | 'accepted' | 'corrected' | 'rejected' | 'ambiguous';
 
-/** Canonical bounding box: pixel-space, xyxy */
-export interface BBox {
-    /** Left edge (pixels) */
-    x_min: number;
-    /** Top edge (pixels) */
-    y_min: number;
-    /** Right edge (pixels) */
-    x_max: number;
-    /** Bottom edge (pixels) */
-    y_max: number;
-}
-
-/** Polygon point in pixel-space */
-export interface PolygonPoint {
+export interface Point {
     x: number;
     y: number;
 }
 
-/** Full geometry payload */
-export interface DetectionGeometry {
+export interface BoundingBoxXYXY {
     format: 'xyxy';
     space: 'pixel';
-    bbox: BBox;
-    polygon?: PolygonPoint[];
+    xMin: number;
+    yMin: number;
+    xMax: number;
+    yMax: number;
 }
 
-// ─── Prediction ──────────────────────────────────────────────────
-
-/** A single prediction candidate */
-export interface PredictionCandidate {
-    brick_part_num: string;
-    label: string;
-    confidence: number;
+export interface DetectionGeometry {
+    type: GeometryType;
+    bbox: BoundingBoxXYXY;
+    polygon?: Point[];
+    segmentationRle?: unknown;
+    geometryConfidence: number; // 0..1
 }
 
-/** The model's prediction for a detected object */
-export interface DetectionPrediction {
-    brick_part_num: string;
-    brick_name: string;
-    color_name: string;
-    part_confidence: number;
-    color_confidence: number;
+export interface BrickPrediction {
+    brickPartId?: string;
+    brickPartNum?: string;
+    brickName?: string;
+    brickFamily?: string;
+    dimensionsLabel?: string;
+
+    brickColorId?: string;
+    brickColorName?: string;
+
+    identityConfidence: number; // 0..1
+    colorConfidence: number; // 0..1
+    dimensionConfidence: number; // 0..1
+
+    rawModelClass?: string;
+    rawModelConfidence?: number;
 }
 
-// ─── Frame-Level Types ───────────────────────────────────────────
+export interface DetectionCandidate {
+    rank: number;
+    brickPartId?: string;
+    brickPartNum?: string;
+    brickName?: string;
 
-/** A single detection in a single frame */
+    brickColorId?: string;
+    brickColorName?: string;
+
+    identityConfidence: number;
+    colorConfidence?: number;
+    reasonCodes?: string[];
+}
+
+export interface DetectionQualityMetrics {
+    studCountEstimate?: number;
+    studCountConfidence?: number;
+    poseAngleDeg?: number;
+    aspectRatio?: number;
+    lightingScore?: number;
+    blurScore?: number;
+    occlusionScore?: number;
+}
+
 export interface FrameDetection {
-    /** Unique ID for this detection within the frame */
-    detection_id: string;
-    /** Persistent object ID across frames (empty until tracking is enabled) */
-    track_id: string;
-    /** Overall confidence */
-    confidence: number;
-    /** Canonical pixel-space geometry */
+    detectionId: string;
+    detectionIndex: number;
+    trackId?: string;
+
     geometry: DetectionGeometry;
-    /** Best prediction */
-    prediction: DetectionPrediction;
-    /** Top-N candidates for ambiguous parts */
-    candidates: PredictionCandidate[];
-    /** Estimated stud count */
-    stud_count_estimate?: number;
-    /** Rotation angle of the brick */
-    pose_angle_deg?: number;
-    /** Whether this detection needs human review */
-    review_required: boolean;
+    prediction: BrickPrediction;
+    candidates: DetectionCandidate[];
+    quality: DetectionQualityMetrics;
+
+    brickFamily?: string;
+    dimensionsLabel?: string;
+    compactLabel?: string;
+
+    reviewStatus: ReviewStatus;
+    labelDisplayStatus: LabelDisplayStatus;
 }
 
-/** The full response from a single detection request */
-export interface DetectionResponse {
-    /** Frame dimensions */
-    frame_width: number;
-    frame_height: number;
-    /** Model version string */
-    model_version: string;
-    /** Time taken for inference (ms) */
-    inference_time_ms: number;
-    /** All detections in this frame */
+export interface ScanFrameResponse {
+    sessionId: string;
+    frameId: string;
+    frameIndex: number;
+    frameWidth: number;
+    frameHeight: number;
+    modelVersion: string;
     detections: FrameDetection[];
-    /** Total count */
-    total_count: number;
+}
+
+export interface TrackedObject {
+    trackedObjectId: string;
+    trackId: string;
+    status: 'active' | 'stable' | 'ambiguous' | 'finalized' | 'dropped';
+    totalFramesSeen: number;
+    stableGeometry: DetectionGeometry;
+    consensusPartId?: string;
+    consensusPartNum?: string;
+    consensusBrickName?: string;
+    consensusColorId?: string;
+    consensusColorName?: string;
+    geometryConfidence: number;
+    identityConfidence: number;
+    colorConfidence: number;
+    studCountConsensus?: number;
+    studCountConfidence?: number;
+    labelDisplayStatus: LabelDisplayStatus;
+    promotedToCollection: boolean;
+}
+
+// ─── Thresholds ──────────────────────────────────────────────────
+
+export const DETECTION_THRESHOLDS = {
+    /** Min confidence to render ANY geometry (Stage 1) */
+    GEOMETRY_RENDER_MIN: 0.15,
+    /** Min confidence to consider geometry "stable" (Stage 1/2) */
+    GEOMETRY_STABLE_MIN: 0.50,
+    /** Min identity confidence for 'confirmed' status (Stage 3) */
+    IDENTITY_CONFIRMED_MIN: 0.70,
+    /** Min color confidence for 'confirmed' status (Stage 3) */
+    COLOR_CONFIRMED_MIN: 0.70,
+    /** Min dimension confidence for 'confirmed' status (Stage 3) */
+    DIMENSION_CONFIRMED_MIN: 0.70,
+    COLLECTION_PROMOTION_MIN: 0.70,
+    TRACK_STABLE_MIN_FRAMES: 5,
+    TRACK_CONSENSUS_CONSECUTIVE_FRAMES: 3,
+    CANDIDATE_MARGIN_MIN: 0.12,
+} as const;
+
+export interface DetectionOverlay {
+    id: string;
+    trackId?: string;
+    geometryType: 'bbox' | 'polygon';
+    box?: { xMin: number; yMin: number; xMax: number; yMax: number };
+    polygon?: { x: number; y: number }[];
+    geometryConfidence: number;
+    identityConfidence: number;
+    colorConfidence: number;
+    dimensionConfidence: number;
+    brickFamily?: string;
+    dimensionsLabel?: string;
+    isTracked: boolean;
+    isStable: boolean;
+    displayText?: string;
+    compactLabel?: string;
+    labelDisplayStatus: LabelDisplayStatus;
 }
 
 // ─── Render Helpers ──────────────────────────────────────────────
@@ -106,12 +175,9 @@ export interface RenderBox {
 
 /**
  * Convert a pixel-space BBox to percentage-based RenderBox
- * relative to the displayed container dimensions.
- * 
- * Handles object-cover / object-contain scaling.
  */
 export function bboxToRenderBox(
-    bbox: BBox,
+    bbox: BoundingBoxXYXY,
     frameWidth: number,
     frameHeight: number,
     containerWidth: number,
@@ -125,18 +191,15 @@ export function bboxToRenderBox(
 
     if (objectFit === 'cover') {
         if (arFrame > arContainer) {
-            // Frame wider than container → cropped horizontally
             displayH = containerHeight;
             displayW = containerHeight * arFrame;
             offsetX = (containerWidth - displayW) / 2;
         } else {
-            // Frame taller → cropped vertically
             displayW = containerWidth;
             displayH = containerWidth / arFrame;
             offsetY = (containerHeight - displayH) / 2;
         }
     } else {
-        // contain
         if (arFrame > arContainer) {
             displayW = containerWidth;
             displayH = containerWidth / arFrame;
@@ -148,11 +211,10 @@ export function bboxToRenderBox(
         }
     }
 
-    // Map pixel coords → display coords → percentage
-    const top = ((bbox.y_min / frameHeight) * displayH + offsetY) / containerHeight * 100;
-    const left = ((bbox.x_min / frameWidth) * displayW + offsetX) / containerWidth * 100;
-    const width = ((bbox.x_max - bbox.x_min) / frameWidth) * displayW / containerWidth * 100;
-    const height = ((bbox.y_max - bbox.y_min) / frameHeight) * displayH / containerHeight * 100;
+    const top = ((bbox.yMin / frameHeight) * displayH + offsetY) / containerHeight * 100;
+    const left = ((bbox.xMin / frameWidth) * displayW + offsetX) / containerWidth * 100;
+    const width = ((bbox.xMax - bbox.xMin) / frameWidth) * displayW / containerWidth * 100;
+    const height = ((bbox.yMax - bbox.yMin) / frameHeight) * displayH / containerHeight * 100;
 
     return { top, left, width, height };
 }

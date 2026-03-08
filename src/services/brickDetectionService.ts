@@ -7,7 +7,7 @@
  * All geometry is returned in canonical pixel-space xyxy format.
  */
 
-import { DetectionResponse, FrameDetection } from '../types/detection';
+import { FrameDetection, ScanFrameResponse, DETECTION_THRESHOLDS, DetectionOverlay, TrackedObject } from '../types/detection';
 
 // Detection API URL
 const getDetectionAPIUrl = (): string => {
@@ -15,20 +15,13 @@ const getDetectionAPIUrl = (): string => {
 };
 
 /**
- * Send a frame to the detection server and return canonical DetectionResponse.
+ * Send a frame to the detection server and return canonical ScanFrameResponse.
  */
 export const detectBricks = async (
-  image: HTMLImageElement | HTMLCanvasElement | HTMLVideoElement | File | string
-): Promise<DetectionResponse> => {
-  const emptyResponse: DetectionResponse = {
-    frame_width: 0,
-    frame_height: 0,
-    model_version: 'unknown',
-    inference_time_ms: 0,
-    detections: [],
-    total_count: 0,
-  };
-
+  image: HTMLImageElement | HTMLCanvasElement | HTMLVideoElement | File | string,
+  sessionId = 'session_manual',
+  frameIndex = 0
+): Promise<ScanFrameResponse> => {
   try {
     let canvas: HTMLCanvasElement;
 
@@ -71,9 +64,9 @@ export const detectBricks = async (
     const originalWidth = canvas.width;
     const originalHeight = canvas.height;
 
-    // Resize for YOLO (640px standard)
-    const MAX_WIDTH = 640;
-    const MAX_HEIGHT = 480;
+    // Resize for YOLO (800px for UX Overhaul / Distance)
+    const MAX_WIDTH = 800;
+    const MAX_HEIGHT = 600;
     let processedCanvas = canvas;
     let scaleX = 1;
     let scaleY = 1;
@@ -88,14 +81,9 @@ export const detectBricks = async (
       const ctx = processedCanvas.getContext('2d');
       if (ctx) {
         ctx.drawImage(canvas, 0, 0, processedCanvas.width, processedCanvas.height);
-      } else {
-        processedCanvas = canvas;
-        scaleX = 1;
-        scaleY = 1;
       }
     }
 
-    // Convert to blob
     const blob = await new Promise<Blob>((resolve, reject) => {
       processedCanvas.toBlob((blob) => {
         if (blob) resolve(blob);
@@ -105,6 +93,8 @@ export const detectBricks = async (
 
     const formData = new FormData();
     formData.append('image', blob, 'frame.jpg');
+    formData.append('sessionId', sessionId);
+    formData.append('frameIndex', frameIndex.toString());
 
     const apiUrl = getDetectionAPIUrl();
     const response = await fetch(`${apiUrl}/detect`, {
@@ -114,92 +104,186 @@ export const detectBricks = async (
     });
 
     if (!response.ok) {
-      return { ...emptyResponse, frame_width: originalWidth, frame_height: originalHeight };
+      throw new Error(`Detection failed with status ${response.status}`);
     }
 
     const data = await response.json();
 
     // ─── CANONICAL ADAPTER ───────────────────────────────────────
-    // This is the ONLY place where raw server data is converted
-    // into the canonical DetectionResponse format.
-
-    const detections: FrameDetection[] = (data.detections || []).map((det: any) => {
-      // Extract xyxy from new canonical format
-      const xyxy = det.geometry?.bbox_xyxy;
-      let x_min = 0, y_min = 0, x_max = 0, y_max = 0;
-
-      if (xyxy && xyxy.length === 4) {
-        // New canonical format: [x_min, y_min, x_max, y_max] in pixel-space
-        // Scale back to original image size (server received the resized version)
-        x_min = xyxy[0] * scaleX;
-        y_min = xyxy[1] * scaleY;
-        x_max = xyxy[2] * scaleX;
-        y_max = xyxy[3] * scaleY;
-      } else if (det.box && det.box.length === 4) {
-        // Legacy format: [ymin, xmin, ymax, xmax]
-        y_min = det.box[0] * scaleY;
-        x_min = det.box[1] * scaleX;
-        y_max = det.box[2] * scaleY;
-        x_max = det.box[3] * scaleX;
-      } else if (det.bbox) {
-        // Legacy dict format: {x, y, width, height}
-        x_min = det.bbox.x * scaleX;
-        y_min = det.bbox.y * scaleY;
-        x_max = (det.bbox.x + det.bbox.width) * scaleX;
-        y_max = (det.bbox.y + det.bbox.height) * scaleY;
-      }
-
-      // Scale polygon if present
-      let polygon = det.geometry?.polygon;
-      if (polygon && Array.isArray(polygon)) {
-        polygon = polygon.map((p: any) => ({
-          x: (p.x || 0) * scaleX,
-          y: (p.y || 0) * scaleY,
-        }));
-      }
-
-      const prediction = det.prediction || {};
-      const label = prediction.brick_name || det.type || det.label || 'Brick';
-      const color = prediction.color_name || det.color || 'Unknown';
-      const confidence = det.confidence || 0;
+    // Map server response to our strict types
+    const detections: FrameDetection[] = (data.detections || []).map((det: any, idx: number) => {
+      const geo = det.geometry || {};
+      const bbox = geo.bbox || {};
+      const pred = det.prediction || {};
 
       return {
-        detection_id: det.detection_id || det.id || `det_${Math.random().toString(36).slice(2, 9)}`,
-        track_id: det.track_id || '',
-        confidence,
+        detectionId: det.detectionId || `det_${idx}_${Date.now()}`,
+        detectionIndex: det.detectionIndex ?? idx,
+        trackId: det.trackId || '',
         geometry: {
-          format: 'xyxy' as const,
-          space: 'pixel' as const,
-          bbox: { x_min, y_min, x_max, y_max },
-          polygon: polygon || undefined,
+          type: geo.type || 'bbox_xyxy',
+          bbox: {
+            format: 'xyxy',
+            space: 'pixel',
+            xMin: (bbox.xMin ?? 0) * scaleX,
+            yMin: (bbox.yMin ?? 0) * scaleY,
+            xMax: (bbox.xMax ?? 0) * scaleX,
+            yMax: (bbox.yMax ?? 0) * scaleY
+          },
+          polygon: geo.polygon?.map((p: any) => ({
+            x: (p.x ?? 0) * scaleX,
+            y: (p.y ?? 0) * scaleY
+          })),
+          geometryConfidence: geo.geometryConfidence ?? 0
         },
         prediction: {
-          brick_part_num: prediction.brick_part_num || String(det.class_id || ''),
-          brick_name: label,
-          color_name: color,
-          part_confidence: prediction.part_confidence || confidence,
-          color_confidence: prediction.color_confidence || 0.5,
+          brickPartId: pred.brickPartId,
+          brickPartNum: pred.brickPartNum,
+          brickName: pred.brickName,
+          brickFamily: pred.brickFamily,
+          dimensionsLabel: pred.dimensionsLabel,
+          brickColorId: pred.brickColorId,
+          brickColorName: pred.brickColorName,
+          identityConfidence: pred.identityConfidence ?? 0,
+          colorConfidence: pred.colorConfidence ?? 0,
+          dimensionConfidence: pred.dimensionConfidence ?? 0,
+          rawModelClass: pred.rawModelClass,
+          rawModelConfidence: pred.rawModelConfidence ?? 0
         },
-        candidates: det.candidates || [{ brick_part_num: '', label, confidence }],
-        stud_count_estimate: det.stud_count_estimate,
-        pose_angle_deg: det.pose_angle_deg,
-        review_required: det.review_required || confidence < 0.6,
+        compactLabel: det.compactLabel,
+        candidates: det.candidates || [],
+        quality: det.quality || {},
+        reviewStatus: det.reviewStatus || 'unreviewed',
+        labelDisplayStatus: det.labelDisplayStatus || 'tentative'
       } satisfies FrameDetection;
     });
 
     return {
-      frame_width: originalWidth,
-      frame_height: originalHeight,
-      model_version: data.model_version || 'unknown',
-      inference_time_ms: data.inference_time_ms || 0,
-      detections,
-      total_count: detections.length,
+      sessionId: data.sessionId,
+      frameId: data.frameId,
+      frameIndex: data.frameIndex,
+      frameWidth: originalWidth,
+      frameHeight: originalHeight,
+      modelVersion: data.modelVersion,
+      detections
     };
   } catch (error) {
     console.error('Brick detection error:', error);
-    return emptyResponse;
+    throw error;
   }
 };
+
+/**
+ * 🔒 OVERLAY ADAPTER
+ * Implements the strict fallback chain for overlays:
+ * tracked polygon -> tracked bbox -> raw polygon -> raw bbox
+ */
+export function toDetectionOverlay(
+  detection: FrameDetection | TrackedObject
+): DetectionOverlay | null {
+  const isTracked = 'trackedObjectId' in detection;
+  const geometry = isTracked
+    ? (detection as TrackedObject).stableGeometry
+    : (detection as FrameDetection).geometry;
+  const prediction = (detection as any).prediction;
+
+  if (!geometry?.bbox || !prediction) return null;
+
+  const geoConf = isTracked
+    ? (detection as any).geometryConfidence
+    : (detection as FrameDetection).geometry?.geometryConfidence ?? 0;
+
+  // Gating for overlays - Stage 1 (0.15 floor)
+  if (geoConf < DETECTION_THRESHOLDS.GEOMETRY_RENDER_MIN) return null;
+
+  const status = (detection as any).labelDisplayStatus || 'tentative';
+
+  return {
+    id: isTracked ? (detection as TrackedObject).trackedObjectId : (detection as FrameDetection).detectionId,
+    trackId: detection.trackId,
+    box: geometry.bbox,
+    polygon: geometry.polygon,
+    geometryType: geometry.type === 'polygon' ? 'polygon' : 'bbox',
+
+    // Confidence scores
+    geometryConfidence: geoConf,
+    identityConfidence: prediction.identityConfidence ?? 0,
+    colorConfidence: prediction.colorConfidence ?? 0,
+    dimensionConfidence: prediction.dimensionConfidence ?? 0,
+
+    // Phase 7/8 Attributes
+    brickFamily: prediction.brickFamily,
+    dimensionsLabel: prediction.dimensionsLabel,
+    compactLabel: (detection as any).compactLabel || generationFallbackLabel(detection as any),
+
+    // Status
+    isTracked,
+    isStable: geoConf >= DETECTION_THRESHOLDS.GEOMETRY_STABLE_MIN,
+    labelDisplayStatus: status
+  };
+}
+
+export const generationFallbackLabel = (detection: FrameDetection | TrackedObject): string => {
+  // Check if it's a TrackedObject (has consensus fields)
+  if ('consensusBrickName' in detection) {
+    if (detection.consensusBrickName) return detection.consensusBrickName;
+    const parts = [];
+    if (detection.consensusColorName) parts.push(detection.consensusColorName);
+    return parts.join(' ') || 'Generic Brick';
+  }
+
+  // Handle FrameDetection
+  const p = (detection as FrameDetection).prediction;
+  if (p.brickName) return p.brickName;
+
+  const components = [];
+  if (p.brickColorName) components.push(p.brickColorName);
+  if (p.brickFamily) components.push(p.brickFamily);
+  if (p.dimensionsLabel) components.push(p.dimensionsLabel);
+
+  return components.length > 0 ? components.join(' ') : 'Generic Brick';
+};
+
+/**
+ * 🔒 RENDER ADAPTER
+ * Converts a FrameDetection into a UI-safe renderable object.
+ */
+export interface RenderableDetection {
+  id: string;
+  box: { xMin: number; yMin: number; xMax: number; yMax: number };
+  shouldRenderGeometry: boolean;
+  shouldRenderLabel: boolean;
+  displayText: string;
+  labelDisplayStatus: string;
+  color?: string;
+  brickFamily?: string;
+  dimensionsLabel?: string;
+}
+
+export function toRenderableDetection(detection: FrameDetection): RenderableDetection {
+  const geoConf = detection.geometry?.geometryConfidence ?? 0;
+  const prediction = detection.prediction || {};
+  const status = detection.labelDisplayStatus || 'tentative';
+
+  const shouldRenderGeometry = geoConf >= DETECTION_THRESHOLDS.GEOMETRY_RENDER_MIN;
+
+  // Show label if identity or dimensions are somewhat resolved
+  const shouldRenderLabel = status !== 'hidden' && (geoConf > 0.4 || prediction.identityConfidence > 0.5);
+
+  const displayText = detection.compactLabel || generationFallbackLabel(detection);
+
+  return {
+    id: detection.detectionId,
+    box: detection.geometry.bbox,
+    shouldRenderGeometry,
+    shouldRenderLabel,
+    displayText,
+    labelDisplayStatus: status,
+    color: prediction.brickColorName,
+    brickFamily: prediction.brickFamily,
+    dimensionsLabel: prediction.dimensionsLabel
+  };
+}
 
 // ─── Image Loaders ───────────────────────────────────────────────
 

@@ -121,7 +121,26 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
         return result;
     }, [activeCategory, search, filterColor, sortBy, realCollection]);
 
-    const filteredSets: any[] = []; // TODO: Load real sets from API
+    const filteredSets: LegoSet[] = [
+        {
+            id: 'set_1',
+            setNumber: '10305',
+            name: 'Lion Knights\' Castle',
+            image: 'https://images.brickset.com/sets/images/10305-1.jpg',
+            partCount: 4514,
+            ownedParts: 1240,
+            bricks: []
+        },
+        {
+            id: 'set_2',
+            setNumber: '10497',
+            name: 'Galaxy Explorer',
+            image: 'https://images.brickset.com/sets/images/10497-1.jpg',
+            partCount: 1254,
+            ownedParts: 1254,
+            bricks: []
+        }
+    ];
 
     const uniqueCount = filteredBricks.length;
     const totalCount = filteredBricks.reduce((sum, brick) => sum + brick.count, 0);
@@ -249,7 +268,7 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                                             className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize border transition-colors flex items-center gap-2 ${filterColor === color ? 'bg-orange-500 text-white border-orange-500' : 'bg-slate-800 text-slate-300 border-white/10'}`}
                                         >
                                             {color !== 'All' && (
-                                                <div className="w-2 h-2 rounded-full border border-white/20" style={{ backgroundColor: color === 'red' ? '#EF4444' : '#CBD5E1' }} />
+                                                <div className="w-2 h-2 rounded-full border border-white/20" style={{ backgroundColor: color === 'red' ? '#EF4444' : color === 'blue' ? '#3B82F6' : color === 'yellow' ? '#EAB308' : color === 'green' ? '#22C55E' : color === 'white' ? '#FFFFFF' : color === 'black' ? '#000000' : '#CBD5E1' }} />
                                             )}
                                             {color}
                                         </button>
@@ -364,7 +383,7 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                                         <h3 className="font-bold text-white text-sm leading-tight truncate">{brick.name}</h3>
                                         {brick.color && (
                                             <div className="flex items-center gap-1 mt-2">
-                                                <div className="w-2 h-2 rounded-full border border-slate-200" style={{ backgroundColor: brick.color === 'red' ? '#EF4444' : '#CBD5E1' }} />
+                                                <div className="w-2 h-2 rounded-full border border-white/20" style={{ backgroundColor: brick.color === 'red' ? '#EF4444' : brick.color === 'blue' ? '#3B82F6' : brick.color === 'yellow' ? '#EAB308' : brick.color === 'green' ? '#22C55E' : brick.color === 'white' ? '#FFFFFF' : brick.color === 'black' ? '#000000' : '#CBD5E1' }} />
                                                 <span className="text-[10px] font-bold text-slate-400 capitalize">{brick.color}</span>
                                             </div>
                                         )}

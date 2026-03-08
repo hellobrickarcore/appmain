@@ -97,6 +97,26 @@ XP_CONFIG = {
     "level": {
         "xp_per_level": 500,
         "max_level": 1000
+    },
+    "annotation": {
+        "per_item_xp": 8,
+        "session_bonuses": [
+            {"count": 5, "bonus_xp": 50},
+            {"count": 20, "bonus_xp": 150}
+        ],
+        "diminishing": {
+            "daily_counts": [
+                {"from": 1, "to": 50, "multiplier": 1.0},
+                {"from": 51, "to": 150, "multiplier": 0.7},
+                {"from": 151, "to": 9999, "multiplier": 0.4}
+            ]
+        },
+        "quality_multiplier": {
+            "verified": 1.0,
+            "partial": 0.5,
+            "rejected": 0.0
+        },
+        "verification_bonus": 2
     }
 }
 

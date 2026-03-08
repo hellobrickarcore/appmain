@@ -9,6 +9,10 @@ coverage/
 # Production
 dist/
 build/
+.next/
+web/.next/
+**/.next/
+out/
 
 # Large Models and Datasets
 server/models/

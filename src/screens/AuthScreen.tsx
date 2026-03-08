@@ -230,7 +230,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticate, onNaviga
           {/* Fallback for development (demo mode link) */}
           {!supabaseAvailable && (
             <button
-              onClick={onAuthenticate}
+              onClick={() => onNavigate && onNavigate(Screen.HOME)}
               disabled={!termsAccepted}
               className={`mt-4 text-xs font-bold ${termsAccepted ? 'text-white underline hover:text-orange-400' : 'text-slate-500 cursor-not-allowed'} transition-colors`}
             >

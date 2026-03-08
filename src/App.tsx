@@ -26,29 +26,55 @@ import { BottomNav } from './components/BottomNav';
 const App: React.FC = () => {
   // Determine initial screen based on onboarding/auth state
   const getInitialScreen = (): Screen => {
-    const hasFinishedIntro = localStorage.getItem('hellobrick_onboarding_finished');
     const isAuthenticated = localStorage.getItem('hellobrick_authenticated');
+    const hasFinishedIntro = localStorage.getItem('hellobrick_onboarding_finished');
 
-    if (!hasFinishedIntro) return Screen.FEATURE_INTRO;
     if (!isAuthenticated) return Screen.AUTH;
+    if (!hasFinishedIntro) return Screen.FEATURE_INTRO;
     return Screen.HOME;
   };
 
   const [currentScreen, setCurrentScreen] = useState<Screen>(getInitialScreen());
   const [battleResult, setBattleResult] = useState<BattleResult | null>(null);
   const [selectedMode, setSelectedMode] = useState<GameModeId>('TARGET');
+  const [activeChallenge, setActiveChallenge] = useState<any>(null);
 
   const handleNavigate = (screen: Screen, params?: any) => {
+    console.log(`🚀 Navigating to: ${screen}`, params);
+
+    if (screen === Screen.SCANNER && params?.challenge) {
+      console.log('🎯 Setting active challenge:', params.challenge);
+      setActiveChallenge(params.challenge);
+    }
+
     if (screen === Screen.H2H_RESULT && params) {
       setBattleResult(params);
     }
 
-    // Logic for completing onboarding
+    // Logic for completing authentication
     if (screen === Screen.HOME && currentScreen === Screen.AUTH) {
       localStorage.setItem('hellobrick_authenticated', 'true');
+
+      const hasFinishedIntro = localStorage.getItem('hellobrick_onboarding_finished');
+      if (!hasFinishedIntro) {
+        setCurrentScreen(Screen.FEATURE_INTRO);
+        return;
+      }
     }
-    if (screen === Screen.AUTH && currentScreen === Screen.BUILDING_INTRO) {
+
+    // Logic for completing onboarding
+    if (screen === Screen.HOME && currentScreen === Screen.SUBSCRIPTION) {
       localStorage.setItem('hellobrick_onboarding_finished', 'true');
+    }
+
+    // Final check for Auth Screen manual navigation
+    if (currentScreen === Screen.AUTH && screen !== Screen.AUTH) {
+      localStorage.setItem('hellobrick_authenticated', 'true');
+      const hasFinishedIntro = localStorage.getItem('hellobrick_onboarding_finished');
+      if (!hasFinishedIntro && screen === Screen.HOME) {
+        setCurrentScreen(Screen.FEATURE_INTRO);
+        return;
+      }
     }
 
     setCurrentScreen(screen);
@@ -78,7 +104,7 @@ const App: React.FC = () => {
       case Screen.HOME:
         return <HomeScreen onNavigate={handleNavigate} />;
       case Screen.SCANNER:
-        return <ScannerScreen onNavigate={handleNavigate} />;
+        return <ScannerScreen onNavigate={handleNavigate} challenge={activeChallenge} />;
       case Screen.COLLECTION:
         return <CollectionScreen onNavigate={handleNavigate} />;
       case Screen.PROFILE:

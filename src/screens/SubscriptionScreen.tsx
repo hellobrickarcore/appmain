@@ -22,19 +22,15 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
       onNavigate(Screen.HOME);
-    } catch (err) {
-      console.error('Subscription error:', err);
-      // Still navigate for demo purposes if it fails
-      onNavigate(Screen.HOME);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-[#F4F7FA] text-[#1E293B] z-50 flex flex-col font-sans overflow-hidden">
+    <div className="fixed inset-0 bg-[#0A1229] text-white z-50 flex flex-col font-sans overflow-hidden">
       {/* Header with Yellow Radiation/Sun effect */}
-      <div className="relative h-[30vh] flex flex-col items-center justify-end pb-8 overflow-hidden bg-white">
+      <div className="relative h-[30vh] flex flex-col items-center justify-end pb-8 overflow-hidden bg-[#0A1229]">
         {/* Yellow Sun background elements */}
         <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[150%] aspect-square rounded-full bg-gradient-to-b from-[#FFD600] to-[#FFED4B] opacity-40 blur-3xl" />
         <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[100%] aspect-square rounded-full bg-gradient-to-b from-[#FFD600] to-[#FFED4B] opacity-60" />
@@ -53,7 +49,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
           onClick={() => onNavigate(Screen.HOME)}
           className="absolute top-12 right-6 w-10 h-10 bg-black/5 rounded-full flex items-center justify-center z-20"
         >
-          <X className="w-6 h-6 text-[#1E293B]" />
+          <X className="w-6 h-6 text-white" />
         </button>
       </div>
 

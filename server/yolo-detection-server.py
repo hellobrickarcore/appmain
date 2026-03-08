@@ -57,171 +57,181 @@ def initialize_yolo(model_path=None):
     print("❌ No YOLO model found!")
     return False
 
-def detect_color_lab(image, bbox, polygon=None):
-    """Stage 4: Detect color using LAB color space and exact segmentation mask"""
+# 🔒 CANONICAL COLOR PROFILES - LAB Truth
+LEGO_COLOR_PROFILES = [
+    {'name': 'Red', 'lab': [53, 60, 40], 'threshold': 18},
+    {'name': 'Blue', 'lab': [32, 10, -55], 'threshold': 18},
+    {'name': 'Yellow', 'lab': [88, -5, 75], 'threshold': 15},
+    {'name': 'Green', 'lab': [46, -40, 30], 'threshold': 18},
+    {'name': 'White', 'lab': [100, 0, 0], 'threshold': 12},
+    {'name': 'Black', 'lab': [15, 0, 0], 'threshold': 10},
+    {'name': 'Orange', 'lab': [65, 45, 60], 'threshold': 15},
+    {'name': 'Brown', 'lab': [35, 15, 25], 'threshold': 15},
+]
+
+def detect_color_lab_v2(image, bbox, polygon=None):
+    """Resolve color using LAB median inside the actual plastic area."""
     try:
         img_cv = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+        mask = None
         
         if polygon is not None and len(polygon) > 2:
-            # We have a segmentation mask! Ignore background noise.
             mask = np.zeros(img_cv.shape[:2], dtype=np.uint8)
             pts = np.array(polygon, dtype=np.int32)
             cv2.fillPoly(mask, [pts], 255)
-            
-            # Convert to LAB for lighting invariance
-            lab = cv2.cvtColor(img_cv, cv2.COLOR_BGR2LAB)
-            
-            # Get mean color of just the masked plastic area
-            mean_lab = cv2.mean(lab, mask=mask)[:3]
-            
-            # Convert mean LAB back to BGR for our simple dictionary mapping
-            mean_bgr = cv2.cvtColor(np.uint8([[mean_lab]]), cv2.COLOR_LAB2BGR)[0][0]
-            avg_color = [mean_bgr[2], mean_bgr[1], mean_bgr[0]] # RGB
         else:
-            # Fallback to bbox if no segmentation model is loaded
             x, y, w, h = int(bbox['x']), int(bbox['y']), int(bbox['width']), int(bbox['height'])
-            x = max(0, min(x, image.width - 1))
-            y = max(0, min(y, image.height - 1))
-            w = max(1, min(w, image.width - x))
-            h = max(1, min(h, image.height - y))
-            region_cv = img_cv[y:y+h, x:x+w]
-            
-            lab = cv2.cvtColor(region_cv, cv2.COLOR_BGR2LAB)
-            mean_lab = cv2.mean(lab)[:3]
-            mean_bgr = cv2.cvtColor(np.uint8([[mean_lab]]), cv2.COLOR_LAB2BGR)[0][0]
-            avg_color = [mean_bgr[2], mean_bgr[1], mean_bgr[0]] # RGB
-            
-        # 🔒 CANONICAL COLOR MAPPING - Do not change without testing dataset impact
-        lego_colors = {
-            'Red': [180, 20, 20],      # Deep Red
-            'Blue': [0, 50, 160],     # Primary Blue
-            'Yellow': [240, 200, 20],  # Bright Yellow
-            'Green': [20, 120, 40],    # Forest Green
-            'White': [230, 230, 230],  # Slightly off-white for real lighting
-            'Black': [30, 30, 30],     # Dark Gray/Black
-            'Orange': [255, 120, 0],   # Bright Orange
-            'Pink': [255, 140, 180],   # LEGO Bright Pink
-            'Purple': [120, 40, 160],  # LEGO Royal Purple
-            'Brown': [100, 60, 40],    # Reddish Brown
-            'Gray': [140, 140, 140],   # Medium Stone Gray
-            'Lime': [180, 210, 40]     # Bright Green/Lime
-        }
+            cx1 = x + w // 4
+            cy1 = y + h // 4
+            cx2 = x + 3 * w // 4
+            cy2 = y + 3 * h // 4
+            mask = np.zeros(img_cv.shape[:2], dtype=np.uint8)
+            cv2.rectangle(mask, (cx1, cy1), (cx2, cy2), 255, -1)
+
+        lab_img = cv2.cvtColor(img_cv, cv2.COLOR_BGR2LAB)
+        mean_lab = cv2.mean(lab_img, mask=mask)[:3]
         
-        # Find closest color with weighted RGB distance (humans perceive green more)
-        # Or better: use LAB distance for lighting invariance
-        min_dist = float('inf')
-        closest_color = 'Unknown'
+        best_color = 'Unknown'
+        max_conf = 0.0
         
-        # Convert avg_color to LAB for distance (simpler than full conversion if we just use weighted RGB)
-        for color_name, color_rgb in lego_colors.items():
-            # Weighted RGB distance (R*2, G*4, B*3)
-            dr = (avg_color[0] - color_rgb[0]) * 0.3
-            dg = (avg_color[1] - color_rgb[1]) * 0.5
-            db = (avg_color[2] - color_rgb[2]) * 0.2
-            dist = np.sqrt(dr*dr + dg*dg + db*db)
+        for profile in LEGO_COLOR_PROFILES:
+            dist = np.sqrt(sum((a - b) ** 2 for a, b in zip(mean_lab, profile['lab'])))
+            conf = max(0.0, 1.0 - (dist / profile['threshold']))
             
-            if dist < min_dist:
-                min_dist = dist
-                closest_color = color_name
+            if conf > max_conf:
+                max_conf = conf
+                best_color = profile['name']
         
-        return closest_color
+        return best_color, round(max_conf, 2)
     except Exception as e:
-        print(f"Color detection error: {e}")
-        return 'Unknown'
+        print(f"Color detection error v2: {e}")
+        return 'Unknown', 0.0
 
-def determine_brick_type_advanced(image, bbox, polygon=None, class_name=None):
-    """Stage 2 & 3: Homography and Stud Counting for exact brick type"""
-    # If the model explicitly knows the class, trust it
-    if class_name and ('brick' in class_name.lower() or 'plate' in class_name.lower()):
-        return class_name
-    
-    # Stage 2: Perspective Warp via Segmentation Mask
-    if polygon is not None and len(polygon) >= 4:
-        try:
-            # Flatten angled brick into top-down orthogonal view
-            pts = np.array(polygon, dtype=np.float32)
-            rect = cv2.minAreaRect(pts)
-            width = int(rect[1][0])
-            height = int(rect[1][1])
-            
-            aspect_ratio = max(width, height) / max(min(width, height), 1)
-            
-            # Stage 3: Stud Counting (Simulated here via normalized aspect ratios)
-            # In production, we run HoughCircles on the warped image.
-            if aspect_ratio > 3.5:
-                return '1x4 Brick'
-            elif aspect_ratio > 2.5:
-                return '1x3 Brick'
-            elif aspect_ratio > 1.5:
-                return '1x2 Brick'
-            elif max(width, height) < 50:
-                return '1x1 Brick'
-            else:
-                return '2x2 Brick'
-                
-        except Exception as e:
-            print(f"Pose correction error: {e}")
-            pass
-
-    # Fallback basic ratio geometry
+def validate_shape(class_name, bbox, polygon=None):
+    """Validate if the detected geometry matches visual rules."""
     width = bbox['width']
     height = bbox['height']
-    area = width * height
-    aspect_ratio = width / height if height > 0 else 1
+    aspect_ratio = max(width, height) / max(min(width, height), 1)
     
-    if aspect_ratio > 2.5:
-        return 'Plate'
-    elif area < 1000:
-        return '1x1 Brick'
-    elif area < 2000:
-        return '1x2 Brick'
-    elif area < 4000:
-        return '2x2 Brick'
-    else:
-        return '2x4 Brick'
-
-def calculate_iou(box1, box2):
-    """Calculate Intersection over Union (IoU) of two bounding boxes"""
-    x1 = max(box1['x'], box2['x'])
-    y1 = max(box1['y'], box2['y'])
-    x2 = min(box1['x'] + box1['width'], box2['x'] + box2['width'])
-    y2 = min(box1['y'] + box1['height'], box2['y'] + box2['height'])
-    
-    if x2 <= x1 or y2 <= y1:
-        return 0.0
-    
-    intersection = (x2 - x1) * (y2 - y1)
-    area1 = box1['width'] * box1['height']
-    area2 = box2['width'] * box2['height']
-    union = area1 + area2 - intersection
-    
-    return intersection / union if union > 0 else 0.0
-
-def filter_overlapping_detections_strict(detections, iou_threshold=0.4):
-    """Filter overlapping detections using strict IoU threshold"""
-    if not detections:
-        return []
-    
-    # Sort by confidence (highest first)
-    sorted_dets = sorted(detections, key=lambda x: x['confidence'], reverse=True)
-    filtered = []
-    
-    for det in sorted_dets:
-        is_overlapping = False
-        for existing in filtered:
-            iou = calculate_iou(det['bbox'], existing['bbox'])
-            if iou > iou_threshold:
-                is_overlapping = True
-                break
+    if '2x4' in class_name and aspect_ratio < 1.4:
+        return False, "Aspect ratio too square for 2x4"
+    if '2x2' in class_name and aspect_ratio > 1.6:
+        return False, "Aspect ratio too rectangular for 2x2"
         
-        if not is_overlapping:
-            filtered.append(det)
+    return True, None
+
+def infer_brick_attributes(bbox, polygon=None):
+    """Stage 2 Refinement: Infer dimensions and brick family."""
+    w, h = bbox['width'], bbox['height']
+    aspect_ratio = max(w, h) / max(min(w, h), 1.0)
     
-    return filtered
+    family = "Brick"
+    dims = "2x2"
+    conf = 0.5
+
+    if 0.8 <= aspect_ratio <= 1.2:
+        dims = "2x2"
+        conf = 0.7
+    elif 1.8 <= aspect_ratio <= 2.2:
+        dims = "2x4"
+        conf = 0.7
+    elif 3.8 <= aspect_ratio <= 4.2:
+        dims = "1x4"
+        conf = 0.6
+    elif aspect_ratio > 4.5:
+        dims = "1x6"
+        conf = 0.5
+        
+    if aspect_ratio > 3.0:
+        family = "Plate"
+        
+    return family, dims, conf
+
+def generate_compact_label(color, family, dims, identity):
+    parts = []
+    if color and color != "Unknown": parts.append(color)
+    if family: parts.append(family)
+    if dims: parts.append(dims)
+    
+    if not parts: return "Brick"
+    return " ".join(parts)
+
+class CentroidTracker:
+    def __init__(self, max_disappeared=5):
+        self.next_object_id = 0
+        self.objects = {}  # id: centroid
+        self.disappeared = {}
+        self.max_disappeared = max_disappeared
+
+    def register(self, centroid):
+        self.objects[self.next_object_id] = centroid
+        self.disappeared[self.next_object_id] = 0
+        self.next_object_id += 1
+        return self.next_object_id - 1
+
+    def deregister(self, object_id):
+        del self.objects[object_id]
+        del self.disappeared[object_id]
+
+    def update(self, rects):
+        if len(rects) == 0:
+            for object_id in list(self.disappeared.keys()):
+                self.disappeared[object_id] += 1
+                if self.disappeared[object_id] > self.max_disappeared:
+                    self.deregister(object_id)
+            return self.objects
+
+        input_centroids = np.zeros((len(rects), 2), dtype="int")
+        for (i, (x1, y1, x2, y2)) in enumerate(rects):
+            cX = int((x1 + x2) / 2.0)
+            cY = int((y1 + y2) / 2.0)
+            input_centroids[i] = (cX, cY)
+
+        if len(self.objects) == 0:
+            for i in range(0, len(input_centroids)):
+                self.register(input_centroids[i])
+        else:
+            object_ids = list(self.objects.keys())
+            object_centroids = list(self.objects.values())
+            
+            D = np.linalg.norm(np.array(object_centroids)[:, np.newaxis] - input_centroids, axis=2)
+            rows = D.min(axis=1).argsort()
+            cols = D.argmin(axis=1)[rows]
+
+            used_rows = set()
+            used_cols = set()
+
+            for (row, col) in zip(rows, cols):
+                if row in used_rows or col in used_cols:
+                    continue
+                
+                object_id = object_ids[row]
+                self.objects[object_id] = input_centroids[col]
+                self.disappeared[object_id] = 0
+                
+                used_rows.add(row)
+                used_cols.add(col)
+
+            unused_rows = set(range(0, D.shape[0])).difference(used_rows)
+            unused_cols = set(range(0, D.shape[1])).difference(used_cols)
+
+            if D.shape[0] >= D.shape[1]:
+                for row in unused_rows:
+                    object_id = object_ids[row]
+                    self.disappeared[object_id] += 1
+                    if self.disappeared[object_id] > self.max_disappeared:
+                        self.deregister(object_id)
+            else:
+                for col in unused_cols:
+                    self.register(input_centroids[col])
+
+        return self.objects
+
+tracker = CentroidTracker()
 
 @app.route('/api/detect', methods=['POST'])
 def detect_bricks():
-    """Main detection endpoint"""
+    """Canonical Three-Stage Detection Pipeline"""
     try:
         if model is None:
             return jsonify({'error': 'Model not initialized'}), 500
@@ -230,205 +240,161 @@ def detect_bricks():
             return jsonify({'error': 'No image provided'}), 400
         
         file = request.files['image']
-        if file.filename == '':
-            return jsonify({'error': 'Empty file'}), 400
-        
-        # Load image
         image_bytes = file.read()
         image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
-        
-        # Get image size for logging
         img_width, img_height = image.size
-        print(f"📸 Image size: {img_width}x{img_height}")
         
-        # Run YOLO inference with standard confidence (0.25)
-        # Using 0.25 to catch more bricks, but keeping IoU strict at 0.45
+        # --- STAGE 1: BRICK PRESENCE (HIGH RECALL) ---
+        # Increased imgsz to 800 for better distance detection
         start_time = time.time()
-        results = model(image, conf=0.25, iou=0.45, max_det=100, imgsz=640)
+        results = model(image, conf=0.10, iou=0.45, imgsz=800)
         inference_ms = int((time.time() - start_time) * 1000)
         
-        print(f"🔍 YOLO detected {len(results)} result(s) in {inference_ms}ms")
-        all_detections = []
+        detections = []
+        raw_rects = []
+        
         for result in results:
             boxes = result.boxes
-            masks = result.masks # This is present if using a segmentation model (e.g. YOLO11-Seg)
-            print(f"📦 Processing {len(boxes)} detection(s) from YOLO")
+            masks = result.masks if hasattr(result, 'masks') else None
+            
             for i, box in enumerate(boxes):
-                x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
-                confidence = float(box.conf[0].cpu().numpy())
+                coords = box.xyxy[0].cpu().numpy()
+                geo_conf = float(box.conf[0].cpu().numpy())
                 class_id = int(box.cls[0].cpu().numpy())
+                class_name = model.names[class_id] if hasattr(model, 'names') else str(class_id)
                 
-                # Extract segmentation polygon if mask exists
-                polygon = None
-                if masks is not None and i < len(masks.xy):
-                    polygon = masks.xy[i].tolist()
+                raw_rects.append(coords)
                 
-                # Use confidence threshold from inference (0.25)
-                # Filter low confidence detections
-                if confidence < 0.25:
-                    continue
+                # --- STAGE 2: STRUCTURAL REFINEMENT ---
+                x1, y1, x2, y2 = coords
+                bbox_dict = {'x': float(x1), 'y': float(y1), 'width': float(x2-x1), 'height': float(y2-y1)}
+                polygon = masks.xy[i].tolist() if masks is not None and i < len(masks.xy) else None
                 
-                print(f"  ✓ Detection {i}: conf={confidence:.2f}, class={class_id}, box=({x1:.0f},{y1:.0f},{x2:.0f},{y2:.0f})")
+                # Refined stage 2 attributes
+                family_raw, dims, dim_conf = infer_brick_attributes(bbox_dict, polygon)
+                color_name, color_conf = detect_color_lab_v2(image, bbox_dict, polygon)
                 
-                width = float(x2 - x1)
-                height = float(y2 - y1)
-                area = width * height
+                # Logic to distinguish Tile vs Plate (Stud Check)
+                # If the area is very flat and we don't see small circles (studs), it's a tile
+                family = family_raw
+                if family == "Plate" and geo_conf > 0.4:
+                   # Heuristic: Tiles are smoother. 
+                   # For now, if "Tile" is in the class name, trust it.
+                   if "tile" in class_name.lower():
+                       family = "Tile"
                 
-                # Filter by size
-                if area < 100 or area > 500000:
-                    continue
+                # --- STAGE 3: IDENTITY REFINEMENT ---
+                is_valid, reason = validate_shape(class_name, bbox_dict, polygon)
+                identity_conf = geo_conf if is_valid else (geo_conf * 0.4)
                 
-                # Filter by aspect ratio
-                aspect_ratio = width / height if height > 0 else 1
-                if aspect_ratio < 0.2 or aspect_ratio > 5:
-                    continue
+                # Canonical Label Construction: "Color Family Dimensions"
+                compact_label = generate_compact_label(color_name, family, dims, class_name)
                 
-                # Handle metadata in the 604-part dataset (skip first 19 entries)
-                if hasattr(model, 'names'):
-                    if class_id < 19:
-                         # This is likely a metadata entry, skip or label generic
-                         class_name = "Brick"
-                    else:
-                         class_name = model.names[class_id]
-                else:
-                    class_name = f"Part_{class_id}"
-                    
-                bbox = {'x': float(x1), 'y': float(y1), 'width': width, 'height': height}
-                all_detections.append({
-                    'bbox': bbox,
-                    'polygon': polygon,
-                    'confidence': confidence,
-                    'class_id': class_id,
-                    'class_name': class_name
+                label_status = 'tentative'
+                if geo_conf >= 0.6 and identity_conf >= 0.6: # Slightly lowered for 1ft ease
+                    label_status = 'confirmed'
+                elif geo_conf < 0.10: 
+                    label_status = 'hidden'
+                elif not is_valid:
+                    label_status = 'needs_review'
+
+                detections.append({
+                    'detectionId': f'det_{i}_{int(time.time()*1000)}',
+                    'detectionIndex': i,
+                    'trackId': '', 
+                    'geometry': {
+                        'type': 'polygon' if polygon else 'bbox_xyxy',
+                        'bbox': {
+                            'format': 'xyxy', 'space': 'pixel',
+                            'xMin': float(x1), 'yMin': float(y1), 'xMax': float(x2), 'yMax': float(y2)
+                        },
+                        'polygon': [{'x': p[0], 'y': p[1]} for p in polygon] if polygon else None,
+                        'geometryConfidence': round(geo_conf, 2)
+                    },
+                    'prediction': {
+                        'brickName': class_name,
+                        'brickFamily': family,
+                        'dimensionsLabel': dims,
+                        'brickColorName': color_name,
+                        'identityConfidence': round(identity_conf, 2),
+                        'colorConfidence': round(color_conf, 2),
+                        'dimensionConfidence': round(dim_conf, 2),
+                        'rawModelClass': class_name,
+                        'rawModelConfidence': round(geo_conf, 2)
+                    },
+                    'compactLabel': compact_label,
+                    'candidates': [
+                        {'rank': 1, 'brickName': class_name, 'identityConfidence': round(identity_conf, 2), 'colorConfidence': round(color_conf, 2)}
+                    ],
+                    'quality': {
+                        'aspectRatio': round(bbox_dict['width'] / max(bbox_dict['height'], 1), 2),
+                        'isValid': is_valid,
+                        'reason': reason
+                    },
+                    'reviewStatus': 'unreviewed',
+                    'labelDisplayStatus': label_status
                 })
+
+        # Update Tracker
+        tracked_objs_map = tracker.update(raw_rects)
         
-        print(f"📊 Total detections before filtering: {len(all_detections)}")
-        
-        # Filter overlapping detections
-        bricks_filtered = filter_overlapping_detections_strict(all_detections, iou_threshold=0.4)
-        print(f"📊 Detections after filtering: {len(bricks_filtered)}")
-        
-        # Process detections into canonical format
-        detections = []
-        
-        for i, det in enumerate(bricks_filtered):
-            bbox = det['bbox']
-            polygon = det.get('polygon')
-            color = detect_color_lab(image, bbox, polygon)
-            brick_type = det['class_name'] if det['class_name'].startswith(('1x', '2x', 'Plate', 'Brick')) else determine_brick_type_advanced(image, bbox, polygon, det['class_name'])
+        # 🔒 Canonical Alignment: Build trackedObjects with consensus fields
+        tracked_objects = []
+        for det in detections:
+            bbox = det['geometry']['bbox']
+            centroid = (int((bbox['xMin'] + bbox['xMax']) / 2), int((bbox['yMin'] + bbox['yMax']) / 2))
             
-            # Canonical xyxy pixel-space geometry
-            x_min = float(bbox['x'])
-            y_min = float(bbox['y'])
-            x_max = float(bbox['x'] + bbox['width'])
-            y_max = float(bbox['y'] + bbox['height'])
+            best_tid = None
+            min_dist = 50 
+            for tid, t_centroid in tracked_objs_map.items():
+                dist = np.linalg.norm(np.array(centroid) - np.array(t_centroid))
+                if dist < min_dist:
+                    min_dist = dist
+                    best_tid = str(tid)
             
-            # Build polygon list if available
-            poly_points = None
-            if polygon and len(polygon) > 2:
-                poly_points = [{'x': float(p[0]), 'y': float(p[1])} for p in polygon]
+            det['trackId'] = best_tid if best_tid else ''
             
-            # Stage 5: Confidence Boosting for Standard Bricks
-            # If it's a standard part (brick, plate, tile) and confidence is > 40%, boost it to 80% range
-            is_standard_part = any(kw in brick_type.lower() for kw in ['brick', 'plate', 'tile', 'stud'])
-            if is_standard_part and confidence > 0.4:
-                confidence = max(confidence, 0.75 + (confidence * 0.1)) # Map to 75-85% range
-            
-            review_required = confidence < 0.6  # Flag low-confidence for review
-            
-            detections.append({
-                'detection_id': f'det_{i}_{int(confidence * 100)}',
-                'track_id': '',  # Placeholder
-                'confidence': confidence,
-                'geometry': {
-                    'format': 'xyxy',
-                    'space': 'pixel',
-                    'bbox_xyxy': [x_min, y_min, x_max, y_max],
-                    'polygon': poly_points
-                },
-                'prediction': {
-                    'brick_part_num': str(det['class_id']),
-                    'brick_name': brick_type,
-                    'color_name': color,
-                    'part_confidence': confidence,
-                    'color_confidence': 0.85 # Improved confidence for refined LAB
-                },
-                'candidates': [
-                    {'brick_part_num': str(det['class_id']), 'label': brick_type, 'confidence': confidence}
-                ],
-                'stud_count_estimate': None,
-                'pose_angle_deg': None,
-                'review_required': review_required
-            })
-        
-        model_version = str(model.model) if model else 'unknown'
-        
-        # If no detections, log warning
-        if len(detections) == 0:
-            print(f"⚠️  No bricks detected! Image: {img_width}x{img_height}, Model: {model_version}")
-        else:
-            print(f"✅ Returning {len(detections)} detection(s)")
-        
+            # If we have a trackId, add to trackedObjects array as well
+            if best_tid:
+                tracked_objects.append({
+                    'trackedObjectId': det['detectionId'],
+                    'trackId': det['trackId'],
+                    'status': 'active',
+                    'totalFramesSeen': 1, # Minimal for now
+                    'stableGeometry': det['geometry'],
+                    'geometryConfidence': det['geometry']['geometryConfidence'],
+                    'identityConfidence': det['prediction']['identityConfidence'],
+                    'colorConfidence': det['prediction']['colorConfidence'],
+                    'dimensionConfidence': det['prediction']['dimensionConfidence'],
+                    'consensusColorName': det['prediction']['brickColorName'],
+                    'consensusBrickFamily': det['prediction']['brickFamily'],
+                    'consensusDimensionsLabel': det['prediction']['dimensionsLabel'],
+                    'consensusPartNum': '',
+                    'consensusBrickName': det['prediction']['brickName'],
+                    'compactLabel': det['compactLabel'],
+                    'labelDisplayStatus': det['labelDisplayStatus']
+                })
+
         return jsonify({
-            'frame_width': img_width,
-            'frame_height': img_height,
-            'model_version': model_version,
-            'inference_time_ms': inference_ms,
+            'sessionId': request.form.get('sessionId', 'manual_session'),
+            'frameId': f'f_{int(time.time()*1000)}',
+            'frameIndex': int(request.form.get('frameIndex', 0)),
+            'frameWidth': img_width,
+            'frameHeight': img_height,
+            'modelVersion': 'v8_three_stage_v3_canonical',
+            'trackedObjects': tracked_objects, 
             'detections': detections,
-            'total_count': len(detections),
-            # Legacy fields for backward compat during migration
-            'bricks': detections,
-            'totalCount': len(detections)
+            'inferenceMs': inference_ms
         })
-        
+
     except Exception as e:
         print(f"❌ Detection error: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({
-            'error': str(e),
-            'bricks': [],
-            'totalCount': 0,
-            'colors': [],
-            'categories': []
-        }), 500
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/health', methods=['GET'])
 def health():
-    """Health check endpoint"""
-    return jsonify({
-        'status': 'ok',
-        'model_loaded': model is not None,
-        'model_path': str(model.model) if model else None
-    })
-
-@app.route('/api/reload-model', methods=['POST'])
-def reload_model():
-    """Reload model (useful when new trained model is available)"""
-    global model
-    model_path = request.json.get('model_path') if request.json else None
-    
-    if initialize_yolo(model_path):
-        return jsonify({'status': 'success', 'model_path': str(model.model)})
-    else:
-        return jsonify({'status': 'error', 'message': 'Failed to load model'}), 500
+    return jsonify({'status': 'ok', 'model_loaded': model is not None})
 
 if __name__ == '__main__':
-    print("🚀 Starting YOLO Detection Server...")
-    print("=" * 50)
-    
-    # Use port 3003 (3001, 3002, and 4000 are in use)
-    PORT = 3003
-    
-    if initialize_yolo():
-        print("\n✅ Server ready!")
-        print(f"📡 Listening on http://0.0.0.0:{PORT}")
-        print("🔍 Detection endpoint: POST /api/detect")
-        print("💚 Health check: GET /api/health")
-        print("🔄 Reload model: POST /api/reload-model")
-        print("\n" + "=" * 50)
-        app.run(host='0.0.0.0', port=PORT, debug=False)
-    else:
-        print("\n❌ Failed to initialize model. Exiting.")
-        exit(1)
-
+    initialize_yolo()
+    app.run(host='0.0.0.0', port=3003, debug=False)

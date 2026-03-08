@@ -58,7 +58,7 @@ export const BuildingIntroScreen: React.FC<BuildingIntroScreenProps> = ({ onNavi
       {/* Button Area */}
       <div className="px-8 pb-12 relative z-10">
         <button
-          onClick={() => onNavigate(Screen.AUTH)}
+          onClick={() => onNavigate(Screen.SUBSCRIPTION)}
           className="w-full bg-[#3B82F6] hover:bg-[#2563EB] text-white py-6 rounded-[24px] font-black text-xl shadow-xl active:scale-[0.98] transition-all"
         >
           Continue
