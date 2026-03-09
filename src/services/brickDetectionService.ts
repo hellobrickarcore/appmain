@@ -19,9 +19,15 @@ const getDetectionAPIUrl = (): string => {
  */
 export const detectBricks = async (
   image: HTMLImageElement | HTMLCanvasElement | HTMLVideoElement | File | string,
-  sessionId = 'session_manual',
-  frameIndex = 0
+  options: {
+    sessionId?: string;
+    frameIndex?: number;
+    mode?: 'mass_capture' | 'live_scanner';
+    imgsz?: number;
+    debugMode?: boolean;
+  } = {}
 ): Promise<ScanFrameResponse> => {
+  const { sessionId = 'session_manual', frameIndex = 0, mode = 'live_scanner', imgsz, debugMode = false } = options;
   try {
     let canvas: HTMLCanvasElement;
 
@@ -64,15 +70,15 @@ export const detectBricks = async (
     const originalWidth = canvas.width;
     const originalHeight = canvas.height;
 
-    // Resize for YOLO (800px for UX Overhaul / Distance)
-    const MAX_WIDTH = 800;
-    const MAX_HEIGHT = 600;
+    // Resize logic
+    // Mass capture allows higher resolution
+    const MAX_DIM = mode === 'mass_capture' ? 1024 : 800;
     let processedCanvas = canvas;
     let scaleX = 1;
     let scaleY = 1;
 
-    if (canvas.width > MAX_WIDTH || canvas.height > MAX_HEIGHT) {
-      const scale = Math.min(MAX_WIDTH / canvas.width, MAX_HEIGHT / canvas.height);
+    if (canvas.width > MAX_DIM || canvas.height > MAX_DIM) {
+      const scale = Math.min(MAX_DIM / canvas.width, MAX_DIM / canvas.height);
       processedCanvas = document.createElement('canvas');
       processedCanvas.width = Math.floor(canvas.width * scale);
       processedCanvas.height = Math.floor(canvas.height * scale);
@@ -88,13 +94,15 @@ export const detectBricks = async (
       processedCanvas.toBlob((blob) => {
         if (blob) resolve(blob);
         else reject(new Error('Failed to convert canvas to blob'));
-      }, 'image/jpeg', 0.8);
+      }, 'image/jpeg', 0.85);
     });
 
     const formData = new FormData();
     formData.append('image', blob, 'frame.jpg');
     formData.append('sessionId', sessionId);
     formData.append('frameIndex', frameIndex.toString());
+    formData.append('mode', mode);
+    if (imgsz) formData.append('imgsz', imgsz.toString());
 
     const apiUrl = getDetectionAPIUrl();
     const response = await fetch(`${apiUrl}/detect`, {
@@ -158,6 +166,42 @@ export const detectBricks = async (
       } satisfies FrameDetection;
     });
 
+    const trackedObjects: TrackedObject[] = (data.trackedObjects || []).map((to: any) => {
+      const geo = to.stableGeometry || {};
+      const bbox = geo.bbox || {};
+      return {
+        trackedObjectId: to.trackedObjectId || `track_${to.trackId}`,
+        trackId: to.trackId,
+        status: to.status || 'active',
+        totalFramesSeen: to.totalFramesSeen ?? 1,
+        stableGeometry: {
+          type: geo.type || 'bbox_xyxy',
+          bbox: {
+            format: 'xyxy',
+            space: 'pixel',
+            xMin: (bbox.xMin ?? 0) * scaleX,
+            yMin: (bbox.yMin ?? 0) * scaleY,
+            xMax: (bbox.xMax ?? 0) * scaleX,
+            yMax: (bbox.yMax ?? 0) * scaleY
+          },
+          polygon: geo.polygon?.map((p: any) => ({
+            x: (p.x ?? 0) * scaleX,
+            y: (p.y ?? 0) * scaleY
+          })),
+          geometryConfidence: geo.geometryConfidence ?? 0
+        },
+        consensusBrickName: to.consensusBrickName,
+        consensusColorName: to.consensusColorName,
+        consensusBrickFamily: to.consensusBrickFamily,
+        consensusDimensionsLabel: to.consensusDimensionsLabel,
+        geometryConfidence: to.geometryConfidence ?? 0,
+        identityConfidence: to.identityConfidence ?? 0,
+        colorConfidence: to.colorConfidence ?? 0,
+        labelDisplayStatus: to.labelDisplayStatus || 'confirmed',
+        promotedToCollection: to.promotedToCollection ?? false
+      };
+    });
+
     return {
       sessionId: data.sessionId,
       frameId: data.frameId,
@@ -165,7 +209,8 @@ export const detectBricks = async (
       frameWidth: originalWidth,
       frameHeight: originalHeight,
       modelVersion: data.modelVersion,
-      detections
+      detections,
+      trackedObjects
     };
   } catch (error) {
     console.error('Brick detection error:', error);
@@ -193,8 +238,8 @@ export function toDetectionOverlay(
     ? (detection as any).geometryConfidence
     : (detection as FrameDetection).geometry?.geometryConfidence ?? 0;
 
-  // Gating for overlays - Stage 1 (0.15 floor)
-  if (geoConf < DETECTION_THRESHOLDS.GEOMETRY_RENDER_MIN) return null;
+  // Gating for overlays - Stage 1 (0.10 floor)
+  if (geoConf < 0.10) return null;
 
   const status = (detection as any).labelDisplayStatus || 'tentative';
 
@@ -219,7 +264,9 @@ export function toDetectionOverlay(
     // Status
     isTracked,
     isStable: geoConf >= DETECTION_THRESHOLDS.GEOMETRY_STABLE_MIN,
-    labelDisplayStatus: status
+    labelDisplayStatus: status,
+    x: geometry.bbox.xMin,
+    y: geometry.bbox.yMin
   };
 }
 
@@ -316,3 +363,11 @@ export const segmentBrick = async () => [];
 export const validateBrickMatch = () => true;
 export const initializeYOLO = async () => { };
 export const initializeSAM3 = async () => { };
+
+export const brickDetectionService = {
+  scanFrame: detectBricks,
+  detectBricks,
+  toDetectionOverlay,
+  toRenderableDetection,
+  generationFallbackLabel
+};

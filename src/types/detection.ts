@@ -103,6 +103,17 @@ export interface ScanFrameResponse {
     frameHeight: number;
     modelVersion: string;
     detections: FrameDetection[];
+    trackedObjects?: TrackedObject[];
+    inferenceMs?: number;
+    debug?: {
+        raw: number;
+        valid_geo: number;
+        after_nms: number;
+        final: number;
+        color_estimates: number;
+        dim_estimates: number;
+        identity_estimates: number;
+    };
 }
 
 export interface TrackedObject {
@@ -150,6 +161,8 @@ export interface DetectionOverlay {
     geometryType: 'bbox' | 'polygon';
     box?: { xMin: number; yMin: number; xMax: number; yMax: number };
     polygon?: { x: number; y: number }[];
+    x?: number; // Added for display debugging
+    y?: number; // Added for display debugging
     geometryConfidence: number;
     identityConfidence: number;
     colorConfidence: number;
