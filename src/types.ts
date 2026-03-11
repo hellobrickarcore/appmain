@@ -12,6 +12,7 @@ export enum Screen {
   TRAINING_INTRO = 'TRAINING_INTRO',
   LEADERBOARD = 'LEADERBOARD',
   REWARDS = 'REWARDS',
+  INSTRUCTIONS = 'INSTRUCTIONS',
   FEED = 'FEED',
   PROFILE_SETTINGS = 'PROFILE_SETTINGS',
   CONNECT = 'CONNECT',
@@ -60,6 +61,7 @@ export interface Brick {
   color_confidence?: number;
   dimensions?: string;
   confidence?: number;
+  owned?: number;
 }
 
 export interface LegoSet {

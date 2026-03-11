@@ -17,19 +17,6 @@ interface ScannerScreenProps {
   onPhaseChange?: (phase: string) => void;
 }
 
-const DebugMetric: React.FC<{ label: string; value: string | number; sub?: string; drop?: number; color?: string }> = ({ label, value, sub, drop, color }) => (
-  <div className="flex justify-between items-center text-[10px]">
-    <span className="text-slate-400 font-medium">{label}</span>
-    <div className="flex items-center gap-1.5 leading-none">
-      {drop !== undefined && drop > 0 && (
-        <span className="text-[8px] text-red-500/80 font-bold">-{drop}</span>
-      )}
-      <span className={`font-black font-mono ${color || 'text-white'}`}>{value}</span>
-      {sub && <span className="text-[8px] text-slate-500 ml-1">{sub}</span>}
-    </div>
-  </div>
-);
-
 export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challenge, onPhaseChange }) => {
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -78,8 +65,6 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
   });
 
   const lastFrameTime = useRef<number>(Date.now());
-  const [isManualAdding, setIsManualAdding] = useState(false);
-  const [editingBrickId, setEditingBrickId] = useState<string | null>(null);
   const [previewLayout, setPreviewLayout] = useState<PreviewLayout>({
     sourceWidth: 640,
     sourceHeight: 480,
@@ -162,6 +147,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
       }
     };
 
+    console.log("[Scanner Lifecycle] Route Enter / Component Mount");
     startCamera();
     warmup();
 
@@ -190,7 +176,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
 
     return () => {
       active = false;
-      console.log("[Scanner] Unmounting, cleaning up...");
+      console.log("[Scanner Lifecycle] Route Exit / Component Unmount cleanup");
       clearInterval(watchdogInterval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       stopCamera();
@@ -468,8 +454,6 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
     }
   }, [isScanningHolistically, holisticBricks]);
 
-  const deleteBrick = (id: string) => setDetectedBricks(prev => prev.filter(b => b.id !== id));
-  const updateBrick = (id: string, updates: any) => setDetectedBricks(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b));
   const toggleSelection = (id: string) => setDetectedBricks(prev => prev.map(b => b.id === id ? { ...b, selected: !b.selected } : b));
 
   const handleSaveSelected = async () => {
@@ -537,9 +521,11 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
         >
           <X className="w-5 h-5" />
         </button>
-        <button onClick={() => setDebugMode(!debugMode)} className={`w-10 h-10 ${debugMode ? 'bg-orange-500' : 'bg-black/40'} backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20`}>
-          <Bug className="w-5 h-5" />
-        </button>
+        {import.meta.env.MODE === 'development' && (
+          <button onClick={() => setDebugMode(!debugMode)} className={`w-10 h-10 ${debugMode ? 'bg-orange-500' : 'bg-black/40'} backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20`}>
+            <Bug className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       {inferenceStuck && (
@@ -568,6 +554,21 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
             <DetectionOverlayLayer overlays={overlays} layout={previewLayout} debugMode={debugMode} />
           </div>
 
+          {debugMode && (
+            <div className="absolute top-24 left-4 right-4 z-50 bg-black/80 backdrop-blur-md p-4 rounded-xl border border-white/20 text-[10px] space-y-1">
+              <h3 className="text-orange-500 font-bold mb-2 uppercase border-b border-orange-500/30 pb-1">Lifecycle Instrumentation</h3>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                <div className="text-slate-400">Route active: <span className="text-green-400 font-mono">YES</span></div>
+                <div className="text-slate-400">Camera stream: <span className={`font-mono ${hasPermission ? 'text-green-400' : 'text-red-400'}`}>{hasPermission ? 'ACTIVE' : 'INACTIVE'}</span></div>
+                <div className="text-slate-400">Detector state: <span className={`font-mono ${phase === 'warmup' ? 'text-yellow-400' : 'text-green-400'}`}>{phase.toUpperCase()}</span></div>
+                <div className="text-slate-400">Inference loop: <span className={`font-mono ${isDetectingRef.current ? 'text-blue-400' : 'text-slate-500'}`}>{isDetectingRef.current ? 'RUNNING' : 'WAITING'}</span></div>
+                <div className="text-slate-400 col-span-2 mt-1">Last detection: <span className="text-white font-mono">{Date.now() - lastInferenceRef.current}ms ago</span></div>
+                <div className="text-slate-400 col-span-2">Tracked overlays: <span className="text-white font-mono">{overlays.length}</span></div>
+                <div className="text-slate-400 col-span-2">Inference ms: <span className="text-white font-mono">{debugStats.inferenceMs.toFixed(1)}ms</span></div>
+              </div>
+            </div>
+          )}
+
           {phase === 'warmup' && (
             <div className="absolute inset-0 bg-black flex items-center justify-center z-50">
               <div className="flex flex-col items-center gap-4">
@@ -585,7 +586,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
             </div>
           )}
 
-          <div className="absolute bottom-12 left-0 right-0 z-40 px-8 flex items-center justify-between pointer-events-none">
+          <div className="absolute bottom-[max(calc(env(safe-area-inset-bottom)+110px),110px)] left-0 right-0 z-40 px-8 flex items-center justify-between pointer-events-none">
             <button
               onClick={() => setIsScanningHolistically(!isScanningHolistically)}
               className={`w-14 h-14 rounded-2xl flex items-center justify-center pointer-events-auto transition-all ${isScanningHolistically ? 'bg-orange-500 scale-110 shadow-[0_0_20px_rgba(249,115,22,0.5)]' : 'bg-white/10 backdrop-blur-md border border-white/20'}`}
@@ -612,7 +613,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
           </div>
 
           {isScanningHolistically && (
-            <div className="absolute bottom-36 left-1/2 -translate-x-1/2 z-40 bg-orange-500 px-4 py-1 rounded-full animate-bounce shadow-lg">
+            <div className="absolute bottom-[max(calc(env(safe-area-inset-bottom)+200px),200px)] left-1/2 -translate-x-1/2 z-40 bg-orange-500 px-4 py-1 rounded-full animate-bounce shadow-lg">
               <span className="text-[10px] font-black text-white uppercase tracking-widest whitespace-nowrap">Collecting: {holisticBricks.length} Bricks</span>
             </div>
           )}
@@ -693,7 +694,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
               ))}
               <div className="h-32" />
             </div>
-            <div className="pt-6 pb-28 border-t border-white/5 bg-slate-900 px-6 -mx-6 mb-[-24px]">
+            <div className="pt-6 pb-[max(calc(env(safe-area-inset-bottom)+120px),120px)] border-t border-white/5 bg-slate-900 px-6 -mx-6 mb-[-24px]">
               {saveSuccess ? (
                 <div className="py-4 text-center bg-green-500/20 text-green-400 rounded-xl font-bold flex items-center justify-center gap-2 animate-bounce">
                   <CheckCircle2 className="w-5 h-5" /> Saved!

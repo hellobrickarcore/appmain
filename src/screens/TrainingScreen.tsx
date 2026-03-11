@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { UploadCloud, ChevronLeft, Award, Loader2, CheckCircle, XCircle, Eye } from 'lucide-react';
 import { Screen } from '../types';
+import { xpHelpers } from '../services/xpService';
+import confetti from 'canvas-confetti';
 
 interface TrainingScreenProps {
   onNavigate: (screen: Screen) => void;
@@ -40,59 +42,76 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ onNavigate }) =>
     family: 'Brick'
   });
 
+  const [trainingQueue, setTrainingQueue] = useState<TrainingItem[]>([
+    {
+      id: 'mock1',
+      image: 'https://images.brickset.com/parts/design1.jpg',
+      predictedLabel: 'Brick 2x4',
+      confidence: '89%',
+      partNumber: '3001',
+      color: 'Red',
+      currentVotes: 2,
+      required: 5
+    },
+    {
+      id: 'mock2',
+      image: 'https://images.brickset.com/parts/design1.jpg',
+      predictedLabel: 'Plate 1x2',
+      confidence: '76%',
+      partNumber: '3023',
+      color: 'Blue',
+      currentVotes: 4,
+      required: 5
+    },
+    {
+      id: 'mock3',
+      image: 'https://images.brickset.com/parts/design1.jpg',
+      predictedLabel: 'Slope 45 2x2',
+      confidence: '65%',
+      partNumber: '3039',
+      color: 'Yellow',
+      currentVotes: 1,
+      required: 5
+    }
+  ]);
+
   const loadNextTrainingItem = async () => {
     setVerifyLoading(true);
     setVoteFeedback(null);
-    try {
-      const response = await fetch('/api/dataset/training/next');
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.item) {
-          setCurrentItem(data.item);
+    
+    setTimeout(() => {
+        if (trainingQueue.length > 0) {
+            setCurrentItem(trainingQueue[0]);
         } else {
-          setCurrentItem(null);
+            setCurrentItem(null);
         }
-      } else {
-        setCurrentItem(null);
-      }
-    } catch (err) {
-      console.error('Error loading training item:', err);
-      setCurrentItem(null);
-    } finally {
-      setVerifyLoading(false);
-    }
+        setVerifyLoading(false);
+    }, 600);
   };
 
   const handleVote = async (confirmed: boolean, correction?: typeof correctionData) => {
     if (!currentItem) return;
 
     setVoteFeedback(confirmed ? 'correct' : 'incorrect');
+    confetti({
+      particleCount: 50,
+      spread: 60,
+      origin: { y: 0.8 },
+      colors: ['#22c55e', '#3b82f6', '#f97316']
+    });
 
     try {
-      const userId = localStorage.getItem('hellobrick_userId') || 'anonymous';
-      await fetch('/api/dataset/training/vote', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          itemId: currentItem.id,
-          confirmed,
-          correction,
-          userId,
-          timestamp: Date.now(),
-        }),
-      });
-
+      await xpHelpers.annotationSubmitted(1);
       setVerifyCount(prev => prev + 1);
-      setVerifyXP(prev => prev + (correction ? 15 : 5));
+      setVerifyXP(prev => prev + 50);
     } catch (err) {
       console.error('Error submitting vote:', err);
     }
 
-    // Reset states
     setIsCorrecting(false);
     setCorrectionData({ name: '', color: '', family: 'Brick' });
+    setTrainingQueue(prev => prev.slice(1));
 
-    // Load next item after short delay
     setTimeout(() => {
       loadNextTrainingItem();
     }, 800);
@@ -460,8 +479,8 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ onNavigate }) =>
                 )}
 
                 {voteFeedback && (
-                  <p className="text-center text-blue-400 font-bold text-sm mt-4 animate-in fade-in">
-                    +5 XP earned!
+                  <p className="text-center text-orange-400 font-bold text-sm mt-4 animate-in fade-in flex items-center justify-center gap-2">
+                    <Award className="w-5 h-5" /> +50 XP earned!
                   </p>
                 )}
               </div>

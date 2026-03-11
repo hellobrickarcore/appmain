@@ -1,4 +1,4 @@
-import { Home, Scan, Box, User, Globe } from 'lucide-react';
+import { Home, Scan, Box, User } from 'lucide-react';
 import { Screen } from '../types';
 
 interface BottomNavProps {
@@ -21,9 +21,6 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentScreen, onNavigate 
         </button>
         <button onClick={() => onNavigate(Screen.COLLECTION)} className="p-2">
           <Box className={getIconClass(Screen.COLLECTION)} />
-        </button>
-        <button onClick={() => onNavigate(Screen.CONNECT)} className="p-2 relative group">
-          <Globe className={getIconClass(Screen.CONNECT)} />
         </button>
         <button onClick={() => onNavigate(Screen.PROFILE)} className="p-2">
           <User className={getIconClass(Screen.PROFILE)} />

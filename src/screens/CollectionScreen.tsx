@@ -568,7 +568,13 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                                 ))}
                             </div>
 
-                            <button className="w-full mt-6 py-4 bg-slate-900 text-white font-bold rounded-2xl shadow-lg active:scale-95 transition-transform">
+                            <button 
+                                onClick={() => {
+                                    onNavigate(Screen.INSTRUCTIONS, selectedSet);
+                                    setSelectedSet(null);
+                                }}
+                                className="w-full mt-6 py-4 bg-slate-900 text-white font-bold rounded-2xl shadow-lg active:scale-95 transition-transform"
+                            >
                                 View Building Instructions
                             </button>
                         </div>
