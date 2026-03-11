@@ -185,6 +185,9 @@ export const signOut = async (): Promise<{ error: any }> => {
  */
 export const getCurrentUser = async () => {
   if (!supabase) {
+    if (localStorage.getItem('hellobrick_authenticated') === 'true') {
+      return { id: localStorage.getItem('hellobrick_userId') || `user_${Date.now()}` };
+    }
     return null;
   }
 

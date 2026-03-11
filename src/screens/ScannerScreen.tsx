@@ -319,7 +319,6 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
 
           const validOverlays = nextOverlays.filter(ov => {
             if (!ov.box) return false;
-            if (ov.geometryConfidence < 0.25 && !ov.isStable) return false;
             const isInvalid = ov.box.yMin >= response.frameHeight * 0.95 ||
               ov.box.yMax <= response.frameHeight * 0.05 ||
               ov.box.xMin >= response.frameWidth * 0.95;
@@ -406,7 +405,40 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
       if (ctx) ctx.drawImage(video, 0, 0);
       setCapturedImage(canvas.toDataURL('image/jpeg', 0.9));
 
-      const bricksArr = isScanningHolistically ? holisticBricks : liveBricksRef.current;
+      // If not holistic, actually scan the raw captured photo for accuracy
+      let bricksArr = isScanningHolistically ? holisticBricks : liveBricksRef.current;
+
+      if (!isScanningHolistically) {
+        const response = await brickDetectionService.scanFrame(canvas, {
+          sessionId: `capture_${Date.now()}`,
+          mode: 'mass_capture',
+          debugMode: true
+        });
+        const staticOverlays = response.detections
+          .map(toDetectionOverlay)
+          .filter((o): o is DetectionOverlay => o !== null);
+          
+        bricksArr = staticOverlays.map(o => ({
+          id: o.id,
+          name: o.compactLabel || 'Unknown Brick',
+          color: o.colorName || 'Unknown',
+          family: o.brickFamily || 'Brick',
+          dimensions: o.dimensionsLabel || '',
+          confidence: o.finalConfidence || o.identityConfidence,
+          finalConfidence: o.finalConfidence,
+          identityConfidence: o.identityConfidence,
+          geometryConfidence: o.geometryConfidence,
+          colorConfidence: o.colorConfidence,
+          dimensionConfidence: o.dimensionConfidence,
+          selected: true,
+          box: o.box,
+          displayText: o.compactLabel || 'Unknown Brick',
+          compactLabel: o.compactLabel,
+          colorName: o.colorName,
+          sourceRes: { width: response.frameWidth, height: response.frameHeight },
+          labelDisplayStatus: o.labelDisplayStatus
+        }));
+      }
 
       const bricksWithCrops = await Promise.all(bricksArr.map(async (brick: any) => {
         if (!brick.box) return brick;

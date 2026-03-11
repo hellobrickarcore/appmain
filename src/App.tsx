@@ -28,8 +28,8 @@ import { BottomNav } from './components/BottomNav';
 const App: React.FC = () => {
   // Determine initial screen based on onboarding/auth state
   const getInitialScreen = (): Screen => {
-    const isAuthenticated = Boolean(localStorage.getItem('hellobrick_authenticated'));
-    const hasFinishedIntro = Boolean(localStorage.getItem('hellobrick_onboarding_finished'));
+    const isAuthenticated = localStorage.getItem('hellobrick_authenticated') === 'true';
+    const hasFinishedIntro = localStorage.getItem('hellobrick_onboarding_finished') === 'true';
 
     if (!isAuthenticated) return Screen.AUTH;
     if (!hasFinishedIntro) return Screen.FEATURE_INTRO;
@@ -81,8 +81,8 @@ const App: React.FC = () => {
 
     // Phase 9: Ensure multiplayer doesn't redirect to onboarding for authenticated users
     // Auth route guarding
-    const isAuthenticated = Boolean(localStorage.getItem('hellobrick_authenticated'));
-    const hasFinishedIntro = Boolean(localStorage.getItem('hellobrick_onboarding_finished'));
+    const isAuthenticated = localStorage.getItem('hellobrick_authenticated') === 'true';
+    const hasFinishedIntro = localStorage.getItem('hellobrick_onboarding_finished') === 'true';
     
     // Pages that require authentication
     const authRequiredScreens = [
