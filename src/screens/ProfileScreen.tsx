@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Zap, Diamond, Trophy, Medal, ChevronRight, Smile, Plus, X } from 'lucide-react';
+import { Settings, Zap, Diamond, Trophy, ChevronRight, Smile, Plus, X } from 'lucide-react';
 import { Screen, BadgeType, Achievement } from '../types';
 import { getUserXP, getUserId } from '../services/xpService';
 
@@ -100,9 +100,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
     }, []);
 
     return (
-        <div className="flex flex-col h-full bg-slate-900 font-sans text-white overflow-hidden safe-area-inset">
+        <div className="flex flex-col min-h-[100dvh] bg-slate-950 font-sans text-white relative overflow-hidden">
+            {/* Background effects */}
+            <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/10 blur-[120px] rounded-full -translate-y-1/3 translate-x-1/4" />
+            <div className="absolute bottom-20 left-0 w-64 h-64 bg-purple-500/10 blur-[100px] rounded-full translate-y-1/4 -translate-x-1/4" />
+
             {/* 1. HEADER */}
-            <div className="flex justify-between items-start p-4 sm:p-6 pt-[max(env(safe-area-inset-top),2rem)] border-b border-slate-800 safe-area-top">
+            <div className="relative z-10 flex justify-between items-start p-6 pt-[max(env(safe-area-inset-top),3.5rem)] pb-6 border-b border-white/5 backdrop-blur-md bg-slate-950/50">
                 <div className="flex items-center gap-4">
                     <div className="relative">
                         <div className="w-16 h-16 rounded-full bg-[#ffc0cb] flex items-center justify-center border-2 border-slate-700 overflow-hidden">
@@ -129,37 +133,44 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
                 </button>
             </div>
 
-            <div className="flex-1 px-5 space-y-6 pb-6 pt-4 overflow-y-auto no-scrollbar safe-area-bottom">
+            <div className="flex-1 px-5 space-y-8 pb-32 pt-6 overflow-y-auto no-scrollbar relative z-10">
+                <div>
+                    <h2 className="text-lg font-bold mb-4 text-white">Competition</h2>
+                    <div
+                        onClick={() => onNavigate(Screen.LEADERBOARD)}
+                        className="bg-indigo-600 rounded-3xl p-6 flex flex-col items-center text-center relative overflow-hidden shadow-2xl active:scale-[0.98] transition-all cursor-pointer border-b-4 border-indigo-800"
+                    >
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
+                        <Trophy className="w-12 h-12 text-yellow-400 mb-2 drop-shadow-lg" />
+                        <h3 className="text-xl font-black text-white uppercase italic tracking-tighter">Brick Cup Round 1</h3>
+                        <p className="text-indigo-200 text-xs font-bold mb-4">You are currently Rank #14</p>
+                        <div className="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full backdrop-blur-md">
+                            <span className="text-white font-black text-sm uppercase tracking-widest">View Leaderboard</span>
+                            <ChevronRight className="w-4 h-4 text-white" />
+                        </div>
+                    </div>
+                </div>
+
                 {/* 2. OVERVIEW */}
                 <div>
-                    <h2 className="text-lg font-bold mb-4 text-white">Overview</h2>
-                    <div className="bg-[#1e293b] rounded-2xl p-4 grid grid-cols-2 gap-4 border border-slate-800">
+                    <h2 className="text-lg font-bold mb-4 text-white">My Stats</h2>
+                    <div className="bg-white/5 border border-white/10 rounded-3xl p-6 grid grid-cols-2 gap-6 backdrop-blur-xl">
                         <div className="flex items-center gap-3">
-                            <Zap className="w-6 h-6 text-orange-500 fill-orange-500" />
+                            <div className="w-12 h-12 bg-orange-500/20 rounded-2xl flex items-center justify-center">
+                                <Zap className="w-6 h-6 text-orange-500 fill-orange-500" />
+                            </div>
                             <div>
-                                <span className="block font-bold text-lg leading-none">{userStats.streak}</span>
-                                <span className="text-xs text-slate-400 font-bold uppercase">Day Streak</span>
+                                <span className="block font-black text-xl leading-none">{userStats.streak}</span>
+                                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Streak</span>
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
-                            <Diamond className="w-6 h-6 text-blue-400 fill-blue-400" />
-                            <div>
-                                <span className="block font-bold text-lg leading-none">{userStats.xp.toLocaleString()}</span>
-                                <span className="text-xs text-slate-400 font-bold uppercase">Total XP</span>
+                            <div className="w-12 h-12 bg-blue-500/20 rounded-2xl flex items-center justify-center">
+                                <Diamond className="w-6 h-6 text-blue-400 fill-blue-400" />
                             </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <Trophy className="w-6 h-6 text-yellow-500 fill-yellow-500" />
                             <div>
-                                <span className="block font-bold text-lg leading-none">Bronze</span>
-                                <span className="text-xs text-slate-400 font-bold uppercase">Current League</span>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <Medal className="w-6 h-6 text-purple-500 fill-purple-500" />
-                            <div>
-                                <span className="block font-bold text-lg leading-none">{userStats.setsCompleted}</span>
-                                <span className="text-xs text-slate-400 font-bold uppercase">Top Finishes</span>
+                                <span className="block font-black text-xl leading-none">{userStats.xp.toLocaleString()}</span>
+                                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Total XP</span>
                             </div>
                         </div>
                     </div>

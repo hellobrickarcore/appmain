@@ -27,14 +27,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
     };
 
     return (
-        <div className="flex flex-col min-h-screen bg-[#050A18] font-sans overflow-hidden">
+        <div className="flex flex-col min-h-[100dvh] bg-[#050A18] font-sans overflow-hidden">
             <TopBar currentScreen={Screen.HOME} onNavigate={onNavigate} />
 
             <div className="relative z-40">
                 <LobbyNotification onJoin={handleJoinGame} />
             </div>
 
-            <main className="flex-1 flex flex-col px-6 relative pb-28 overflow-y-auto no-scrollbar">
+            <main className="flex-1 flex flex-col px-6 relative pb-[max(env(safe-area-inset-bottom),112px)] overflow-y-auto no-scrollbar pt-[max(env(safe-area-inset-top),24px)]">
                 <div className="mt-10 text-center space-y-3 mb-12">
                     <h1 className="text-4xl font-black text-white tracking-tight">Let's sort your bricks</h1>
                     <p className="text-slate-400 max-w-[280px] mx-auto leading-tight font-medium text-base">

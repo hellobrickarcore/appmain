@@ -127,6 +127,8 @@ export interface TrackedObject {
     consensusBrickName?: string;
     consensusColorId?: string;
     consensusColorName?: string;
+    consensusBrickFamily?: string;
+    consensusDimensionsLabel?: string;
     geometryConfidence: number;
     identityConfidence: number;
     colorConfidence: number;
@@ -167,8 +169,10 @@ export interface DetectionOverlay {
     identityConfidence: number;
     colorConfidence: number;
     dimensionConfidence: number;
+    finalConfidence: number;
     brickFamily?: string;
     dimensionsLabel?: string;
+    colorName?: string;
     isTracked: boolean;
     isStable: boolean;
     displayText?: string;

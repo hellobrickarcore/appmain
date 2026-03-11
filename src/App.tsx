@@ -13,6 +13,7 @@ import { HeadToHeadMatchmakingScreen } from './screens/HeadToHeadMatchmakingScre
 import { HeadToHeadBattleScreen } from './screens/HeadToHeadBattleScreen';
 import { HeadToHeadResultScreen } from './screens/HeadToHeadResultScreen';
 import { ProfileSettingsScreen } from './screens/ProfileSettingsScreen';
+import { LeaderboardScreen } from './screens/LeaderboardScreen';
 import { ConnectScreen } from './screens/ConnectScreen';
 import { AuthScreen } from './screens/AuthScreen';
 import { SubscriptionScreen } from './screens/SubscriptionScreen';
@@ -42,6 +43,11 @@ const App: React.FC = () => {
   const handleNavigate = (screen: Screen, params?: any) => {
     console.log(`🚀 Navigating to: ${screen}`, params);
 
+    // Clear challenge if moving away from Scanner (unless it's results)
+    if (currentScreen === Screen.SCANNER && screen !== Screen.SCANNER) {
+      setActiveChallenge(null);
+    }
+
     if (screen === Screen.SCANNER && params?.challenge) {
       console.log('🎯 Setting active challenge:', params.challenge);
       setActiveChallenge(params.challenge);
@@ -63,7 +69,7 @@ const App: React.FC = () => {
     }
 
     // Logic for completing onboarding
-    if (screen === Screen.HOME && currentScreen === Screen.SUBSCRIPTION) {
+    if (screen === Screen.HOME && (currentScreen === Screen.SUBSCRIPTION || currentScreen === Screen.BUILDING_INTRO)) {
       localStorage.setItem('hellobrick_onboarding_finished', 'true');
     }
 
@@ -111,6 +117,8 @@ const App: React.FC = () => {
         return <ProfileScreen onNavigate={handleNavigate} />;
       case Screen.PROFILE_SETTINGS:
         return <ProfileSettingsScreen onNavigate={handleNavigate} />;
+      case Screen.LEADERBOARD:
+        return <LeaderboardScreen onNavigate={handleNavigate} />;
       case Screen.QUESTS:
         return <QuestsScreen onNavigate={handleNavigate} />;
       case Screen.PUZZLES:
@@ -145,11 +153,11 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="dark bg-slate-950 min-h-screen text-slate-100 selection:bg-orange-500/30">
+    <div className="dark bg-slate-950 min-h-[100dvh] text-slate-100 selection:bg-orange-500/30">
       {renderScreen()}
 
-      {/* Navigation - Only show on main tabs */}
-      {[Screen.HOME, Screen.SCANNER, Screen.COLLECTION, Screen.PROFILE, Screen.FEED].includes(currentScreen) && (
+      {/* Navigation - Only show on main tabs, but NOT on Scanner to avoid button overlap */}
+      {[Screen.HOME, Screen.COLLECTION, Screen.PROFILE, Screen.FEED, Screen.CONNECT].includes(currentScreen) && (
         <BottomNav currentScreen={currentScreen} onNavigate={handleNavigate} />
       )}
     </div>

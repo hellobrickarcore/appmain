@@ -48,9 +48,9 @@ export const bboxToRenderBox = (
     box: { xMin: number; yMin: number; xMax: number; yMax: number }, // Assuming BoundingBoxXYXY is this type
     sourceW: number,
     sourceH: number,
-    containerW: number,
-    containerH: number,
-    fit: 'cover' | 'contain' = 'cover'
+    _containerW: number,
+    _containerH: number,
+    _fit: 'cover' | 'contain' = 'cover'
 ) => {
     // Simple fallback for now
     const width = ((box.xMax - box.xMin) / sourceW) * 100;
@@ -82,4 +82,26 @@ export function mapPolygonToPreview(
         x: (p.x * scale - cropX),
         y: (p.y * scale - cropY)
     }));
+}
+
+/**
+ * Calculates the Intersection over Union (IoU) of two bounding boxes.
+ */
+export function calculateIOU(
+    boxA: { xMin: number; yMin: number; xMax: number; yMax: number },
+    boxB: { xMin: number; yMin: number; xMax: number; yMax: number }
+): number {
+    const xA = Math.max(boxA.xMin, boxB.xMin);
+    const yA = Math.max(boxA.yMin, boxB.yMin);
+    const xB = Math.min(boxA.xMax, boxB.xMax);
+    const yB = Math.min(boxA.yMax, boxB.yMax);
+
+    const interArea = Math.max(0, xB - xA) * Math.max(0, yB - yA);
+    if (interArea === 0) return 0;
+
+    const boxAArea = (boxA.xMax - boxA.xMin) * (boxA.yMax - boxA.yMin);
+    const boxBArea = (boxB.xMax - boxB.xMin) * (boxB.yMax - boxB.yMin);
+
+    const iou = interArea / (boxAArea + boxBArea - interArea);
+    return iou;
 }

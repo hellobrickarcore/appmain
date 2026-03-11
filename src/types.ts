@@ -56,6 +56,10 @@ export interface Brick {
   count: number;
   category: string;
   color?: string;
+  color_hex?: string;
+  color_confidence?: number;
+  dimensions?: string;
+  confidence?: number;
 }
 
 export interface LegoSet {

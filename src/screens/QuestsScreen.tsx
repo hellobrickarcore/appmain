@@ -32,7 +32,7 @@ export const QuestsScreen: React.FC<QuestsScreenProps> = ({ onNavigate }) => {
     loadData();
   }, []);
   return (
-    <div className="flex flex-col min-h-screen bg-[#faf9f6] relative">
+    <div className="flex flex-col min-h-[100dvh] bg-[#faf9f6] relative">
       <LegoBackground />
 
       {/* Header with Search and Streak */}
@@ -139,8 +139,8 @@ export const QuestsScreen: React.FC<QuestsScreenProps> = ({ onNavigate }) => {
               key={quest.id}
               onClick={() => quest.actionScreen && onNavigate(quest.actionScreen)}
               className={`rounded-[32px] p-6 shadow-sm relative overflow-hidden ${isTrainData
-                  ? 'bg-gradient-to-br from-purple-600 to-purple-700'
-                  : 'bg-white'
+                ? 'bg-gradient-to-br from-purple-600 to-purple-700'
+                : 'bg-white'
                 } ${quest.actionScreen ? 'cursor-pointer active:scale-95 transition-transform' : ''}`}
             >
               <div className="flex justify-between items-start mb-1 relative z-10">
@@ -150,8 +150,8 @@ export const QuestsScreen: React.FC<QuestsScreenProps> = ({ onNavigate }) => {
                 </span>
                 {quest.reward && (
                   <span className={`text-xs px-3 py-1 rounded-full font-bold ${isTrainData
-                      ? 'bg-white/20 text-white'
-                      : 'bg-purple-100 text-purple-700'
+                    ? 'bg-white/20 text-white'
+                    : 'bg-purple-100 text-purple-700'
                     }`}>
                     {quest.reward}
                   </span>
@@ -177,10 +177,10 @@ export const QuestsScreen: React.FC<QuestsScreenProps> = ({ onNavigate }) => {
 
               <div className="flex items-center gap-4 relative z-10">
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isFirstDiscovery
-                    ? 'bg-orange-50 text-orange-500'
-                    : isTrainData
-                      ? 'bg-white/10 text-white'
-                      : 'bg-purple-50 text-purple-500'
+                  ? 'bg-orange-50 text-orange-500'
+                  : isTrainData
+                    ? 'bg-white/10 text-white'
+                    : 'bg-purple-50 text-purple-500'
                   }`}>
                   {isFirstDiscovery ? (
                     <ScanLine className="w-6 h-6" />
@@ -190,8 +190,8 @@ export const QuestsScreen: React.FC<QuestsScreenProps> = ({ onNavigate }) => {
                 </div>
                 {quest.total > 1 && (
                   <div className={`ml-auto w-10 h-10 rounded-full border-2 flex items-center justify-center text-xs font-bold ${isTrainData
-                      ? 'border-white/20 text-white'
-                      : 'border-purple-200 text-purple-700 bg-purple-50'
+                    ? 'border-white/20 text-white'
+                    : 'border-purple-200 text-purple-700 bg-purple-50'
                     }`}>
                     {quest.progress}/{quest.total}
                     <ChevronRight className="w-3 h-3 ml-1" />

@@ -6,6 +6,7 @@ import { TopBar } from '../components/TopBar';
 import { ZoomableImageViewer } from '../components/ZoomableImageViewer';
 import { Screen, Brick, LegoSet } from '../types';
 import { CATEGORIES } from '../constants';
+import { suggestionEngine } from '../services/suggestionEngine';
 
 interface CollectionScreenProps {
     onNavigate: (screen: Screen) => void;
@@ -32,8 +33,9 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
     // Load collection from backend or localStorage
     const loadCollection = async () => {
         try {
-            const userId = localStorage.getItem('hellobrick_userId') || 'anonymous';
             const getApiUrl = () => {
+                const isNative = window.location.protocol === 'capacitor:';
+                if (isNative) return 'http://192.168.1.217:3003/api';
                 return '/api/dataset';
             };
 
@@ -121,26 +123,14 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
         return result;
     }, [activeCategory, search, filterColor, sortBy, realCollection]);
 
-    const filteredSets: LegoSet[] = [
-        {
-            id: 'set_1',
-            setNumber: '10305',
-            name: 'Lion Knights\' Castle',
-            image: 'https://images.brickset.com/sets/images/10305-1.jpg',
-            partCount: 4514,
-            ownedParts: 1240,
-            bricks: []
-        },
-        {
-            id: 'set_2',
-            setNumber: '10497',
-            name: 'Galaxy Explorer',
-            image: 'https://images.brickset.com/sets/images/10497-1.jpg',
-            partCount: 1254,
-            ownedParts: 1254,
-            bricks: []
-        }
-    ];
+    const filteredSets = useMemo(() => {
+        const suggestions = suggestionEngine.getSuggestions(realCollection);
+        if (!search) return suggestions;
+        return suggestions.filter(s =>
+            s.name.toLowerCase().includes(search.toLowerCase()) ||
+            s.setNumber.includes(search)
+        );
+    }, [realCollection, search]);
 
     const uniqueCount = filteredBricks.length;
     const totalCount = filteredBricks.reduce((sum, brick) => sum + brick.count, 0);
@@ -210,10 +200,10 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
     };
 
     return (
-        <div className="flex flex-col min-h-screen bg-slate-950 font-sans relative text-slate-100">
+        <div className="flex flex-col min-h-[100dvh] bg-slate-950 font-sans relative text-slate-100">
             <div className="fixed top-0 left-0 right-0 h-96 bg-gradient-to-b from-orange-600/10 via-orange-500/5 to-transparent pointer-events-none z-0 opacity-80" />
 
-            <div className="relative z-10 flex flex-col min-h-screen pb-24 safe-area-inset">
+            <div className="relative z-10 flex flex-col min-h-[100dvh] pb-[max(env(safe-area-inset-bottom),96px)]">
                 <TopBar currentScreen={Screen.COLLECTION} onNavigate={onNavigate} />
 
                 <div className="px-6 mt-2 mb-4">
@@ -268,7 +258,7 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                                             className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize border transition-colors flex items-center gap-2 ${filterColor === color ? 'bg-orange-500 text-white border-orange-500' : 'bg-slate-800 text-slate-300 border-white/10'}`}
                                         >
                                             {color !== 'All' && (
-                                                <div className="w-2 h-2 rounded-full border border-white/20" style={{ backgroundColor: color === 'red' ? '#EF4444' : color === 'blue' ? '#3B82F6' : color === 'yellow' ? '#EAB308' : color === 'green' ? '#22C55E' : color === 'white' ? '#FFFFFF' : color === 'black' ? '#000000' : '#CBD5E1' }} />
+                                                <div className="w-2 h-2 rounded-full border border-white/20" style={{ backgroundColor: color.toLowerCase() === 'red' ? '#B40000' : color.toLowerCase() === 'blue' ? '#0055BF' : color.toLowerCase() === 'yellow' ? '#F2CD37' : color.toLowerCase() === 'green' ? '#237841' : color.toLowerCase() === 'white' ? '#D9D9D9' : color.toLowerCase() === 'black' ? '#050505' : '#888' }} />
                                             )}
                                             {color}
                                         </button>
@@ -381,12 +371,10 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                                     <div className="p-4 bg-slate-900 relative z-20 border-t border-white/5">
                                         <div className={`text-[10px] font-black uppercase tracking-widest mb-1 ${style.text}`}>{brick.category}</div>
                                         <h3 className="font-bold text-white text-sm leading-tight truncate">{brick.name}</h3>
-                                        {brick.color && (
-                                            <div className="flex items-center gap-1 mt-2">
-                                                <div className="w-2 h-2 rounded-full border border-white/20" style={{ backgroundColor: brick.color === 'red' ? '#EF4444' : brick.color === 'blue' ? '#3B82F6' : brick.color === 'yellow' ? '#EAB308' : brick.color === 'green' ? '#22C55E' : brick.color === 'white' ? '#FFFFFF' : brick.color === 'black' ? '#000000' : '#CBD5E1' }} />
-                                                <span className="text-[10px] font-bold text-slate-400 capitalize">{brick.color}</span>
-                                            </div>
-                                        )}
+                                        <div className="flex items-center gap-1 mt-2">
+                                            <div className="w-2 h-2 rounded-full border border-white/20" style={{ backgroundColor: brick.color_hex || (brick.color?.toLowerCase() === 'red' ? '#B40000' : brick.color?.toLowerCase() === 'blue' ? '#0055BF' : brick.color?.toLowerCase() === 'yellow' ? '#F2CD37' : brick.color?.toLowerCase() === 'green' ? '#237841' : brick.color?.toLowerCase() === 'white' ? '#D9D9D9' : brick.color?.toLowerCase() === 'black' ? '#050505' : '#888') }} />
+                                            <span className="text-[10px] font-bold text-slate-400 capitalize">{brick.color}</span>
+                                        </div>
                                     </div>
                                 </div>
                             );
@@ -408,7 +396,7 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                                     </div>
                                     <div className="flex-1">
                                         <div className="flex justify-between items-start mb-1">
-                                            <h3 className="font-bold text-slate-900 text-lg leading-tight">{set.name}</h3>
+                                            <h3 className="font-bold text-white text-lg leading-tight">{set.name}</h3>
                                             <div className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${status.color}`}>
                                                 {status.label}
                                             </div>
@@ -512,13 +500,27 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                         </div>
 
                         <div className="grid grid-cols-2 gap-3 mb-6">
-                            <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100 flex flex-col items-center">
+                            <div className="bg-orange-500/10 p-4 rounded-2xl border border-orange-500/20 flex flex-col items-center">
                                 <span className="text-3xl font-black text-orange-500">{selectedBrick.count}</span>
-                                <span className="text-xs font-bold text-orange-400 uppercase">Owned</span>
+                                <span className="text-[10px] font-bold text-orange-400 uppercase tracking-widest">Owned</span>
                             </div>
-                            <div className="bg-slate-800 p-4 rounded-2xl border border-white/10 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-700">
-                                <Share2 className="w-6 h-6 text-slate-400" />
-                                <span className="text-xs font-bold text-slate-400 uppercase">Share</span>
+                            <div className="bg-white/5 p-4 rounded-2xl border border-white/10 flex flex-col items-center justify-center gap-1 group/share cursor-pointer hover:bg-white/10">
+                                <span className="text-xl font-black text-white">{Math.round((selectedBrick.confidence || 0.85) * 100)}%</span>
+                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest group-hover/share:text-orange-400 transition-colors">Confidence</span>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-2 mb-6">
+                            <div className="flex justify-between items-center px-2">
+                                <span className="text-[10px] font-bold text-slate-500 uppercase">Estimated Color</span>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-3 h-3 rounded-full border border-white/20" style={{ backgroundColor: selectedBrick.color_hex || '#888' }} />
+                                    <span className="text-xs font-bold text-white">{selectedBrick.color}</span>
+                                </div>
+                            </div>
+                            <div className="flex justify-between items-center px-2">
+                                <span className="text-[10px] font-bold text-slate-500 uppercase">Dimensions</span>
+                                <span className="text-xs font-bold text-white">{selectedBrick.dimensions || 'Unknown'}</span>
                             </div>
                         </div>
 
@@ -552,16 +554,16 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                                 </div>
                             </div>
 
-                            <h3 className="font-bold text-slate-900 mb-3 text-sm uppercase tracking-wide">Set Contents</h3>
+                            <h3 className="font-bold text-white mb-3 text-sm uppercase tracking-wide">Set Contents</h3>
                             <div className="space-y-3">
                                 {selectedSet.bricks.map(brick => (
                                     <div key={brick.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50/50">
                                         <img src={brick.image} className="w-10 h-10 object-contain mix-blend-multiply" />
                                         <div className="flex-1">
-                                            <p className="font-bold text-sm text-slate-800">{brick.name}</p>
+                                            <p className="font-bold text-sm text-white">{brick.name}</p>
                                             <p className="text-[10px] text-slate-400 font-bold uppercase">{brick.category}</p>
                                         </div>
-                                        <div className="text-sm font-bold text-slate-900">x{brick.count}</div>
+                                        <div className="text-sm font-bold text-white">x{brick.count}</div>
                                     </div>
                                 ))}
                             </div>

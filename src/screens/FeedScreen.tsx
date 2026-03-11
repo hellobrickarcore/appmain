@@ -83,8 +83,8 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
   }, []);
 
   const handleLike = (postId: string) => {
-    setPosts(posts.map(post => 
-      post.id === postId 
+    setPosts(posts.map(post =>
+      post.id === postId
         ? { ...post, isLiked: !post.isLiked, likes: post.isLiked ? post.likes - 1 : post.likes + 1 }
         : post
     ));
@@ -102,10 +102,10 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50">
+    <div className="flex flex-col min-h-[100dvh] bg-slate-50">
       {/* Header */}
       <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between sticky top-0 z-10">
-        <button 
+        <button
           onClick={() => onNavigate(Screen.HOME)}
           className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-100"
         >
@@ -135,8 +135,8 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
               {/* Post Header */}
               <div className="px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <img 
-                    src={post.userAvatar} 
+                  <img
+                    src={post.userAvatar}
                     alt={post.userName}
                     className="w-10 h-10 rounded-full"
                   />
@@ -159,8 +159,8 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
 
               {/* Post Image */}
               <div className="relative">
-                <img 
-                  src={post.image} 
+                <img
+                  src={post.image}
                   alt={post.title}
                   className="w-full aspect-square object-cover"
                 />

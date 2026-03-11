@@ -312,6 +312,25 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({ on
 
           <button
             onClick={() => {
+              localStorage.removeItem('hellobrick_onboarding_finished');
+              localStorage.removeItem('hellobrick_authenticated');
+              alert('Tutorial reset! Please restart the app or reload.');
+              window.location.reload();
+            }}
+            className="w-full px-4 py-4 flex items-center justify-between hover:bg-orange-50 text-orange-600 border-b border-slate-100"
+          >
+            <div className="flex items-center gap-3">
+              <Sparkles className="w-5 h-5" />
+              <div className="text-left flex-1 min-w-0">
+                <div className="font-bold break-words">Reset Tutorial</div>
+                <div className="text-sm text-orange-400 break-words">Re-run the onboarding walkthrough</div>
+              </div>
+            </div>
+            <ChevronLeft className="w-5 h-5 rotate-180" />
+          </button>
+
+          <button
+            onClick={() => {
               setShowDeleteModal(true);
               setDeleteStep(1);
             }}

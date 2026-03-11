@@ -3,7 +3,7 @@ import { ChevronLeft, Gem, Lock, Star, Play, Sparkles } from 'lucide-react';
 import { Screen } from '../types';
 
 interface PuzzlesScreenProps {
-    onNavigate: (screen: Screen) => void;
+    onNavigate: (screen: Screen, params?: any) => void;
 }
 
 const LEVELS = [
@@ -22,15 +22,25 @@ export const PuzzlesScreen: React.FC<PuzzlesScreenProps> = ({ onNavigate }) => {
     const handlePlay = (level: typeof LEVELS[0]) => {
         if (level.locked) return;
         setTappedLevel(level.id);
+
+        // Define challenge based on level
+        const challenge = {
+            id: level.id,
+            name: level.name,
+            type: level.name === 'Shape Fit' ? 'SHAPE' : 'COLOR',
+            target: level.name === 'Shape Fit' ? 'Brick 2x4' : 'Red',
+            reward: 100
+        };
+
         // Navigate to scanner to play puzzle
         setTimeout(() => {
             setTappedLevel(null);
-            onNavigate(Screen.SCANNER);
+            onNavigate(Screen.SCANNER, { challenge });
         }, 800);
     };
 
     return (
-        <div className="flex flex-col min-h-screen bg-[#0B1736] font-sans text-white relative overflow-hidden">
+        <div className="flex flex-col min-h-[100dvh] bg-[#0B1736] font-sans text-white relative overflow-hidden">
             {/* Background effects */}
             <div className="absolute top-0 right-0 w-80 h-80 bg-[#FFC905]/8 blur-[120px] rounded-full -translate-y-1/3 translate-x-1/4" />
             <div className="absolute bottom-20 left-0 w-64 h-64 bg-blue-500/8 blur-[100px] rounded-full translate-y-1/4 -translate-x-1/4" />

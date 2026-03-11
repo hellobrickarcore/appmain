@@ -10,7 +10,19 @@
 import { FrameDetection, ScanFrameResponse, DETECTION_THRESHOLDS, DetectionOverlay, TrackedObject } from '../types/detection';
 
 // Detection API URL
+// In native iOS, we can't use the Vite proxy, so hit the YOLO server directly
 const getDetectionAPIUrl = (): string => {
+  // Check if running inside Capacitor native shell (not a browser)
+  const isNative = !!(window as any).Capacitor?.isNativePlatform?.() ||
+    window.location.protocol === 'capacitor:' ||
+    window.location.protocol === 'ionic:';
+
+  if (isNative) {
+    // Direct connection to YOLO server on the Mac's LAN IP
+    return 'http://192.168.1.217:3003/api';
+  }
+
+  // In dev mode (browser), use the Vite proxy
   return import.meta.env.VITE_DETECTION_API || '/api';
 };
 
@@ -27,7 +39,7 @@ export const detectBricks = async (
     debugMode?: boolean;
   } = {}
 ): Promise<ScanFrameResponse> => {
-  const { sessionId = 'session_manual', frameIndex = 0, mode = 'live_scanner', imgsz, debugMode = false } = options;
+  const { sessionId = 'session_manual', frameIndex = 0, mode = 'live_scanner', imgsz } = options;
   try {
     let canvas: HTMLCanvasElement;
 
@@ -70,9 +82,8 @@ export const detectBricks = async (
     const originalWidth = canvas.width;
     const originalHeight = canvas.height;
 
-    // Resize logic
-    // Mass capture allows higher resolution
-    const MAX_DIM = mode === 'mass_capture' ? 1024 : 800;
+    // Mass capture allows higher resolution for YOLO to see small 6ft distant objects
+    const MAX_DIM = mode === 'mass_capture' ? 1600 : 1024;
     let processedCanvas = canvas;
     let scaleX = 1;
     let scaleY = 1;
@@ -230,12 +241,17 @@ export function toDetectionOverlay(
   const geometry = isTracked
     ? (detection as TrackedObject).stableGeometry
     : (detection as FrameDetection).geometry;
-  const prediction = (detection as any).prediction;
 
-  if (!geometry?.bbox || !prediction) return null;
+  // For TrackedObjects, build a synthetic prediction from consensus fields
+  const prediction = (detection as any).prediction;
+  const tracked = detection as TrackedObject;
+
+  if (!geometry?.bbox) return null;
+  // Allow tracked objects even without prediction (they have consensus fields)
+  if (!isTracked && !prediction) return null;
 
   const geoConf = isTracked
-    ? (detection as any).geometryConfidence
+    ? (tracked.geometryConfidence ?? 0)
     : (detection as FrameDetection).geometry?.geometryConfidence ?? 0;
 
   // Gating for overlays - Stage 1 (0.10 floor)
@@ -243,8 +259,21 @@ export function toDetectionOverlay(
 
   const status = (detection as any).labelDisplayStatus || 'tentative';
 
+  // Extract attributes from either prediction (raw) or consensus (tracked)
+  const brickFamily = prediction?.brickFamily || tracked.consensusBrickFamily || 'Brick';
+  const dimensionsLabel = prediction?.dimensionsLabel || tracked.consensusDimensionsLabel || '';
+  const colorName = prediction?.brickColorName || tracked.consensusColorName || 'Unknown';
+  const identityConf = prediction?.identityConfidence ?? tracked.identityConfidence ?? 0;
+  const colorConf = prediction?.colorConfidence ?? tracked.colorConfidence ?? 0;
+  const dimConf = prediction?.dimensionConfidence ?? 0;
+  const label = (detection as any).compactLabel || tracked.consensusBrickName || generationFallbackLabel(detection as any);
+
+  // Phase 12: Weighted Fusion Confidence Model
+  // Formula: (geometry * 0.20) + (identity * 0.40) + (color * 0.25) + (dimension * 0.15)
+  const finalConfidence = (geoConf * 0.20) + (identityConf * 0.40) + (colorConf * 0.25) + (dimConf * 0.15);
+
   return {
-    id: isTracked ? (detection as TrackedObject).trackedObjectId : (detection as FrameDetection).detectionId,
+    id: isTracked ? tracked.trackedObjectId : (detection as FrameDetection).detectionId,
     trackId: detection.trackId,
     box: geometry.bbox,
     polygon: geometry.polygon,
@@ -252,14 +281,16 @@ export function toDetectionOverlay(
 
     // Confidence scores
     geometryConfidence: geoConf,
-    identityConfidence: prediction.identityConfidence ?? 0,
-    colorConfidence: prediction.colorConfidence ?? 0,
-    dimensionConfidence: prediction.dimensionConfidence ?? 0,
+    identityConfidence: identityConf,
+    colorConfidence: colorConf,
+    dimensionConfidence: dimConf,
+    finalConfidence: Math.max(0, Math.min(1, finalConfidence)),
 
     // Phase 7/8 Attributes
-    brickFamily: prediction.brickFamily,
-    dimensionsLabel: prediction.dimensionsLabel,
-    compactLabel: (detection as any).compactLabel || generationFallbackLabel(detection as any),
+    brickFamily,
+    dimensionsLabel,
+    colorName,
+    compactLabel: label,
 
     // Status
     isTracked,

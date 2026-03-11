@@ -73,8 +73,8 @@ export const getCameraStream = async (): Promise<MediaStream | null> => {
     const stream = await navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: 'environment', // Back camera on mobile
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
       }
     });
     // #region agent log

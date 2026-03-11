@@ -7,7 +7,7 @@ interface BuildingIntroScreenProps {
 
 export const BuildingIntroScreen: React.FC<BuildingIntroScreenProps> = ({ onNavigate }) => {
   return (
-    <div className="fixed inset-0 bg-[#0A1229] text-white z-50 flex flex-col font-sans overflow-hidden">
+    <div className="fixed inset-0 bg-[#0A1229] text-white z-50 flex flex-col font-sans overflow-hidden min-h-[100dvh]">
       {/* Floating Bricks Background Decor */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-40">
         {[
@@ -56,7 +56,7 @@ export const BuildingIntroScreen: React.FC<BuildingIntroScreenProps> = ({ onNavi
       </div>
 
       {/* Button Area */}
-      <div className="px-8 pb-12 relative z-10">
+      <div className="px-8 pb-[max(env(safe-area-inset-bottom),48px)] relative z-10">
         <button
           onClick={() => onNavigate(Screen.SUBSCRIPTION)}
           className="w-full bg-[#3B82F6] hover:bg-[#2563EB] text-white py-6 rounded-[24px] font-black text-xl shadow-xl active:scale-[0.98] transition-all"

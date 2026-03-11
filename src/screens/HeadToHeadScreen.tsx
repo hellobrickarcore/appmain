@@ -49,9 +49,9 @@ export const HeadToHeadScreen: React.FC<HeadToHeadScreenProps> = ({ onNavigate }
     // H2H is now open to all Master Builders
 
     return (
-        <div className="flex flex-col min-h-screen bg-slate-900 font-sans text-white relative">
+        <div className="flex flex-col min-h-[100dvh] bg-slate-900 font-sans text-white relative">
             {/* Header */}
-            <div className="px-6 pt-12 pb-6 flex items-center gap-4">
+            <div className="px-6 pt-[max(env(safe-area-inset-top),3rem)] pb-6 flex items-center gap-4">
                 <button
                     onClick={() => onNavigate(Screen.QUESTS)}
                     className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20"

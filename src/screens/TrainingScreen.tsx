@@ -32,6 +32,14 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ onNavigate }) =>
   const [verifyCount, setVerifyCount] = useState(0);
   const [verifyXP, setVerifyXP] = useState(0);
 
+  // Correction sub-mode
+  const [isCorrecting, setIsCorrecting] = useState(false);
+  const [correctionData, setCorrectionData] = useState({
+    name: '',
+    color: '',
+    family: 'Brick'
+  });
+
   const loadNextTrainingItem = async () => {
     setVerifyLoading(true);
     setVoteFeedback(null);
@@ -55,7 +63,7 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ onNavigate }) =>
     }
   };
 
-  const handleVote = async (confirmed: boolean) => {
+  const handleVote = async (confirmed: boolean, correction?: typeof correctionData) => {
     if (!currentItem) return;
 
     setVoteFeedback(confirmed ? 'correct' : 'incorrect');
@@ -68,16 +76,21 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ onNavigate }) =>
         body: JSON.stringify({
           itemId: currentItem.id,
           confirmed,
+          correction,
           userId,
           timestamp: Date.now(),
         }),
       });
 
       setVerifyCount(prev => prev + 1);
-      setVerifyXP(prev => prev + 5);
+      setVerifyXP(prev => prev + (correction ? 15 : 5));
     } catch (err) {
       console.error('Error submitting vote:', err);
     }
+
+    // Reset states
+    setIsCorrecting(false);
+    setCorrectionData({ name: '', color: '', family: 'Brick' });
 
     // Load next item after short delay
     setTimeout(() => {
@@ -122,7 +135,7 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ onNavigate }) =>
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-950 font-sans relative overflow-hidden text-white">
+    <div className="flex flex-col min-h-[100dvh] bg-slate-950 font-sans relative overflow-hidden text-white">
       {/* Background Decor */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-orange-600/20 rounded-full blur-[100px] pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-600/10 rounded-full blur-[100px] pointer-events-none" />
@@ -355,31 +368,96 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ onNavigate }) =>
                   </div>
                 </div>
 
-                {/* Vote Buttons */}
-                <div className="flex gap-4">
-                  <button
-                    onClick={() => handleVote(false)}
-                    disabled={voteFeedback !== null}
-                    className={`flex-1 py-5 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-95 ${voteFeedback === 'incorrect'
-                      ? 'bg-red-500 text-white'
-                      : 'bg-red-500/10 border-2 border-red-500/30 text-red-400 hover:bg-red-500/20'
-                      }`}
-                  >
-                    <XCircle className="w-6 h-6" />
-                    No
-                  </button>
-                  <button
-                    onClick={() => handleVote(true)}
-                    disabled={voteFeedback !== null}
-                    className={`flex-1 py-5 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-95 ${voteFeedback === 'correct'
-                      ? 'bg-green-500 text-white'
-                      : 'bg-green-500/10 border-2 border-green-500/30 text-green-400 hover:bg-green-500/20'
-                      }`}
-                  >
-                    <CheckCircle className="w-6 h-6" />
-                    Yes
-                  </button>
-                </div>
+                {/* Vote Buttons or Correction UI */}
+                {!isCorrecting ? (
+                  <div className="flex gap-4">
+                    <button
+                      onClick={() => {
+                        setIsCorrecting(true);
+                        setCorrectionData({
+                          name: currentItem.predictedLabel,
+                          color: currentItem.color,
+                          family: currentItem.partNumber !== 'Unknown' ? 'Brick' : 'Plate'
+                        });
+                      }}
+                      disabled={voteFeedback !== null}
+                      className={`flex-1 py-5 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-95 ${voteFeedback === 'incorrect'
+                        ? 'bg-red-500 text-white'
+                        : 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10'
+                        }`}
+                    >
+                      <XCircle className="w-6 h-6" />
+                      No
+                    </button>
+                    <button
+                      onClick={() => handleVote(true)}
+                      disabled={voteFeedback !== null}
+                      className={`flex-1 py-5 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-95 ${voteFeedback === 'correct'
+                        ? 'bg-green-500 text-white'
+                        : 'bg-orange-500 text-white shadow-[0_0_20px_rgba(249,115,22,0.3)] hover:bg-orange-600'
+                        }`}
+                    >
+                      <CheckCircle className="w-6 h-6" />
+                      Yes
+                    </button>
+                  </div>
+                ) : (
+                  <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-4 animate-in slide-in-from-bottom-4 duration-300">
+                    <h4 className="text-sm font-black text-orange-400 uppercase tracking-widest text-center mb-2">Provide Correction</h4>
+
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Brick Name</label>
+                        <input
+                          type="text"
+                          value={correctionData.name}
+                          onChange={(e) => setCorrectionData({ ...correctionData, name: e.target.value })}
+                          className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-white outline-none focus:border-orange-500"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Color</label>
+                          <input
+                            type="text"
+                            value={correctionData.color}
+                            onChange={(e) => setCorrectionData({ ...correctionData, color: e.target.value })}
+                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-white outline-none focus:border-orange-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Family</label>
+                          <select
+                            value={correctionData.family}
+                            onChange={(e) => setCorrectionData({ ...correctionData, family: e.target.value })}
+                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-white outline-none focus:border-orange-500"
+                          >
+                            <option value="Brick">Brick</option>
+                            <option value="Plate">Plate</option>
+                            <option value="Tile">Tile</option>
+                            <option value="Special">Special</option>
+                            <option value="Technic">Technic</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 pt-2">
+                      <button
+                        onClick={() => setIsCorrecting(false)}
+                        className="flex-1 py-4 bg-white/5 text-slate-400 font-bold rounded-xl text-sm"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => handleVote(false, correctionData)}
+                        className="flex-[2] py-4 bg-orange-500 text-white font-black rounded-xl text-sm shadow-lg shadow-orange-500/20 active:scale-95"
+                      >
+                        Submit Correction
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {voteFeedback && (
                   <p className="text-center text-blue-400 font-bold text-sm mt-4 animate-in fade-in">

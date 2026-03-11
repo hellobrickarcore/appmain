@@ -28,7 +28,7 @@ export const RewardsScreen: React.FC<RewardsScreenProps> = ({ onNavigate }) => {
     loadData();
   }, []);
   return (
-    <div className="flex flex-col min-h-screen bg-[#faf9f6] font-sans safe-area-inset">
+    <div className="flex flex-col min-h-[100dvh] bg-[#faf9f6] font-sans safe-area-inset">
       <div className="px-4 sm:px-6 pt-[max(env(safe-area-inset-top),3.5rem)] pb-4 sm:pb-6 flex items-center justify-between bg-white border-b border-slate-100 safe-area-top">
         <button
           onClick={() => onNavigate(Screen.QUESTS)}
@@ -69,8 +69,8 @@ export const RewardsScreen: React.FC<RewardsScreenProps> = ({ onNavigate }) => {
                 <button
                   disabled={!reward.available || userXP < reward.cost}
                   className={`text-[10px] font-bold px-3 py-1.5 rounded-full ${userXP >= reward.cost && reward.available
-                      ? 'bg-slate-900 text-white shadow-lg shadow-slate-200'
-                      : 'bg-slate-100 text-slate-400'
+                    ? 'bg-slate-900 text-white shadow-lg shadow-slate-200'
+                    : 'bg-slate-100 text-slate-400'
                     }`}
                 >
                   {reward.available ? 'Claim' : 'Sold Out'}

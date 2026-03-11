@@ -28,7 +28,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
   };
 
   return (
-    <div className="fixed inset-0 bg-[#0A1229] text-white z-50 flex flex-col font-sans overflow-hidden">
+    <div className="fixed inset-0 bg-[#0A1229] text-white z-50 flex flex-col font-sans overflow-hidden min-h-[100dvh]">
       {/* Header with Yellow Radiation/Sun effect */}
       <div className="relative h-[30vh] flex flex-col items-center justify-end pb-8 overflow-hidden bg-[#0A1229]">
         {/* Yellow Sun background elements */}
@@ -114,7 +114,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
       </div>
 
       {/* Footer Actions */}
-      <div className="absolute bottom-0 left-0 right-0 px-8 pb-10 pt-6 bg-gradient-to-t from-[#F4F7FA] via-[#F4F7FA] to-transparent flex flex-col items-center gap-4">
+      <div className="absolute bottom-0 left-0 right-0 px-8 pb-[max(env(safe-area-inset-bottom),40px)] pt-6 bg-gradient-to-t from-[#F4F7FA] via-[#F4F7FA] to-transparent flex flex-col items-center gap-4">
         <button
           onClick={handleSubscribe}
           disabled={loading}

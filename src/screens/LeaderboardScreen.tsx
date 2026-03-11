@@ -61,17 +61,17 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ onNavigate
   }, []);
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 font-sans">
+    <div className="flex flex-col min-h-[100dvh] bg-slate-50 font-sans">
       {/* Header */}
       <div className="bg-slate-900 text-white px-6 pt-[max(env(safe-area-inset-top),3.5rem)] pb-12 rounded-b-[40px] shadow-xl relative z-10">
         <div className="flex items-center justify-between mb-4">
           <button
-            onClick={() => onNavigate(Screen.QUESTS)}
+            onClick={() => onNavigate(Screen.PROFILE)}
             className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center backdrop-blur"
           >
             <ChevronLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-xl font-bold">🏆 Brick Cup</h1>
+          <h1 className="text-xl font-bold uppercase tracking-tighter">🏆 30-Day Brick Cup</h1>
           <div className="w-10" />
         </div>
 
@@ -90,9 +90,9 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ onNavigate
 
           <h2 className="text-2xl font-black mb-2">Brick Cup</h2>
 
-          <div className="bg-orange-500/20 border border-orange-500/30 px-4 py-2 rounded-full backdrop-blur-md">
-            <p className="text-[10px] font-bold text-orange-400 uppercase tracking-tighter">
-              🎁 Top 3 weekly earn free gift cards based on XP!
+          <div className="bg-orange-500/30 border border-orange-500/50 px-6 py-3 rounded-2xl backdrop-blur-md shadow-lg">
+            <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest text-center">
+              🎁 TOP 3 BUILDERS THIS ROUND WIN $50 GIFT CARDS
             </p>
           </div>
         </div>

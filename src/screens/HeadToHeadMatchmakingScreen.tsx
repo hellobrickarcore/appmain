@@ -105,7 +105,7 @@ export const HeadToHeadMatchmakingScreen: React.FC<HeadToHeadMatchmakingScreenPr
     };
 
     return (
-        <div className="flex flex-col min-h-screen bg-slate-900 font-sans text-white relative overflow-hidden">
+        <div className="flex flex-col min-h-[100dvh] bg-slate-900 font-sans text-white relative overflow-hidden">
             {/* Animated Background */}
             <div className="absolute inset-0 z-0 opacity-20">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] border border-indigo-500/30 rounded-full animate-[ping_3s_linear_infinite]" />

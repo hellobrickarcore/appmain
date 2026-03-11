@@ -48,8 +48,16 @@ const features = [
 
 export const FeatureIntroScreen: React.FC<FeatureIntroScreenProps> = ({ onNavigate }) => {
   return (
-    <div className="flex flex-col h-full bg-[#050A18] text-white font-sans">
-      <div className="flex-1 overflow-y-auto no-scrollbar px-6 pt-16">
+    <div className="flex flex-col min-h-[100dvh] bg-[#050A18] text-white font-sans relative">
+      {/* Skip Button */}
+      <button
+        onClick={() => onNavigate(Screen.HOME)}
+        className="absolute top-12 right-6 z-20 text-[10px] font-black text-slate-500 uppercase tracking-widest bg-white/5 px-4 py-2 rounded-full border border-white/10"
+      >
+        Skip
+      </button>
+
+      <div className="flex-1 overflow-y-auto no-scrollbar px-6 pt-[max(env(safe-area-inset-top),64px)]">
         <div className="flex justify-center mb-8">
           <Logo size="lg" />
         </div>
@@ -86,9 +94,9 @@ export const FeatureIntroScreen: React.FC<FeatureIntroScreenProps> = ({ onNaviga
         </div>
       </div>
 
-      <div className="px-8 pb-12">
+      <div className="px-8 pb-[max(env(safe-area-inset-bottom),48px)]">
         <button
-          onClick={() => onNavigate(Screen.NOTIFICATIONS_INTRO)}
+          onClick={() => onNavigate(Screen.HOW_IT_WORKS)}
           className="w-full bg-[#3B82F6] hover:bg-[#2563EB] text-white py-6 rounded-[24px] font-black text-xl shadow-xl active:scale-[0.98] transition-all"
         >
           Continue

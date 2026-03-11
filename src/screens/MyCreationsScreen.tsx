@@ -49,7 +49,7 @@ export const MyCreationsScreen: React.FC<MyCreationsScreenProps> = ({ onNavigate
     };
 
     return (
-        <div className="flex flex-col min-h-screen bg-[#faf9f6]">
+        <div className="flex flex-col min-h-[100dvh] bg-[#faf9f6]">
             {/* Header */}
             <div className="bg-white px-6 pt-[max(env(safe-area-inset-top),3.5rem)] pb-4 sticky top-0 z-20 shadow-sm flex items-center justify-between">
                 <button

@@ -8,9 +8,9 @@ interface NotificationsIntroScreenProps {
 
 export const NotificationsIntroScreen: React.FC<NotificationsIntroScreenProps> = ({ onNavigate }) => {
   return (
-    <div className="fixed inset-0 bg-[#0A1229] text-white z-50 flex flex-col font-sans overflow-hidden">
+    <div className="fixed inset-0 bg-[#0A1229] text-white z-50 flex flex-col font-sans overflow-hidden min-h-[100dvh]">
       {/* Top Graphic Area */}
-      <div className="flex-[5] flex items-center justify-center pt-12">
+      <div className="flex-[5] flex items-center justify-center pt-[max(env(safe-area-inset-top),48px)]">
         <div className="relative w-48 h-48 flex flex-col items-center justify-center">
           {/* Notification Character (Yellow Brick Face) */}
           <div className="w-32 h-32 bg-[#FFD600] rounded-[24px] relative flex flex-col items-center justify-center gap-2 shadow-2xl">
@@ -48,7 +48,7 @@ export const NotificationsIntroScreen: React.FC<NotificationsIntroScreenProps> =
       </div>
 
       {/* Buttons Area */}
-      <div className="px-8 pb-12 flex flex-col gap-4">
+      <div className="px-8 pb-[max(env(safe-area-inset-bottom),48px)] flex flex-col gap-4">
         <button
           onClick={() => onNavigate(Screen.BUILDING_INTRO)}
           className="w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white py-5 rounded-[24px] font-black text-lg shadow-lg active:scale-[0.98] transition-all"
