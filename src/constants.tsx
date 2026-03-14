@@ -197,6 +197,6 @@ export const MOCK_REWARDS: RewardItem[] = [
     { id: '4', title: 'Master Badge', cost: 50000, image: 'https://picsum.photos/seed/badge/200/200', type: 'DIGITAL', available: false },
 ];
 
-export const CATEGORIES = ['All', 'Sets', 'Minifigs', 'Technic', 'Plates', 'Tiles'];
+export const CATEGORIES = ['All', 'Minifigs', 'Technic', 'Plates', 'Tiles'];
 
 export const PLACEHOLDER_AVATAR = "https://picsum.photos/seed/avatar1/200/200";

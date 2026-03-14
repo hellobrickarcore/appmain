@@ -89,27 +89,33 @@ Create two subscriptions in your group:
 
 1. Go to **Offerings** tab
 2. Click **+ New Offering**
-3. Name it: `default`
-4. Set as **Current Offering** (check the box)
-5. Add your subscription products:
-   - Click **+ Add Package**
-   - Select your annual subscription
-   - Package identifier: `$rc_annual` (or custom name)
-   - Repeat for monthly if you have it
+92. Name it: `default` (**CRITICAL**: Must be exactly `default`)
+93. Set as **Current Offering** (check the box)
+94. **CRITICAL: Link your products to Packages** (This is why your offerings are currently empty):
+   - Click into the `default` offering.
+   - Click **+ Add Package** -> Select **Annual** (or `$rc_annual`).
+   - Select **App Store Product**: Choose `com.hellobrick.app.annual` from the list.
+   - Click **Add** and **Save**.
+   - Repeat for Monthly if needed.
 
 ---
 
-## Step 4: Add API Key to Your App
+## Step 4: Add API Key to Your Environment
 
-1. Open `src/services/subscriptionService.ts`
-2. Find the `REVENUECAT_API_KEY` constant
-3. Replace `YOUR_IOS_API_KEY_HERE` with your actual API key from Step 3b
+The app is pre-configured to read your RevenueCat keys from `.env.local`. You do **not** need to modify the code.
 
-```typescript
-const REVENUECAT_API_KEY = {
-  ios: 'appl_YOUR_ACTUAL_KEY_HERE', // Replace this!
-};
+1. Open `.env.local` in the root of the project.
+2. Locate the following variables and ensure your keys are pasted there:
+
+```bash
+# RevenueCat iOS public SDK key
+VITE_REVENUECAT_IOS_KEY=appl_YOUR_IOS_KEY_HERE
+
+# RevenueCat Google public SDK key (for Android)
+VITE_REVENUECAT_GOOGLE_KEY=goog_YOUR_GOOGLE_KEY_HERE
 ```
+
+**Status**: Currently, `VITE_REVENUECAT_IOS_KEY` is already present in your `.env.local`.
 
 ---
 
@@ -176,7 +182,7 @@ The app automatically checks subscription status on launch. You can verify:
 
 ### "RevenueCat API key not configured"
 
-**Solution**: Add your API key to `src/services/subscriptionService.ts`
+**Solution**: Add your API key to `.env.local` as `VITE_REVENUECAT_IOS_KEY`.
 
 ### "No subscription packages available"
 

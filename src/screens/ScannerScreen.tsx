@@ -1,752 +1,675 @@
-import { detectBricks, toDetectionOverlay, brickDetectionService } from '../services/brickDetectionService';
-import { colorService } from '../services/colorService';
-import { xpHelpers } from '../services/xpService';
-import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
-import { X, Zap, CheckCircle2, RefreshCw, Bug, Activity, Play } from 'lucide-react';
+import { detectBricks } from '../services/brickDetectionService';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
+import { X, Zap, AlertCircle, CheckCircle2, Trash2, RefreshCw } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Screen } from '../types';
-import { DetectionOverlay } from '../types/detection';
-import { DetectionOverlayLayer } from '../components/DetectionOverlayLayer';
-import { PreviewLayout, bboxToRenderBox, calculateIOU } from '../utils/coordinateMapping';
+import { FrameDetection, ScanFrameResponse, bboxToRenderBox } from '../types/detection';
 import { saveCollectionToSupabase } from '../services/trainingDataService';
 import { analytics } from '../services/analyticsService';
 
 interface ScannerScreenProps {
-  onNavigate: (screen: any) => void;
+  onNavigate: (screen: Screen, params?: any) => void;
   challenge?: any;
-  onPhaseChange?: (phase: string) => void;
+  onPhaseChange?: (phase: 'preview' | 'scanning' | 'results') => void;
 }
+
+const COLORS = ['#3B82F6', '#60A5FA', '#93C5FD', '#2563EB', '#1D4ED8']; // Blue-focused palette
+
+const cropBrickImage = (sourceBase64: string, bbox: { xMin: number; yMin: number; xMax: number; yMax: number }, originalWidth: number, originalHeight: number): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.src = sourceBase64;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      // Normalize bbox if it's not already (it should be pixel-space from detectBricks scaleX/Y)
+      // but let's ensure we use the actual area
+      const x = Math.max(0, bbox.xMin);
+      const y = Math.max(0, bbox.yMin);
+      const width = Math.min(img.width - x, bbox.xMax - bbox.xMin);
+      const height = Math.min(img.height - y, bbox.yMax - bbox.yMin);
+
+      canvas.width = Math.max(100, width);
+      canvas.height = Math.max(100, height);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(sourceBase64);
+        return;
+      }
+      
+      // Draw background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      ctx.drawImage(img, x, y, width, height, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/jpeg', 0.8));
+    };
+    img.onerror = () => resolve(sourceBase64);
+  });
+};
 
 export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challenge, onPhaseChange }) => {
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [phase, setPhase] = useState<'warmup' | 'preview' | 'scanning' | 'results'>('warmup');
-  const sessionId = useMemo(() => `session_${Math.random().toString(36).substr(2, 9)}`, []);
-  const frameIndexRef = useRef(0);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const isDetectingRef = useRef(false);
+  const overlayContainerRef = useRef<HTMLDivElement>(null);
+  const deletedBrickIdsRef = useRef<string[]>([]);
+  // State
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [detectedObjects, setDetectedObjects] = useState<FrameDetection[]>([]);
+  const [lastResponse, setLastResponse] = useState<ScanFrameResponse | null>(null);
+  const [selectedBricks, setSelectedBricks] = useState<Set<string>>(new Set());
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [qualityAdvice, setQualityAdvice] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [phase, setPhase] = useState<'preview' | 'scanning' | 'results'>('preview');
 
   useEffect(() => {
     onPhaseChange?.(phase);
   }, [phase, onPhaseChange]);
 
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const lastInferenceRef = useRef<number>(Date.now());
-  const [inferenceStuck, setInferenceStuck] = useState(false);
-  const streamRef = useRef<MediaStream | null>(null);
-  const isDetectingRef = useRef(false);
-  const overlayContainerRef = useRef<HTMLDivElement>(null);
-  const smoothedOverlaysRef = useRef<Map<string, DetectionOverlay>>(new Map());
-  const lastSeenRef = useRef<Map<string, number>>(new Map());
-
-  // State
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [overlays, setOverlays] = useState<DetectionOverlay[]>([]);
-  const [detectedBricks, setDetectedBricks] = useState<any[]>([]);
-  const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [saveSuccess, setSaveSuccess] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [debugMode, setDebugMode] = useState(false);
-  const [isScanningHolistically, setIsScanningHolistically] = useState(false);
-  const [holisticBricks, setHolisticBricks] = useState<any[]>([]);
-  const [challengeSuccess, setChallengeSuccess] = useState(false);
-  const [challengeSuccessData, setChallengeSuccessData] = useState<any>(null);
-  const [debugStats, setDebugStats] = useState({
-    raw: 0,
-    validGeo: 0,
-    afterNms: 0,
-    final: 0,
-    overlaysMapped: 0,
-    overlaysRendered: 0,
-    colorEstimates: 0,
-    dimEstimates: 0,
-    identityEstimates: 0,
-    inferenceMs: 0,
-    frameSize: '0x0',
-    fps: 0
-  });
-
-  const lastFrameTime = useRef<number>(Date.now());
-  const [previewLayout, setPreviewLayout] = useState<PreviewLayout>({
-    sourceWidth: 640,
-    sourceHeight: 480,
-    previewX: 0,
-    previewY: 0,
-    previewWidth: 0,
-    previewHeight: 0
-  });
-
   // ─── Camera Setup ───────────────────────────────────────────────
   useEffect(() => {
-    let active = true;
     let stream: MediaStream | null = null;
-
-    const stopCamera = () => {
-      console.log("[Scanner] Stopping camera tracks...");
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(t => {
-          t.stop();
-          console.log(`[Scanner] Stopped track: ${t.label}`);
-        });
-        streamRef.current = null;
-      }
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
-      }
-    };
-
     const startCamera = async () => {
-      console.log("[Scanner] Starting camera...");
       try {
-        // Stop any existing stream first
-        stopCamera();
+        const isSecureContext = window.isSecureContext || location.protocol === 'https:';
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: 'environment',
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          }
-        });
-
-        if (!active) {
-          stream.getTracks().forEach(t => t.stop());
+        if (isMobile && !isSecureContext) {
+          setHasPermission(false);
+          setQualityAdvice('Camera requires HTTPS on mobile.');
           return;
+        }
+
+        if (!navigator.mediaDevices?.getUserMedia) {
+          setHasPermission(false);
+          setQualityAdvice('Camera API not supported in this browser.');
+          return;
+        }
+
+        // Use standard camera service for consistent behavior across web/mobile
+        try {
+          const { getCameraStream } = await import('../services/cameraService');
+          stream = await getCameraStream();
+        } catch {
+          // Final fallback
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+          });
         }
 
         streamRef.current = stream;
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          // Use onloadedmetadata to ensure video is ready
-          videoRef.current.onloadedmetadata = async () => {
-            try {
-              if (videoRef.current) {
-                await videoRef.current.play();
-                console.log("[Scanner] Video playing, resolution:", videoRef.current.videoWidth, "x", videoRef.current.videoHeight);
-                setHasPermission(true);
-              }
-            } catch (playErr) {
-              console.error("[Scanner] Video play error:", playErr);
-            }
-          };
+          setHasPermission(true);
         }
+
       } catch (err: any) {
-        console.error("[Scanner] Camera error:", err);
+        console.error("Camera error:", err);
         setHasPermission(false);
-      }
-    };
-
-    const warmup = async () => {
-      console.log("[Scanner] Warming up detector...");
-      try {
-        const dummyCanvas = document.createElement('canvas');
-        dummyCanvas.width = 64; dummyCanvas.height = 64;
-        await detectBricks(dummyCanvas, { sessionId: 'warmup' });
-        if (active) setPhase('preview');
-      } catch (e) {
-        console.error("[Scanner] Warmup failed:", e);
-        if (active) setPhase('preview');
-      }
-    };
-
-    console.log("[Scanner Lifecycle] Route Enter / Component Mount");
-    startCamera();
-    warmup();
-
-    // ─── Visibility Listener ───
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        console.log("[Scanner] App hidden, stopping camera...");
-        stopCamera();
-      } else {
-        console.log("[Scanner] App visible, restarting camera...");
-        startCamera();
-      }
-    };
-    // Stuck Watchdog
-    const watchdogInterval = setInterval(() => {
-      if (phase === 'scanning' && !document.hidden) {
-        const timeSinceLastInf = Date.now() - lastInferenceRef.current;
-        if (timeSinceLastInf > 10000) { // 10 seconds with no inference
-          console.warn("[Scanner] Watchdog detected stuck inference loop!");
-          setInferenceStuck(true);
+        if (err.name === 'NotAllowedError') {
+          setQualityAdvice('Camera permission denied. Check browser settings.');
+        } else if (err.name === 'NotFoundError') {
+          setQualityAdvice('No camera found on this device.');
         } else {
-          setInferenceStuck(false);
+          setQualityAdvice(`Camera error: ${err.message || 'Unknown'}`);
         }
       }
-    }, 5000);
-
-    return () => {
-      active = false;
-      console.log("[Scanner Lifecycle] Route Exit / Component Unmount cleanup");
-      clearInterval(watchdogInterval);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      stopCamera();
     };
-  }, [phase]); // Re-run watchdog if phase changes to scanning
 
+    startCamera();
+    return () => {
+      if (stream) stream.getTracks().forEach(t => t.stop());
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
+      }
+    };
+  }, []);
+
+  // Auto-start scanning as soon as camera is ready
   useEffect(() => {
-    if (hasPermission && (phase === 'preview' || phase === 'warmup')) {
-      if (phase !== 'warmup') setPhase('scanning');
+    if (hasPermission && phase === 'preview') {
+      setPhase('scanning');
       analytics.track('scan_started');
     }
   }, [hasPermission]);
 
-  // ─── Detection Loop ────────────────
+  // ─── API Detection Loop ────────────────
   useEffect(() => {
     if (phase !== 'scanning' || !hasPermission) return;
 
     let intervalId: any;
 
     const detectLoop = async () => {
-      if (isDetectingRef.current) return;
-      if (phase !== 'scanning' || !videoRef.current) return;
+      if (isDetectingRef.current || phase !== 'scanning' || !videoRef.current) return;
 
       const video = videoRef.current;
-      if (video.readyState < 2 && video.videoWidth === 0) return;
+      if (video.readyState < 2) return;
 
       try {
         isDetectingRef.current = true;
-        const frameTime = Date.now();
-        const fps = Math.round(1000 / (frameTime - lastFrameTime.current));
-        lastFrameTime.current = frameTime;
-
-        const response = await brickDetectionService.scanFrame(video, {
-          sessionId,
-          frameIndex: frameIndexRef.current++,
-          debugMode: true
-        });
-
-        lastInferenceRef.current = Date.now();
+        const response: ScanFrameResponse = await detectBricks(video);
 
         if (phase === 'scanning') {
-          const trackedOverlays = (response.trackedObjects || []).map(toDetectionOverlay).filter((o): o is DetectionOverlay => o !== null);
-          const rawOverlays = response.detections.map(toDetectionOverlay).filter((o): o is DetectionOverlay => o !== null);
+          setDetectedObjects(response.detections);
+          setLastResponse(response);
+          setQualityAdvice(null);
 
-          // deduplication
-          const currentBatch = [...trackedOverlays];
-          const combinedForHolistic = [...trackedOverlays, ...rawOverlays];
-
-          // 2. HOLISTIC ACCUMULATION (Phase 9)
-          if (isScanningHolistically) {
-            setHolisticBricks(prev => {
-              const next = [...prev];
-              combinedForHolistic.forEach(vo => {
-                const exists = next.some(existing =>
-                  Math.abs((existing.x || 0) - (vo.x || 0)) < 20 &&
-                  Math.abs((existing.y || 0) - (vo.y || 0)) < 20 &&
-                  (existing.compactLabel || existing.displayText) === (vo.compactLabel || vo.displayText)
-                );
-                if (!exists) {
-                  next.push({
-                    ...vo,
-                    id: `holistic_${Date.now()}_${Math.random()}`,
-                    selected: true
-                  });
-                }
-              });
-              return next;
-            });
-          }
-
-          rawOverlays.forEach(ro => {
-            const isDuplicated = currentBatch.some(mo => {
-              if (mo.id === ro.id) return true;
-              if (mo.trackId && ro.trackId && mo.trackId === ro.trackId) return true;
-              if (!mo.box || !ro.box) return false;
-              return calculateIOU(mo.box, ro.box) > 0.6;
-            });
-            if (!isDuplicated) currentBatch.push(ro);
-          });
-
-          // Challenge Logic
-          if (challenge && !challengeSuccess) {
-            const targetFound = combinedForHolistic.find(ov => {
-              const label = (ov.compactLabel || ov.displayText || '').toLowerCase();
-              const target = challenge.target.toLowerCase();
-              // Lower threshold for puzzles to 0.4 to ensure it works in various conditions
-              const puzzleThreshold = 0.4;
-              if (challenge.type === 'SHAPE') {
-                return label.includes(target) && (ov.finalConfidence || 0) > puzzleThreshold;
-              } else {
-                return ov.colorName?.toLowerCase() === target && (ov.finalConfidence || 0) > puzzleThreshold;
-              }
-            });
-
-            if (targetFound) {
-              setChallengeSuccess(true);
-              setChallengeSuccessData(targetFound);
-              confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-
-              // Sync XP and Gems
-              xpHelpers.challengeCompleted(challenge.id, 'easy').catch(console.error);
-
-              setTimeout(() => onNavigate(Screen.PUZZLES), 3000);
+          // Check for challenge completion
+          if (challenge) {
+            const goalMet = response.detections.some(obj => 
+              obj.prediction.brickName?.toLowerCase().includes(challenge.type.toLowerCase().split(' ').slice(1).join(' '))
+            );
+            if (goalMet && !saveSuccess) {
+               // Goal met!
+               confetti({
+                 particleCount: 100,
+                 spread: 60,
+                 origin: { y: 0.6 }
+               });
+               // Show success briefly then go to results
+               setSaveSuccess(true);
+               setTimeout(() => setPhase('results'), 1500);
             }
           }
-
-          const now = Date.now();
-          const nextOverlays: DetectionOverlay[] = [];
-          const alpha = 0.4;
-
-          currentBatch.forEach(ov => {
-            const trackKey = ov.trackId || ov.id;
-            const prev = smoothedOverlaysRef.current.get(trackKey);
-
-            if (prev && prev.box && ov.box) {
-              ov.box = {
-                xMin: prev.box.xMin * (1 - alpha) + ov.box.xMin * alpha,
-                yMin: prev.box.yMin * (1 - alpha) + ov.box.yMin * alpha,
-                xMax: prev.box.xMax * (1 - alpha) + ov.box.xMax * alpha,
-                yMax: prev.box.yMax * (1 - alpha) + ov.box.yMax * alpha,
-              };
-            }
-
-            smoothedOverlaysRef.current.set(trackKey, ov);
-            lastSeenRef.current.set(trackKey, now);
-            nextOverlays.push(ov);
-          });
-
-          smoothedOverlaysRef.current.forEach((prevOv, key) => {
-            const lastSeen = lastSeenRef.current.get(key) || 0;
-            const age = now - lastSeen;
-            // Reduce grace period from 1000ms to 400ms to handle jerky movement better
-            if (age > 0 && age < 400 && !nextOverlays.find(o => (o.trackId || o.id) === key)) {
-              nextOverlays.push({ ...prevOv, labelDisplayStatus: 'hidden' as any, isStable: false });
-            } else if (age >= 400) {
-              smoothedOverlaysRef.current.delete(key);
-              lastSeenRef.current.delete(key);
-            }
-          });
-
-          const validOverlays = nextOverlays.filter(ov => {
-            if (!ov.box) return false;
-            const isInvalid = ov.box.yMin >= response.frameHeight * 0.95 ||
-              ov.box.yMax <= response.frameHeight * 0.05 ||
-              ov.box.xMin >= response.frameWidth * 0.95;
-            if (ov.labelDisplayStatus === 'hidden' && !ov.isStable) return false;
-            return !isInvalid;
-          });
-
-          setOverlays(validOverlays);
-
-          if (overlayContainerRef.current) {
-            setPreviewLayout({
-              sourceWidth: response.frameWidth,
-              sourceHeight: response.frameHeight,
-              previewX: 0, previewY: 0,
-              previewWidth: overlayContainerRef.current.clientWidth,
-              previewHeight: overlayContainerRef.current.clientHeight
-            });
-          }
-
-          setDebugStats({
-            raw: response.debug?.raw || 0,
-            validGeo: response.debug?.valid_geo || 0,
-            afterNms: response.debug?.after_nms || 0,
-            final: response.debug?.final || 0,
-            overlaysMapped: validOverlays.length,
-            overlaysRendered: validOverlays.length,
-            colorEstimates: response.debug?.color_estimates || 0,
-            dimEstimates: response.debug?.dim_estimates || 0,
-            identityEstimates: response.debug?.identity_estimates || 0,
-            inferenceMs: response.inferenceMs || 0,
-            frameSize: `${response.frameWidth}x${response.frameHeight}`,
-            fps: fps
-          });
         }
       } catch (err) {
-        console.error('DetectLoop error:', err);
+        console.error('Detection error:', err);
       } finally {
         isDetectingRef.current = false;
       }
     };
 
-    intervalId = setInterval(detectLoop, 300);
-    return () => clearInterval(intervalId);
-  }, [phase, hasPermission, challenge, isScanningHolistically]);
+    // Detection every 250ms for stability on mobile
+    intervalId = setInterval(detectLoop, 250);
 
-  const liveBricksRef = useRef<any[]>([]);
-  useEffect(() => {
-    liveBricksRef.current = overlays
-      .filter(o => o.isStable || o.geometryConfidence > 0.20)
-      .map(o => ({
-        id: o.id,
-        name: o.compactLabel || 'Unknown Brick',
-        color: o.colorName || 'Unknown',
-        family: o.brickFamily || 'Brick',
-        dimensions: o.dimensionsLabel || '',
-        confidence: o.finalConfidence || o.identityConfidence,
-        finalConfidence: o.finalConfidence,
-        identityConfidence: o.identityConfidence,
-        geometryConfidence: o.geometryConfidence,
-        colorConfidence: o.colorConfidence,
-        dimensionConfidence: o.dimensionConfidence,
-        selected: true,
-        box: o.box,
-        displayText: o.compactLabel || 'Unknown Brick',
-        compactLabel: o.compactLabel,
-        colorName: o.colorName,
-        sourceRes: { width: previewLayout.sourceWidth, height: previewLayout.sourceHeight },
-        labelDisplayStatus: o.labelDisplayStatus
-      }));
-  }, [overlays, previewLayout]);
+    return () => clearInterval(intervalId);
+  }, [phase, hasPermission]);
+
+  // Removed old detection loop
+
+  // ─── Capture Frame ─────────────────────────────────────────────
+  const captureImage = useCallback((): string | null => {
+    if (!videoRef.current) return null;
+    const video = videoRef.current;
+    if (video.videoWidth === 0) return null;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(video, 0, 0);
+    return canvas.toDataURL('image/jpeg', 0.95);
+  }, []);
 
   const handleCapture = useCallback(async () => {
-    if (!videoRef.current || !canvasRef.current) return;
+    setPhase('scanning'); // Ensure we stay in scanning visual state
     setIsProcessing(true);
 
+    const image = captureImage();
+    if (image) {
+      setCapturedImage(image);
+    }
+
     try {
-      const video = videoRef.current;
-      isDetectingRef.current = false;
-
-      const canvas = canvasRef.current;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
-      if (ctx) ctx.drawImage(video, 0, 0);
-      setCapturedImage(canvas.toDataURL('image/jpeg', 0.9));
-
-      // If not holistic, actually scan the raw captured photo for accuracy
-      let bricksArr = isScanningHolistically ? holisticBricks : liveBricksRef.current;
-
-      if (!isScanningHolistically) {
-        const response = await brickDetectionService.scanFrame(canvas, {
-          sessionId: `capture_${Date.now()}`,
-          mode: 'mass_capture',
-          debugMode: true
-        });
-        const staticOverlays = response.detections
-          .map(toDetectionOverlay)
-          .filter((o): o is DetectionOverlay => o !== null);
-          
-        bricksArr = staticOverlays.map(o => ({
-          id: o.id,
-          name: o.compactLabel || 'Unknown Brick',
-          color: o.colorName || 'Unknown',
-          family: o.brickFamily || 'Brick',
-          dimensions: o.dimensionsLabel || '',
-          confidence: o.finalConfidence || o.identityConfidence,
-          finalConfidence: o.finalConfidence,
-          identityConfidence: o.identityConfidence,
-          geometryConfidence: o.geometryConfidence,
-          colorConfidence: o.colorConfidence,
-          dimensionConfidence: o.dimensionConfidence,
-          selected: true,
-          box: o.box,
-          displayText: o.compactLabel || 'Unknown Brick',
-          compactLabel: o.compactLabel,
-          colorName: o.colorName,
-          sourceRes: { width: response.frameWidth, height: response.frameHeight },
-          labelDisplayStatus: o.labelDisplayStatus
-        }));
-      }
-
-      const bricksWithCrops = await Promise.all(bricksArr.map(async (brick: any) => {
-        if (!brick.box) return brick;
-
-        const cropCanvas = document.createElement('canvas');
-        const box = brick.box;
-        const width = box.xMax - box.xMin;
-        const height = box.yMax - box.yMin;
-        const padding = Math.max(width, height) * 0.15;
-        const sx = Math.max(0, box.xMin - padding);
-        const sy = Math.max(0, box.yMin - padding);
-        const sw = Math.min(canvas.width - sx, width + padding * 2);
-        const sh = Math.min(canvas.height - sy, height + padding * 2);
-
-        cropCanvas.width = 120; cropCanvas.height = 120;
-        const cropCtx = cropCanvas.getContext('2d');
-        if (cropCtx) {
-          cropCtx.fillStyle = '#0f172a';
-          cropCtx.fillRect(0, 0, 120, 120);
-          cropCtx.drawImage(canvas, sx, sy, sw, sh, 0, 0, 120, 120);
-        }
-
-        if (ctx) {
-          const colorResult = colorService.estimateColor(ctx, sx, sy, sw, sh);
-          return {
-            ...brick,
-            thumbnail: cropCanvas.toDataURL('image/jpeg', 0.8),
-            color: colorResult.name,
-            color_hex: colorResult.hex,
-            displayText: `${colorResult.name} ${brick.name || 'Brick'}`
-          };
-        }
-        return brick;
-      }));
-
-      setDetectedBricks(bricksWithCrops);
+      const capturedBricks = [...detectedObjects];
+      setDetectedObjects(capturedBricks);
+      setSelectedBricks(new Set(capturedBricks.map(b => b.detectionId)));
       setPhase('results');
-      setIsScanningHolistically(false);
+      analytics.track('scan_captured', { brick_count: capturedBricks.length });
     } catch (err) {
-      console.error('Capture failed:', err);
-      setIsScanningHolistically(false);
-      isDetectingRef.current = true;
+      console.error("Capture detection failed:", err);
+      setPhase('scanning');
     } finally {
       setIsProcessing(false);
     }
-  }, [isScanningHolistically, holisticBricks]);
-
-  const toggleSelection = (id: string) => setDetectedBricks(prev => prev.map(b => b.id === id ? { ...b, selected: !b.selected } : b));
+  }, [captureImage, detectedObjects]);
 
   const handleSaveSelected = async () => {
-    const bricksToSave = detectedBricks.filter(b => b.selected);
+    const bricksToSave = detectedObjects.filter(obj => selectedBricks.has(obj.detectionId));
     if (bricksToSave.length === 0) return;
+
     setIsProcessing(true);
+    const userId = localStorage.getItem('hellobrick_userId') || `user_${Date.now()}`;
+    localStorage.setItem('hellobrick_userId', userId);
+
     try {
-      const userId = localStorage.getItem('hellobrick_userId') || `user_${Date.now()}`;
+      const bricksWithMetaData = await Promise.all(bricksToSave.map(async (obj) => {
+        const pred = obj.prediction;
+        const bbox = obj.geometry.bbox;
+        const partId = pred.brickPartNum;
+        
+        // CROP the real image from the capture
+        let brickImage = `https://cdn.rebrickable.com/media/parts/elements/${partId}.jpg`;
+        if (capturedImage) {
+          try {
+            brickImage = await cropBrickImage(
+              capturedImage, 
+              bbox, 
+              lastResponse?.frameWidth || 1280, 
+              lastResponse?.frameHeight || 720
+            );
+          } catch (e) {
+            console.warn('Crop failed:', e);
+          }
+        }
+
+        return {
+          id: obj.detectionId,
+          name: pred.brickName,
+          type: 'Part',
+          category: 'Bricks',
+          color: pred.brickColorName,
+          partNumber: partId,
+          confidence: pred.identityConfidence,
+          count: 1,
+          image: brickImage,
+          bbox: {
+            x: bbox.xMin,
+            y: bbox.yMin,
+            width: bbox.xMax - bbox.xMin,
+            height: bbox.yMax - bbox.yMin,
+          }
+        };
+      }));
+
       const stored = localStorage.getItem('hellobrick_collection');
-      let existingBricks = [];
+      let existingBricks: any[] = [];
       if (stored) {
-        try { existingBricks = JSON.parse(stored).bricks || []; } catch (e) { }
+        try {
+          existingBricks = JSON.parse(stored).bricks || [];
+        } catch { }
       }
 
-      const updatedCollection = [...existingBricks];
-      bricksToSave.forEach(newBrick => {
-        const matchIdx = updatedCollection.findIndex(ex => ex.name === newBrick.name && ex.color === newBrick.color);
-        if (matchIdx >= 0) {
-          updatedCollection[matchIdx].count += 1;
+      const brickMap = new Map<string, any>();
+      existingBricks.forEach(b => {
+        const key = `${b.name || b.type}-${b.color}-${b.partNumber}`;
+        brickMap.set(key, { ...b });
+      });
+      bricksWithMetaData.forEach(b => {
+        const key = `${b.name}-${b.color}-${b.partNumber}`;
+        if (brickMap.has(key)) {
+          brickMap.get(key).count = (brickMap.get(key).count || 1) + 1;
         } else {
-          updatedCollection.push({
-            id: `brick_${Date.now()}_${Math.random()}`,
-            name: newBrick.name || 'Unknown Brick',
-            category: newBrick.family || 'Bricks',
-            count: 1,
-            image: newBrick.thumbnail || 'https://images.brickset.com/parts/design1.jpg',
-            color: newBrick.color || 'Unknown',
-            color_hex: newBrick.color_hex,
-            dimensions: newBrick.dimensions,
-            confidence: newBrick.finalConfidence || 0.85
-          });
+          brickMap.set(key, { ...b });
         }
       });
 
-      localStorage.setItem('hellobrick_collection', JSON.stringify({ updatedAt: new Date().toISOString(), bricks: updatedCollection }));
-      window.dispatchEvent(new Event('hellobrick:collection-updated'));
-      saveCollectionToSupabase(userId, updatedCollection).catch(() => { });
+      localStorage.setItem('hellobrick_collection', JSON.stringify({
+        bricks: Array.from(brickMap.values()),
+        lastUpdated: Date.now()
+      }));
 
-      // Phase 15: Reward XP for saving bricks
-      xpHelpers.scanDetection(bricksToSave.length, bricksToSave.filter(b => b.isNew).length).catch(console.error);
+      window.dispatchEvent(new CustomEvent('hellobrick:collection-updated'));
+      saveCollectionToSupabase(userId, bricksWithMetaData).catch(() => { });
+
+      confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.7 },
+        colors: ['#F59E0B', '#EF4444', '#3B82F6', '#10B981']
+      });
 
       setSaveSuccess(true);
-      confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-      setTimeout(() => onNavigate(Screen.COLLECTION), 1500);
-    } catch (err) {
-      setSaveSuccess(true);
-      setTimeout(() => onNavigate(Screen.HOME), 2000);
+      setTimeout(() => onNavigate(Screen.COLLECTION), 2000);
+    } catch (error) {
+      console.warn('Failed to save:', error);
     } finally {
       setIsProcessing(false);
     }
   };
 
+
+  const handleClose = () => {
+    onNavigate(Screen.HOME);
+  };
+
+  // ─── RENDER ────────────────────────────────────────────────────
   return (
-    <div className="fixed inset-0 bg-black text-white z-50 flex flex-col font-sans h-[100dvh]">
+    <div className="fixed inset-0 bg-black text-white z-50 flex flex-col font-sans">
       <canvas ref={canvasRef} className="hidden" />
 
-      {/* Top Bar */}
-      <div className="absolute left-0 right-0 px-6 flex justify-between items-center z-50 top-[max(env(safe-area-inset-top),16px)]">
-        <button
-          onClick={() => {
-            // If in a challenge, go back to puzzles, otherwise home
-            onNavigate(challenge ? Screen.PUZZLES : Screen.HOME);
-          }}
-          className="w-10 h-10 bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 text-white shadow-lg"
-        >
+      {/* Top Controls */}
+      <div className="absolute top-[max(env(safe-area-inset-top),16px)] left-0 right-0 px-6 flex justify-between items-center z-50">
+        <button onClick={handleClose} className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 text-white shadow-lg">
           <X className="w-5 h-5" />
         </button>
-        {import.meta.env.MODE === 'development' && (
-          <button onClick={() => setDebugMode(!debugMode)} className={`w-10 h-10 ${debugMode ? 'bg-orange-500' : 'bg-black/40'} backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20`}>
-            <Bug className="w-5 h-5" />
-          </button>
-        )}
       </div>
 
-      {inferenceStuck && (
-        <div className="absolute top-20 left-0 right-0 z-[60] px-6 animate-in fade-in slide-in-from-top-4 duration-500">
-          <div className="bg-orange-600/90 backdrop-blur-md rounded-2xl p-4 flex items-center justify-between border border-white/20 shadow-2xl">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                <RefreshCw className="w-4 h-4 text-white animate-spin-slow" />
+      {/* ─── SCANNING PHASE ─── */}
+      {(phase === 'preview' || phase === 'scanning') && (
+        <>
+          <div className="relative flex-1 bg-black overflow-hidden">
+            {/* Camera permission error */}
+            {hasPermission === false && (
+              <div className="absolute inset-0 flex items-center justify-center text-center p-6 z-50">
+                <div className="bg-black/80 backdrop-blur-md rounded-2xl p-8 max-w-sm">
+                  <AlertCircle className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
+                  <h3 className="text-white font-bold text-lg mb-2">Camera Access Required</h3>
+                  <p className="text-slate-300 text-sm mb-4">{qualityAdvice || 'Allow camera access.'}</p>
+                  <button onClick={() => window.location.reload()} className="mt-2 w-full bg-orange-500 text-white font-bold py-3 rounded-lg">
+                    Retry
+                  </button>
+                </div>
               </div>
-              <p className="text-white text-xs font-bold leading-tight">Detector hanging? Try resetting.</p>
+            )}
+
+            {/* Live video feed */}
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="absolute inset-0 w-full h-full object-cover opacity-90"
+            />
+
+            {/* Minimal controls overlays */}
+            <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-start z-30">
+              <button
+                onClick={() => onNavigate(Screen.HOME)}
+                className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/10 shadow-lg"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <button className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/10 shadow-lg">
+                <Zap className="w-6 h-6" />
+              </button>
             </div>
-            <button
-              onClick={() => window.location.reload()}
-              className="bg-white text-orange-600 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg"
-            >
-              Reset
-            </button>
+
+            {/* 🔒 LOCK: Live bounding box overlays — using canonical utility. 
+                Do not modify coordinate mapping or bbox logic without testing on mobile. */}
+            <div ref={overlayContainerRef} className="absolute inset-0 pointer-events-none overflow-hidden">
+              {detectedObjects.map((obj, i) => {
+                const container = overlayContainerRef.current;
+                const video = videoRef.current;
+                if (!container || !video) return null;
+
+                const vw = video.videoWidth || 640;
+                const vh = video.videoHeight || 480;
+                const cw = container.clientWidth;
+                const ch = container.clientHeight;
+
+                // Log dimensions occasionally for debugging
+                if (i === 0 && Math.random() < 0.05) {
+                  console.log(`[Scanner] v:${vw}x${vh} c:${cw}x${ch}`);
+                }
+
+                const renderBox = bboxToRenderBox(
+                  obj.geometry.bbox,
+                  vw,
+                  vh,
+                  cw,
+                  ch,
+                  'cover'
+                );
+
+                return (
+                  <div
+                    key={obj.detectionId || i}
+                    className="absolute"
+                    style={{
+                      top: `${renderBox.top}%`,
+                      left: `${renderBox.left}%`,
+                      width: `${renderBox.width}%`,
+                      height: `${renderBox.height}%`,
+                      transition: 'all 0.1s ease-out',
+                      border: '2px solid #3B82F6',
+                      borderRadius: '4px',
+                      backgroundColor: 'rgba(59, 130, 246, 0.1)'
+                    }}
+                  >
+                    {/* Label pill — matched to screenshot */}
+                    <div className="absolute -top-7 left-0 bg-[#3B82F6] px-2 py-1 rounded-md flex items-center gap-1.5 shadow-lg whitespace-nowrap">
+                      <div className="w-1.5 h-1.5 bg-white rounded-full" />
+                      <span className="text-[10px] font-black text-white uppercase tracking-wider">
+                        {obj.prediction.brickName}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Scanning title or Challenge */}
+            <div className="absolute top-0 left-0 right-0 p-6 pt-[max(env(safe-area-inset-top),2.5rem)] flex items-center justify-center z-50 pointer-events-none">
+                <div className="flex flex-col items-center gap-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
+                    <span className="text-[14px] font-black text-white/90 uppercase tracking-[0.2em] drop-shadow-md">
+                      {challenge ? 'CHALLENGE ACTIVE' : 'LIVE SCANNER'}
+                    </span>
+                  </div>
+                  {challenge && (
+                    <div className="bg-orange-500/20 backdrop-blur-md px-4 py-1.5 rounded-full border border-orange-500/30">
+                      <span className="text-[10px] font-black text-orange-400 uppercase tracking-widest">
+                        GOAL: {challenge.type}
+                      </span>
+                    </div>
+                  )}
+                </div>
+            </div>
+
+            {/* Object count badge */}
+            {detectedObjects.length > 0 && phase === 'scanning' && (
+              <div className="absolute bottom-28 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 z-30">
+                <span className="text-[12px] font-bold text-white">
+                  {detectedObjects.length} brick{detectedObjects.length !== 1 ? 's' : ''} detected
+                </span>
+              </div>
+            )}
+
+            {/* Quality advice */}
+            {qualityAdvice && (
+              <div className="absolute bottom-40 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur border border-white/10 text-white px-4 py-2 rounded-full flex items-center gap-2 z-30 pointer-events-none">
+                <AlertCircle className="w-4 h-4 text-yellow-400" />
+                <span className="text-[11px]">{qualityAdvice}</span>
+              </div>
+            )}
           </div>
-        </div>
-      )}
 
-      {(phase === 'preview' || phase === 'scanning' || phase === 'warmup') && (
-        <div className="relative flex-1 bg-black overflow-hidden">
-          <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover opacity-90" />
-          <div ref={overlayContainerRef} className="absolute inset-0 pointer-events-none z-20">
-            <DetectionOverlayLayer overlays={overlays} layout={previewLayout} debugMode={debugMode} />
-          </div>
-
-          {debugMode && (
-            <div className="absolute top-24 left-4 right-4 z-50 bg-black/80 backdrop-blur-md p-4 rounded-xl border border-white/20 text-[10px] space-y-1">
-              <h3 className="text-orange-500 font-bold mb-2 uppercase border-b border-orange-500/30 pb-1">Lifecycle Instrumentation</h3>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                <div className="text-slate-400">Route active: <span className="text-green-400 font-mono">YES</span></div>
-                <div className="text-slate-400">Camera stream: <span className={`font-mono ${hasPermission ? 'text-green-400' : 'text-red-400'}`}>{hasPermission ? 'ACTIVE' : 'INACTIVE'}</span></div>
-                <div className="text-slate-400">Detector state: <span className={`font-mono ${phase === 'warmup' ? 'text-yellow-400' : 'text-green-400'}`}>{phase.toUpperCase()}</span></div>
-                <div className="text-slate-400">Inference loop: <span className={`font-mono ${isDetectingRef.current ? 'text-blue-400' : 'text-slate-500'}`}>{isDetectingRef.current ? 'RUNNING' : 'WAITING'}</span></div>
-                <div className="text-slate-400 col-span-2 mt-1">Last detection: <span className="text-white font-mono">{Date.now() - lastInferenceRef.current}ms ago</span></div>
-                <div className="text-slate-400 col-span-2">Tracked overlays: <span className="text-white font-mono">{overlays.length}</span></div>
-                <div className="text-slate-400 col-span-2">Inference ms: <span className="text-white font-mono">{debugStats.inferenceMs.toFixed(1)}ms</span></div>
-              </div>
-            </div>
-          )}
-
-          {phase === 'warmup' && (
-            <div className="absolute inset-0 bg-black flex items-center justify-center z-50">
-              <div className="flex flex-col items-center gap-4">
-                <RefreshCw className="w-8 h-8 text-orange-500 animate-spin" />
-                <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Initializing AI...</p>
-              </div>
-            </div>
-          )}
-
-          {phase === 'scanning' && overlays.length === 0 && !isScanningHolistically && (
-            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-              <div className="bg-black/50 backdrop-blur-md px-6 py-3 rounded-full border border-white/10 text-white font-bold text-sm">
-                Scanning for bricks...
-              </div>
-            </div>
-          )}
-
-          <div className="absolute bottom-[max(calc(env(safe-area-inset-bottom)+110px),110px)] left-0 right-0 z-40 px-8 flex items-center justify-between pointer-events-none">
-            <button
-              onClick={() => setIsScanningHolistically(!isScanningHolistically)}
-              className={`w-14 h-14 rounded-2xl flex items-center justify-center pointer-events-auto transition-all ${isScanningHolistically ? 'bg-orange-500 scale-110 shadow-[0_0_20px_rgba(249,115,22,0.5)]' : 'bg-white/10 backdrop-blur-md border border-white/20'}`}
-            >
-              <Activity className={`w-6 h-6 ${isScanningHolistically ? 'text-white animate-pulse' : 'text-slate-400'}`} />
-            </button>
-
-            <div className="relative pointer-events-auto">
-              {isScanningHolistically && (
-                <svg className="absolute -inset-2 w-[100px] h-[100px] -rotate-90 pointer-events-none">
-                  <circle cx="50" cy="50" r="46" fill="none" stroke="white" strokeWidth="4" strokeOpacity="0.1" />
-                  <circle cx="50" cy="50" r="46" fill="none" stroke="#F97316" strokeWidth="4" strokeDasharray={289} strokeDashoffset={289 - (289 * (holisticBricks.length % 100)) / 100} className="transition-all duration-300" />
-                </svg>
-              )}
+          {/* Capture Button Container */}
+          <div className="absolute bottom-32 left-0 right-0 flex items-center justify-center z-50">
               <button
                 onClick={handleCapture}
                 disabled={isProcessing}
-                className="relative w-20 h-20 rounded-full border-4 border-white flex items-center justify-center transition-all active:scale-90"
+                className="w-24 h-24 rounded-full border-[6px] border-white flex items-center justify-center group active:scale-95 transition-all shadow-2xl"
               >
-                <div className={`w-16 h-16 rounded-full transition-all ${isScanningHolistically ? 'bg-orange-500' : 'bg-white'}`} />
+                <div className="w-[70px] h-[70px] rounded-full bg-white group-active:bg-slate-100 transition-colors shadow-inner" />
               </button>
-            </div>
-            <div className="w-14 h-14" />
           </div>
-
-          {isScanningHolistically && (
-            <div className="absolute bottom-[max(calc(env(safe-area-inset-bottom)+200px),200px)] left-1/2 -translate-x-1/2 z-40 bg-orange-500 px-4 py-1 rounded-full animate-bounce shadow-lg">
-              <span className="text-[10px] font-black text-white uppercase tracking-widest whitespace-nowrap">Collecting: {holisticBricks.length} Bricks</span>
-            </div>
-          )}
-
-          {challenge && !challengeSuccess && (
-            <div className="absolute top-24 left-1/2 -translate-x-1/2 z-40 w-full px-6 pointer-events-none">
-              <div className="bg-slate-900/80 backdrop-blur-xl border-2 border-orange-500/50 rounded-2xl p-4 flex items-center justify-between shadow-2xl">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center animate-pulse"><Play className="w-5 h-5 text-white fill-white" /></div>
-                  <div>
-                    <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest">Puzzle: {challenge.name}</p>
-                    <p className="text-white font-bold">Find: <span className="text-orange-400">{challenge.target}</span></p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+        </>
       )}
 
+      {/* ─── RESULTS PHASE ─── */}
       {phase === 'results' && (
-        <div className="flex-1 flex flex-col overflow-hidden bg-slate-950">
-          <div className="relative flex-[2] bg-black overflow-hidden">
-            {capturedImage && <img src={capturedImage} className="w-full h-full object-contain" alt="Captured" />}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Captured image with overlays */}
+          <div className="relative flex-[3] bg-black overflow-hidden">
+            {capturedImage && (
+              <img
+                src={capturedImage}
+                className="absolute inset-0 w-full h-full object-contain"
+                alt="Captured"
+                id="captured-result-image"
+              />
+            )}
+
+            {/* Bounding boxes on captured image */}
             <div className="absolute inset-0 pointer-events-none">
-              {detectedBricks.map((b, i) => {
-                const renderBox = bboxToRenderBox(b.box, b.sourceRes?.width || 640, b.sourceRes?.height || 480, window.innerWidth, window.innerHeight * 0.4, 'contain');
+              {detectedObjects.map((obj, i) => {
+                const img = document.getElementById('captured-result-image') as HTMLImageElement;
+                const container = img?.parentElement;
+                if (!img || !container) return null;
+
+                const frameW = lastResponse?.frameWidth || img.naturalWidth || 640;
+                const frameH = lastResponse?.frameHeight || img.naturalHeight || 480;
+                const cw = container.clientWidth;
+                const ch = container.clientHeight;
+
+                const renderBox = bboxToRenderBox(obj.geometry.bbox, frameW, frameH, cw, ch, 'contain');
+                const color = COLORS[i % COLORS.length];
+                const isSelected = selectedBricks.has(obj.detectionId);
+
                 return (
-                  <div key={b.id || i} className="absolute border-2 border-orange-500/50 rounded-sm" style={{ top: `${renderBox.top}%`, left: `${renderBox.left}%`, width: `${renderBox.width}%`, height: `${renderBox.height}%` }}>
-                    <div className="absolute -top-6 left-0 px-2 py-0.5 bg-orange-500 text-white text-[8px] font-black uppercase whitespace-nowrap">{b.compactLabel || b.displayText}</div>
+                  <div key={obj.detectionId || i}>
+                    <div
+                      className="absolute border-2 rounded-md"
+                      style={{
+                        top: `${renderBox.top}%`, left: `${renderBox.left}%`, width: `${renderBox.width}%`, height: `${renderBox.height}%`,
+                        borderColor: isSelected ? color : `${color}50`,
+                        opacity: isSelected ? 1 : 0.4,
+                      }}
+                    />
+                    <div
+                      className="absolute bottom-full left-0 mb-1 bg-black/80 backdrop-blur-md text-white px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap border"
+                      style={{ borderColor: color }}
+                    >
+                      {obj.prediction.brickName}
+                    </div>
                   </div>
                 );
               })}
             </div>
           </div>
-          <div className="flex-[3] bg-slate-900 rounded-t-3xl p-6 flex flex-col overflow-hidden">
-            <h2 className="text-xl font-black text-white mb-6">{detectedBricks.length} Bricks Found</h2>
-            <div className="flex-1 overflow-y-auto space-y-3 pr-2 no-scrollbar">
-              {detectedBricks.map(b => (
-                <div key={b.id} onClick={() => toggleSelection(b.id)} className={`flex flex-col gap-3 p-4 rounded-2xl border transition-all cursor-pointer ${b.selected ? 'bg-orange-500/10 border-orange-500/50' : 'bg-white/5 border-white/10 opacity-60'}`}>
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-xl overflow-hidden border border-white/10 bg-slate-800 flex-shrink-0">
-                      {b.thumbnail && <img src={b.thumbnail} className="w-full h-full object-cover" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-black text-white text-base leading-tight truncate">{b.displayText}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <div className="px-2 py-0.5 bg-orange-500 rounded text-[9px] font-black text-white uppercase tracking-tighter">
-                          {Math.round((b.finalConfidence || 0.85) * 100)}% Confidence
-                        </div>
-                        <p className="text-[10px] text-slate-500 font-bold">{b.family || 'Brick'}</p>
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Confidence Breakdown */}
-                  <div className="grid grid-cols-3 gap-2 pt-2 border-t border-white/5">
-                    <div className="flex flex-col">
-                      <span className="text-[8px] text-slate-500 uppercase font-black tracking-widest">Geometry</span>
-                      <div className="h-1 w-full bg-white/10 rounded-full mt-1 overflow-hidden">
-                        <div className="h-full bg-blue-500" style={{ width: `${(b.geometryConfidence || 0) * 100}%` }} />
-                      </div>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-[8px] text-slate-500 uppercase font-black tracking-widest">Color</span>
-                      <div className="h-1 w-full bg-white/10 rounded-full mt-1 overflow-hidden">
-                        <div className="h-full bg-teal-500" style={{ width: `${(b.colorConfidence || 0) * 100}%` }} />
-                      </div>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-[8px] text-slate-500 uppercase font-black tracking-widest">Dimensions</span>
-                      <div className="h-1 w-full bg-white/10 rounded-full mt-1 overflow-hidden">
-                        <div className="h-full bg-purple-500" style={{ width: `${(b.dimensionConfidence || 0) * 100}%` }} />
-                      </div>
-                    </div>
+          {/* Results Sheet */}
+          <div className="flex-[4] bg-slate-900 border-t border-white/10 rounded-t-[24px] -mt-4 relative z-10 flex flex-col overflow-hidden">
+            <div className="w-12 h-1.5 bg-slate-700/50 rounded-full mx-auto mt-3 mb-3 flex-shrink-0" />
+
+            {saveSuccess ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center flex-1">
+                <div className="w-16 h-16 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mb-4">
+                  <CheckCircle2 className="w-8 h-8" />
+                </div>
+                <h2 className="text-2xl font-black text-white">Saved to Collection!</h2>
+                <p className="text-slate-400 text-sm mt-1">Your bricks have been catalogued</p>
+              </div>
+            ) : (
+              <>
+                <div className="px-5 mb-3 flex-shrink-0 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-black text-white">
+                      {detectedObjects.length} Brick{detectedObjects.length !== 1 ? 's' : ''} Found
+                    </h2>
+                    <p className="text-slate-400 text-xs">Tap to select • Delete incorrect detections</p>
                   </div>
+                  <button
+                    onClick={() => setPhase('scanning')}
+                    className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors border border-white/10"
+                  >
+                    <X className="w-5 h-5 text-slate-300" />
+                  </button>
                 </div>
-              ))}
-              <div className="h-32" />
-            </div>
-            <div className="pt-6 pb-[max(calc(env(safe-area-inset-bottom)+120px),120px)] border-t border-white/5 bg-slate-900 px-6 -mx-6 mb-[-24px]">
-              {saveSuccess ? (
-                <div className="py-4 text-center bg-green-500/20 text-green-400 rounded-xl font-bold flex items-center justify-center gap-2 animate-bounce">
-                  <CheckCircle2 className="w-5 h-5" /> Saved!
+
+                {/* Brick List */}
+                <div className="flex-1 overflow-y-auto px-5 space-y-2">
+                  {detectedObjects.map((obj, i) => {
+                    const isSelected = selectedBricks.has(obj.detectionId);
+                    const pred = obj.prediction;
+                    const partNum = pred.brickPartNum;
+                    const drawingImageUrl = `https://cdn.rebrickable.com/media/parts/elements/${partNum}.jpg`;
+
+                    return (
+                      <div
+                        key={obj.detectionId || i}
+                        onClick={() => {
+                          const s = new Set(selectedBricks);
+                          if (isSelected) s.delete(obj.detectionId);
+                          else s.add(obj.detectionId);
+                          setSelectedBricks(s);
+                        }}
+                        className={`flex gap-3 p-3 rounded-xl border transition-all cursor-pointer ${isSelected ? 'bg-orange-500/10 border-orange-500/50' : 'bg-white/5 border-white/10'
+                          }`}
+                      >
+                        {/* Checkbox */}
+                        <div className="flex-shrink-0 flex items-center">
+                          <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center ${isSelected ? 'bg-orange-500 border-orange-500' : 'bg-slate-800/50 border-slate-600'
+                            }`}>
+                            {isSelected && <CheckCircle2 className="w-3 h-3 text-white" />}
+                          </div>
+                        </div>
+
+                        {/* Brick Image */}
+                        <div className="flex-shrink-0 w-14 h-14 bg-white rounded-lg border border-white/10 overflow-hidden flex items-center justify-center p-1">
+                          <img
+                            src={drawingImageUrl}
+                            alt={pred.brickName}
+                            onError={(e) => { e.currentTarget.src = `https://cdn.rebrickable.com/media/parts/ldraw/14/3001.png`; }}
+                            className="w-full h-full object-contain mix-blend-multiply"
+                          />
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0 flex flex-col justify-center">
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                            <p className="font-bold text-sm text-white truncate">
+                              {pred.brickColorName && pred.brickColorName !== 'Unknown' ? `${pred.brickColorName} ` : ''}{pred.brickName}
+                            </p>
+                          </div>
+                          {partNum && partNum !== 'Unknown' && (
+                            <p className="text-[11px] text-slate-400 ml-4">#{partNum}</p>
+                          )}
+                          <p className="text-[10px] text-slate-500 ml-4">
+                            {pred.identityConfidence ? `${(pred.identityConfidence * 100).toFixed(0)}%` : '?'} confidence
+                          </p>
+                        </div>
+
+                        {/* Delete */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deletedBrickIdsRef.current.push(obj.detectionId);
+                            setDetectedObjects(prev => prev.filter(d => d.detectionId !== obj.detectionId));
+                            setSelectedBricks(prev => { const s = new Set(prev); s.delete(obj.detectionId); return s; });
+                          }}
+                          className="flex-shrink-0 w-8 h-8 bg-red-500/15 hover:bg-red-500/30 rounded-lg flex items-center justify-center self-center"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
-              ) : (
-                <button onClick={handleSaveSelected} disabled={isProcessing} className="w-full bg-orange-500 text-white font-black py-4 rounded-2xl shadow-xl flex items-center justify-center gap-3">
-                  {isProcessing ? <RefreshCw className="w-6 h-6 animate-spin" /> : <><Zap className="w-5 h-5 fill-white" /> Save {detectedBricks.filter(b => b.selected).length} Bricks</>}
-                </button>
-              )}
-            </div>
+
+                {/* Since we auto-save, we don't need the Add button anymore, but we can provide a Close option */}
+                <div className="px-5 py-4 flex gap-3 flex-shrink-0 safe-area-bottom border-t border-white/5">
+                  <button
+                    onClick={() => {
+                      setDetectedObjects([]);
+                      setCapturedImage(null);
+                      setPhase('scanning');
+                    }}
+                    className="flex-1 py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 text-sm bg-white/5 text-white border border-white/10 hover:bg-white/10 active:scale-95"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Reset
+                  </button>
+                  <button
+                    onClick={handleSaveSelected}
+                    disabled={selectedBricks.size === 0 || isProcessing}
+                    className="flex-[2] py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 text-sm bg-orange-500 text-white shadow-lg shadow-orange-500/30 hover:bg-orange-600 disabled:opacity-50 disabled:bg-slate-700 disabled:shadow-none active:scale-95 transition-all"
+                  >
+                    Add {selectedBricks.size} Brick{selectedBricks.size !== 1 ? 's' : ''} to Collection
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
 
-      {challengeSuccess && (
-        <div className="absolute inset-0 z-[100] flex items-center justify-center bg-slate-950/40 backdrop-blur-md">
-          <div className="bg-slate-900 border-2 border-green-500 rounded-[40px] p-8 text-center shadow-[0_0_50px_rgba(34,197,94,0.3)]">
-            <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
-            <h2 className="text-3xl font-black text-white uppercase italic">Found it!</h2>
-            <p className="text-green-400 font-bold">REWARD EARNED</p>
+      {/* Processing overlay */}
+      {isProcessing && (
+        <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="flex flex-col items-center">
+            <div className="w-12 h-12 border-3 border-orange-500 border-t-transparent rounded-full animate-spin mb-4" />
+            <p className="text-white font-bold">Analyzing...</p>
           </div>
         </div>
       )}

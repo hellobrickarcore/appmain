@@ -94,11 +94,20 @@ class SessionService {
     /**
      * Cancel the active session
      */
-    cancelSession() {
-        if (this.currentSession) {
-            this.currentSession.status = 'cancelled';
-            this.currentSession = null;
+    /**
+     * Clear all HelloBrick associated data from local storage
+     * Used for hard logouts and session resets.
+     */
+    clearGlobalSession() {
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('hellobrick_')) {
+                keysToRemove.push(key);
+            }
         }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+        console.log('[Session] Global session cleared');
     }
 }
 

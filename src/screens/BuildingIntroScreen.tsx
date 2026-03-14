@@ -1,4 +1,5 @@
 import React from 'react';
+import { Box, Layout, CheckCircle2, ChevronRight, Database, Zap, Sparkles } from 'lucide-react';
 import { Screen } from '../types';
 
 interface BuildingIntroScreenProps {
@@ -7,61 +8,56 @@ interface BuildingIntroScreenProps {
 
 export const BuildingIntroScreen: React.FC<BuildingIntroScreenProps> = ({ onNavigate }) => {
   return (
-    <div className="fixed inset-0 bg-[#0A1229] text-white z-50 flex flex-col font-sans overflow-hidden min-h-[100dvh]">
-      {/* Floating Bricks Background Decor */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-40">
-        {[
-          { top: '10%', left: '15%', rot: '15deg', scale: '0.8', color: 'bg-orange-500' },
-          { top: '5%', left: '60%', rot: '-20deg', scale: '1.1', color: 'bg-blue-500' },
-          { top: '15%', left: '85%', rot: '45deg', scale: '0.7', color: 'bg-red-500' },
-          { top: '35%', left: '10%', rot: '-10deg', scale: '0.9', color: 'bg-yellow-500' },
-          { top: '45%', left: '75%', rot: '25deg', scale: '1.2', color: 'bg-orange-600' },
-          { top: '70%', left: '25%', rot: '30deg', scale: '1.0', color: 'bg-blue-600' },
-          { top: '80%', left: '15%', rot: '-15deg', scale: '0.8', color: 'bg-red-600' },
-          { top: '75%', left: '80%', rot: '40deg', scale: '0.9', color: 'bg-orange-400' },
-        ].map((brick, i) => (
-          <div
-            key={i}
-            className={`absolute w-12 h-12 ${brick.color} rounded-lg shadow-2xl opacity-20`}
-            style={{
-              top: brick.top,
-              left: brick.left,
-              transform: `rotate(${brick.rot}) scale(${brick.scale})`,
-              transition: 'all 5s ease-in-out',
-            }}
-          >
-            {/* Simple stud representations */}
-            <div className="grid grid-cols-2 gap-2 p-2 h-full w-full">
-              <div className="bg-black/10 rounded-full" />
-              <div className="bg-black/10 rounded-full" />
-              <div className="bg-black/10 rounded-full" />
-              <div className="bg-black/10 rounded-full" />
-            </div>
+    <div className="flex flex-col min-h-screen bg-[#050A18] text-white font-sans overflow-hidden relative">
+      <div className="absolute top-0 left-0 right-0 h-[600px] bg-gradient-to-b from-indigo-600/10 via-transparent to-transparent pointer-events-none" />
+      
+      <div className="flex-1 flex flex-col items-center justify-center px-10 text-center relative z-10 pt-16">
+        <div className="w-72 h-72 bg-white/5 border border-white/10 rounded-[60px] p-10 mb-14 shadow-3xl relative group">
+           <div className="absolute -top-10 -left-10 w-48 h-48 bg-orange-500/10 rounded-full blur-[60px] animate-pulse" />
+           <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-indigo-500/10 rounded-full blur-[60px]" />
+           
+           <div className="grid grid-cols-2 gap-5 h-full relative z-10">
+              <div className="bg-[#0A0F1E] rounded-[28px] flex items-center justify-center border border-white/5 group-hover:scale-105 transition-transform shadow-2xl">
+                <Box className="w-12 h-12 text-orange-500" strokeWidth={1.5} />
+              </div>
+              <div className="bg-[#0A0F1E] rounded-[28px] flex items-center justify-center border border-white/5 group-hover:scale-105 transition-transform delay-75 shadow-2xl">
+                <Layout className="w-12 h-12 text-indigo-500" strokeWidth={1.5} />
+              </div>
+              <div className="col-span-2 bg-[#0A0F1E] rounded-[32px] flex flex-col items-center justify-center gap-3 border border-white/10 shadow-3xl">
+                <div className="flex items-center gap-3">
+                   <Database className="w-5 h-5 text-emerald-500" />
+                   <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Inventory Synced</span>
+              </div>
+           </div>
+        </div>
+
+        <div className="max-w-xs">
+          <h1 className="text-4xl font-black mb-6 tracking-tighter leading-none italic uppercase">
+            We compute.<br />
+            You <span className="text-indigo-500">manifest.</span>
+          </h1>
+          
+          <p className="text-slate-500 text-lg font-bold leading-relaxed mb-10">
+            HelloBrick synthesizes 3D build paths based on your current physical inventory.
+          </p>
+
+          <div className="flex justify-center gap-4">
+             {[1, 2, 3].map(i => (
+                <div key={i} className="w-1.5 h-1.5 rounded-full bg-slate-800" />
+             ))}
           </div>
-        ))}
+        </div>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-10 text-center relative z-10">
-        <h1 className="text-5xl font-black leading-[1.1] tracking-tight mb-8">
-          Let's build<br />
-          awesome<br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#F97316] to-[#FB923C]">
-            models together.
-          </span>
-        </h1>
-
-        <p className="text-slate-400 text-lg font-medium leading-relaxed max-w-[280px]">
-          Your journey to becoming a master builder starts now.
-        </p>
-      </div>
-
-      {/* Button Area */}
-      <div className="px-8 pb-[max(env(safe-area-inset-bottom),48px)] relative z-10">
+      <div className="px-8 pb-[max(env(safe-area-inset-bottom),2.5rem)] pt-10 bg-gradient-to-t from-[#050A18] via-[#050A18]/80 to-transparent">
         <button
-          onClick={() => onNavigate(Screen.SUBSCRIPTION)}
-          className="w-full bg-[#3B82F6] hover:bg-[#2563EB] text-white py-6 rounded-[24px] font-black text-xl shadow-xl active:scale-[0.98] transition-all"
+          onClick={() => onNavigate(Screen.NOTIFICATIONS_INTRO)}
+          className="w-full bg-white text-slate-950 py-6 rounded-[32px] font-black text-sm uppercase tracking-[0.2em] shadow-3xl active:scale-[0.98] transition-all flex items-center justify-center gap-3"
         >
-          Continue
+          Initialize Manifest
+          <ChevronRight className="w-4 h-4" />
         </button>
       </div>
     </div>

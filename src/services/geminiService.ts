@@ -1,6 +1,6 @@
-
 import { GoogleGenAI } from "@google/genai";
 import { CustomPart } from "../types";
+import { CONFIG } from "./configService";
 
 // Get API key from environment - Vite exposes VITE_ prefixed vars
 const getApiKey = () => {
@@ -29,7 +29,7 @@ if (!apiKey) {
 }
 
 // Only create AI instance if we have a key
-const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+const ai = apiKey ? new GoogleGenAI(apiKey) : null;
 
 export interface DetectedObject {
   label: string;
@@ -216,7 +216,7 @@ DETAILED REQUIREMENTS:
    - DO NOT guess - if truly uncertain, use "2x4 Brick" as default (most common)
 
 3. color (PRIORITY #2): Detect the building brick color accurately. Common colors:
-   - Red, Blue, Yellow, Green, White, Black, Gray/Grey, Orange, Purple, Pink, Brown, Tan, Lime, Cyan, Magenta
+   - Red, Blue, Yellow, Green, White, Black, Gray/Grey, Orange, Purple, Pink, Brown, Tan, Lime, Cyan, Magenta, Transparent, Clear
    - Use "Unknown" only if color is truly unidentifiable (very rare)
    - Color is important but dimensions are MORE important - if you must choose, prioritize dimensions
 
@@ -669,5 +669,34 @@ Return ONLY the JSON object, nothing else.`
         lighting_condition: 'unknown'
       }
     };
+  }
+};
+
+/**
+ * Generate building ideas based on user message and optional context brick.
+ */
+export const generateBuildIdeas = async (message: string, currentBrick?: any): Promise<string> => {
+  if (!ai) throw new Error('Gemini API key not configured');
+
+  try {
+    const prompt = currentBrick 
+      ? `The user is looking for building ideas for a LEGO ${currentBrick.color} ${currentBrick.name}.
+         User says: "${message}"
+         Provide 3 creative, concise building ideas. Use bullet points and bold titles. Keep it encouraging and fun!`
+      : `The user is looking for LEGO building ideas. 
+         User says: "${message}"
+         Provide 3 creative, concise building ideas. Use bullet points and bold titles. Keep it encouraging and fun!`;
+
+    const apiResponse = await (ai as any).models.generateContent({
+      model: 'gemini-1.5-flash',
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    });
+
+    const result = await apiResponse.response;
+    const text = result.text();
+    return text || "I'm sorry, I couldn't think of anything right now. Try describing your bricks!";
+  } catch (error) {
+    console.error('Ideas generation failed:', error);
+    return "I'm having trouble connecting to my building brain. Use your imagination or try again in a moment!";
   }
 };

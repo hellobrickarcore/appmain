@@ -4,14 +4,21 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
+html, body {
+  height: 100%;
+  overflow: hidden;
   margin: 0;
+  padding: 0;
+}
+
+body {
   font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: #0B0F19; /* Premium dark background */
+  background: #0B1736; /* Match Navy bottom of Auth screens to prevent gaps */
+  overscroll-behavior-y: none; /* Prevent rubber-banding from showing background */
 }
 
 * {
@@ -24,6 +31,7 @@ body {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -57,7 +65,8 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-button, a {
+button,
+a {
   touch-action: manipulation;
   -webkit-touch-callout: none;
   user-select: none;
@@ -71,3 +80,22 @@ button, a {
   user-select: none;
 }
 
+@keyframes scan-sweep {
+  0% { transform: translateY(0); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(100vh); opacity: 0; }
+}
+
+.animate-scan-sweep {
+  animation: scan-sweep 2s ease-in-out infinite;
+}
+
+@keyframes focus-ping {
+  0% { transform: scale(0.5); opacity: 0.8; border-width: 4px; }
+  100% { transform: scale(2); opacity: 0; border-width: 1px; }
+}
+
+.animate-focus-ping {
+  animation: focus-ping 0.6s ease-out forwards;
+}

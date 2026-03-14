@@ -1,0 +1,73 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90m/Users/akeemojuko/.gemini/antigravity/scratch/hellobrick[39m
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[90mstdout[2m | src/tests/scannerCore.test.ts[2m > [22m[2m🔒 Scanner Core Regression Tests[2m > [22m[2mScanner Lifecycle Visibility Recovery[2m > [22m[2mfires appropriate start/stop sequences on document visibility change
+[22m[39m[ScannerCore:Lifecycle] Component Mounted. Booting Scanner.
+
+ [31m❯[39m src/tests/scannerCore.test.ts [2m([22m[2m4 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[32m 3[2mms[22m[39m
+       [32m✓[39m SCANNER_CORE_LOCKED must be true to prevent unauthorized edits[32m 1[2mms[22m[39m
+[31m       [31m×[31m stops previous tracks when starting a new camera stream[39m[32m 1[2mms[22m[39m
+       [32m✓[39m prevents overlapping inferences via isDetecting lock[32m 0[2mms[22m[39m
+[31m       [31m×[31m fires appropriate start/stop sequences on document visibility change[39m[32m 1[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 2 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m src/tests/scannerCore.test.ts[2m > [22m🔒 Scanner Core Regression Tests[2m > [22mCamera Lifecycle[2m > [22mstops previous tracks when starting a new camera stream
+[31m[1mReferenceError[22m: document is not defined[39m
+[36m [2m❯[22m src/tests/scannerCore.test.ts:[2m44:25[22m[39m
+    [90m 42| [39m    it('stops previous tracks when starting a new camera stream', asyn…
+    [90m 43| [39m      [35mconst[39m manager [33m=[39m [35mnew[39m [33mCameraLifecycleManager[39m()[33m;[39m
+    [90m 44| [39m      [35mconst[39m mockVideo [33m=[39m document[33m.[39m[34mcreateElement[39m([32m'video'[39m)[33m;[39m
+    [90m   | [39m                        [31m^[39m
+    [90m 45| [39m      mockVideo[33m.[39mplay [33m=[39m vi[33m.[39m[34mfn[39m()[33m.[39m[34mmockResolvedValue[39m(undefined)[33m;[39m
+    [90m 46| [39m      manager[33m.[39m[34msetVideoElement[39m(mockVideo)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m src/tests/scannerCore.test.ts[2m > [22m🔒 Scanner Core Regression Tests[2m > [22mScanner Lifecycle Visibility Recovery[2m > [22mfires appropriate start/stop sequences on document visibility change
+[31m[1mReferenceError[22m: document is not defined[39m
+[36m [2m❯[22m ScannerLifecycle.mount src/scanner-core/lifecycle/scannerLifecycle.ts:[2m31:5[22m[39m
+    [90m 29| [39m
+    [90m 30| [39m    [90m// Attach visibility listener[39m
+    [90m 31| [39m    document.addEventListener('visibilitychange', this.handleVisibilit…
+    [90m   | [39m    [31m^[39m
+    [90m 32| [39m  }
+    [90m 33| [39m
+[90m [2m❯[22m src/tests/scannerCore.test.ts:[2m87:17[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯[39m[1m[41m Unhandled Errors [49m[22m[31m⎯⎯⎯⎯⎯⎯[39m
+[31m[1m
+Vitest caught 1 unhandled error during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.[22m[39m
+
+[31m⎯⎯⎯⎯[39m[1m[41m Unhandled Rejection [49m[22m[31m⎯⎯⎯⎯⎯[39m
+[31m[1mReferenceError[22m: requestAnimationFrame is not defined[39m
+[36m [2m❯[22m ScannerDetectLoop.loop src/scanner-core/detector/detectLoop.ts:[2m77:7[22m[39m
+    [90m 75| [39m    if (!this.videoElement || this.videoElement.readyState < 2 || this…
+    [90m 76| [39m      [90m// Wait for video to be ready before firing[39m
+    [90m 77| [39m      [34mrequestAnimationFrame[39m(() [33m=>[39m [35mthis[39m[33m.[39m[34mloop[39m())[33m;[39m
+    [90m   | [39m      [31m^[39m
+    [90m 78| [39m      [35mreturn[39m[33m;[39m
+    [90m 79| [39m    }
+[90m [2m❯[22m ScannerDetectLoop.start src/scanner-core/detector/detectLoop.ts:[2m49:10[22m[39m
+[90m [2m❯[22m src/tests/scannerCore.test.ts:[2m70:13[22m[39m
+[90m [2m❯[22m node_modules/@vitest/runner/dist/index.js:[2m145:11[22m[39m
+[90m [2m❯[22m node_modules/@vitest/runner/dist/index.js:[2m915:26[22m[39m
+[90m [2m❯[22m node_modules/@vitest/runner/dist/index.js:[2m1243:20[22m[39m
+[90m [2m❯[22m runWithTimeout node_modules/@vitest/runner/dist/index.js:[2m1209:10[22m[39m
+[90m [2m❯[22m node_modules/@vitest/runner/dist/index.js:[2m1653:37[22m[39m
+[90m [2m❯[22m Traces.$ node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:[2m142:27[22m[39m
+
+[31mThis error originated in "[1msrc/tests/scannerCore.test.ts[22m" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.[39m
+[31m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m2 passed[39m[22m[90m (4)[39m
+[2m     Errors [22m [1m[31m1 error[39m[22m
+[2m   Start at [22m 10:33:08
+[2m   Duration [22m 129ms[2m (transform 47ms, setup 0ms, import 58ms, tests 3ms, environment 0ms)[22m
+

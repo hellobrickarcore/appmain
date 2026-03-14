@@ -12,7 +12,6 @@ export enum Screen {
   TRAINING_INTRO = 'TRAINING_INTRO',
   LEADERBOARD = 'LEADERBOARD',
   REWARDS = 'REWARDS',
-  INSTRUCTIONS = 'INSTRUCTIONS',
   FEED = 'FEED',
   PROFILE_SETTINGS = 'PROFILE_SETTINGS',
   CONNECT = 'CONNECT',
@@ -29,7 +28,10 @@ export enum Screen {
   BUILDING_INTRO = 'BUILDING_INTRO',
   EMAIL_SIGNUP = 'EMAIL_SIGNUP',
   EMAIL_LOGIN = 'EMAIL_LOGIN',
-  CREATE_POST = 'CREATE_POST'
+  CREATE_POST = 'CREATE_POST',
+  HOW_TO_SCAN = 'HOW_TO_SCAN',
+  CAMERA_PERMISSION = 'CAMERA_PERMISSION',
+  HOW_TO_SCAN_PERMISSION = 'HOW_TO_SCAN_PERMISSION'
 }
 
 export type GameModeId = 'TARGET' | 'SPRINT' | 'MIRROR';
@@ -57,11 +59,9 @@ export interface Brick {
   count: number;
   category: string;
   color?: string;
-  color_hex?: string;
-  color_confidence?: number;
   dimensions?: string;
-  confidence?: number;
-  owned?: number;
+  isUncertain?: boolean;
+  labelDisplayStatus?: 'hidden' | 'tentative' | 'confirmed';
 }
 
 export interface LegoSet {

@@ -22,6 +22,13 @@ try {
   
   const root = ReactDOM.createRoot(rootElement);
   
+  // Initialize RevenueCat
+  import('./services/subscriptionService').then(({ subscriptionService }) => {
+    subscriptionService.initialize();
+  }).catch(err => {
+    console.error('Failed to initialize subscription service:', err);
+  });
+  
   // #region agent log
   fetch('http://127.0.0.1:7244/ingest/d7244d3a-90f2-41f3-bc4a-3f7a92e83342',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'main.tsx:BEFORE_RENDER','message':'Before render','data':{},timestamp:Date.now(),sessionId:'debug-session',runId:'load',hypothesisId:'L3'})}).catch(()=>{});
   // #endregion

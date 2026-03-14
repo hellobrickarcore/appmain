@@ -33,7 +33,7 @@ export const TopBar: React.FC<TopBarProps> = ({ currentScreen, onNavigate }) => 
 
         {/* Help Circle Button */}
         <button
-          onClick={() => onNavigate(Screen.HOW_IT_WORKS)}
+          onClick={() => onNavigate(Screen.HOW_TO_SCAN)}
           className="w-10 h-10 bg-slate-700/50 backdrop-blur-md rounded-full flex items-center justify-center text-slate-300 hover:bg-slate-600/50 transition-colors"
         >
           <HelpCircle className="w-5 h-5" />

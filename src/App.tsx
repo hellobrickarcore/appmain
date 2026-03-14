@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { SplashScreen } from '@capacitor/splash-screen';
 import { Screen, BattleResult, GameModeId } from './types';
 import { HomeScreen } from './screens/HomeScreen';
 import { ScannerScreen } from './screens/ScannerScreen';
@@ -13,26 +14,46 @@ import { HeadToHeadMatchmakingScreen } from './screens/HeadToHeadMatchmakingScre
 import { HeadToHeadBattleScreen } from './screens/HeadToHeadBattleScreen';
 import { HeadToHeadResultScreen } from './screens/HeadToHeadResultScreen';
 import { ProfileSettingsScreen } from './screens/ProfileSettingsScreen';
+import { TrainingScreen } from './screens/TrainingScreen';
+import { TrainingIntroScreen } from './screens/TrainingIntroScreen';
 import { LeaderboardScreen } from './screens/LeaderboardScreen';
-import { ConnectScreen } from './screens/ConnectScreen';
+import { RewardsScreen } from './screens/RewardsScreen';
+import { MyCreationsScreen } from './screens/MyCreationsScreen';
+import { CreatePostScreen } from './screens/CreatePostScreen';
 import { AuthScreen } from './screens/AuthScreen';
 import { SubscriptionScreen } from './screens/SubscriptionScreen';
-import { HowItWorksScreen } from './screens/HowItWorksScreen';
-import { FeatureIntroScreen } from './screens/FeatureIntroScreen';
+import { HowToScanScreen } from './screens/HowToScanScreen';
+import { IdeasGeneratorScreen } from './screens/IdeasGeneratorScreen';
 import { NotificationsIntroScreen } from './screens/NotificationsIntroScreen';
 import { BuildingIntroScreen } from './screens/BuildingIntroScreen';
+import { CameraPermissionScreen } from './screens/CameraPermissionScreen';
 import { EmailAuthScreen } from './screens/EmailAuthScreen';
-import { InstructionsScreen } from './screens/InstructionsScreen';
+import { OnboardingScreen } from './screens/OnboardingScreen'; // New import for OnboardingScreen
 import { BottomNav } from './components/BottomNav';
+import { subscriptionService } from './services/subscriptionService';
+import { onAuthStateChange } from './services/supabaseService';
 
 const App: React.FC = () => {
   // Determine initial screen based on onboarding/auth state
   const getInitialScreen = (): Screen => {
-    const isAuthenticated = localStorage.getItem('hellobrick_authenticated') === 'true';
-    const hasFinishedIntro = localStorage.getItem('hellobrick_onboarding_finished') === 'true';
+    // DEV BYPASS: Check for dev URL param or existing localStorage flag
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('dev') === 'true' || localStorage.getItem('hellobrick_dev_mode') === 'true') {
+      console.log('🛠️ DEV BYPASS ACTIVE');
+      localStorage.setItem('hellobrick_dev_mode', 'true');
+      localStorage.setItem('hellobrick_onboarding_finished', 'true');
+      localStorage.setItem('hellobrick_authenticated', 'true');
+      
+      // Auto-jump to scanner if scanner=true is provided
+      if (urlParams.get('scanner') === 'true') {
+        return Screen.SCANNER;
+      }
+      return Screen.HOME;
+    }
 
-    if (!isAuthenticated) return Screen.AUTH;
+    const hasFinishedIntro = localStorage.getItem('hellobrick_onboarding_finished') === 'true';
     if (!hasFinishedIntro) return Screen.FEATURE_INTRO;
+    
     return Screen.HOME;
   };
 
@@ -40,18 +61,53 @@ const App: React.FC = () => {
   const [battleResult, setBattleResult] = useState<BattleResult | null>(null);
   const [selectedMode, setSelectedMode] = useState<GameModeId>('TARGET');
   const [activeChallenge, setActiveChallenge] = useState<any>(null);
-  const [activeSet, setActiveSet] = useState<any>(null);
+  const [screenParams, setScreenParams] = useState<any>(null);
+  const [showNav, setShowNav] = useState(true);
+
+  useEffect(() => {
+    // 1. Hide splash screen
+    SplashScreen.hide().catch(err => {
+      console.warn('Splash screen hide failed (likely already hidden or non-native):', err);
+    });
+
+    // 2. Initialize RevenueCat for anonymous or returning users
+    const initialUserId = localStorage.getItem('hellobrick_userId') || undefined;
+    subscriptionService.initialize(initialUserId).catch(err => {
+      console.error('RevenueCat initialization failed:', err);
+    });
+
+    // 3. Global Auth State Listener — Ensure Supabase UUID matches RevenueCat appUserID
+    const unsubscribe = onAuthStateChange((event, session) => {
+      console.log(`🔐 Auth State Change: ${event}`, session?.user?.id);
+      
+      if (session?.user) {
+        const userId = session.user.id;
+        localStorage.setItem('hellobrick_userId', userId);
+        subscriptionService.setUserId(userId).catch(console.error);
+      } else if (event === 'SIGNED_OUT') {
+        localStorage.removeItem('hellobrick_userId');
+        subscriptionService.logout().catch(console.error);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   const handleNavigate = (screen: Screen, params?: any) => {
     console.log(`🚀 Navigating to: ${screen}`, params);
 
-    // Clear challenge if moving away from Scanner (unless it's results)
-    if (currentScreen === Screen.SCANNER && screen !== Screen.SCANNER) {
-      setActiveChallenge(null);
+    if (screen === Screen.HOME) {
+      localStorage.setItem('hellobrick_authenticated', 'true');
+    }
+
+    if (screen === Screen.HOW_TO_SCAN_PERMISSION) {
+       setCurrentScreen(Screen.CAMERA_PERMISSION);
+       return;
     }
 
     if (screen === Screen.SCANNER && params?.challenge) {
-      console.log('🎯 Setting active challenge:', params.challenge);
       setActiveChallenge(params.challenge);
     }
 
@@ -59,83 +115,37 @@ const App: React.FC = () => {
       setBattleResult(params);
     }
 
-    if (screen === Screen.INSTRUCTIONS && params) {
-      setActiveSet(params);
-    }
-
-    // Logic for completing authentication
-    if (screen === Screen.HOME && currentScreen === Screen.AUTH) {
-      localStorage.setItem('hellobrick_authenticated', 'true');
-
-      const hasFinishedIntro = localStorage.getItem('hellobrick_onboarding_finished');
-      if (!hasFinishedIntro) {
-        setCurrentScreen(Screen.FEATURE_INTRO);
-        return;
-      }
-    }
-
-    // Logic for completing onboarding
-    if (screen === Screen.HOME && (currentScreen === Screen.SUBSCRIPTION || currentScreen === Screen.BUILDING_INTRO)) {
-      localStorage.setItem('hellobrick_onboarding_finished', 'true');
-    }
-
-    // Phase 9: Ensure multiplayer doesn't redirect to onboarding for authenticated users
-    // Auth route guarding
-    const isAuthenticated = localStorage.getItem('hellobrick_authenticated') === 'true';
-    const hasFinishedIntro = localStorage.getItem('hellobrick_onboarding_finished') === 'true';
-    
-    // Pages that require authentication
-    const authRequiredScreens = [
-      Screen.PROFILE, Screen.PROFILE_SETTINGS, Screen.LEADERBOARD, 
-      Screen.HEAD_TO_HEAD, Screen.H2H_MODES, Screen.H2H_MATCHMAKING, Screen.H2H_BATTLE,
-      Screen.CONNECT, Screen.COLLECTION, Screen.SCANNER
-    ];
-
-    const multiplayerScreens = [
-      Screen.HEAD_TO_HEAD, Screen.H2H_MODES, Screen.H2H_MATCHMAKING, Screen.H2H_BATTLE, Screen.H2H_RESULT
-    ];
-
-    if (authRequiredScreens.includes(screen)) {
-      if (!isAuthenticated) {
-        console.log('🔒 Redirecting to auth: user not authenticated');
-        setCurrentScreen(Screen.AUTH);
-        return;
-      } else if (!hasFinishedIntro && !multiplayerScreens.includes(screen)) {
-         console.log('🔒 Redirecting to intro: user has not finished onboarding');
-         setCurrentScreen(Screen.FEATURE_INTRO);
-         return;
-      }
-    }
-
-    // Final check for Auth Screen manual navigation
-    if (currentScreen === Screen.AUTH && screen !== Screen.AUTH) {
-      localStorage.setItem('hellobrick_authenticated', 'true');
-      if (!hasFinishedIntro && screen === Screen.HOME) {
-        setCurrentScreen(Screen.FEATURE_INTRO);
-        return;
-      }
-    }
-
+    setScreenParams(params);
     setCurrentScreen(screen);
+  };
+
+  const handlePhaseChange = (phase: string) => {
+    setShowNav(phase !== 'results');
   };
 
   const renderScreen = () => {
     switch (currentScreen) {
-      // --- Onboarding / Auth ---
+      // --- Onboarding ---
       case Screen.FEATURE_INTRO:
-        return <FeatureIntroScreen onNavigate={handleNavigate} />;
-      case Screen.HOW_IT_WORKS:
-        return <HowItWorksScreen onNavigate={handleNavigate} />;
-      case Screen.NOTIFICATIONS_INTRO:
-        return <NotificationsIntroScreen onNavigate={handleNavigate} />;
+        return <OnboardingScreen onNavigate={handleNavigate} />;
+      case Screen.HOW_TO_SCAN:
+        return <HowToScanScreen onNavigate={handleNavigate} />;
+      case Screen.IDEAS:
+        return <IdeasGeneratorScreen onNavigate={handleNavigate} initialBrick={screenParams?.brick} />;
       case Screen.BUILDING_INTRO:
         return <BuildingIntroScreen onNavigate={handleNavigate} />;
+      case Screen.NOTIFICATIONS_INTRO:
+        return <NotificationsIntroScreen onNavigate={handleNavigate} />;
+      case Screen.CAMERA_PERMISSION:
+        return <CameraPermissionScreen onNavigate={handleNavigate} />;
+      
+      // --- Auth ---
       case Screen.AUTH:
-        return <AuthScreen onAuthenticate={() => handleNavigate(Screen.HOME)} onNavigate={handleNavigate} />;
+        return <AuthScreen onAuthenticate={() => handleNavigate(Screen.NOTIFICATIONS_INTRO)} onNavigate={handleNavigate} />;
       case Screen.EMAIL_SIGNUP:
-        return <EmailAuthScreen onNavigate={handleNavigate} onAuthenticate={() => handleNavigate(Screen.HOME)} mode="signup" />;
+        return <EmailAuthScreen onNavigate={handleNavigate} onAuthenticate={() => handleNavigate(Screen.NOTIFICATIONS_INTRO)} mode="signup" />;
       case Screen.EMAIL_LOGIN:
-        return <EmailAuthScreen onNavigate={handleNavigate} onAuthenticate={() => handleNavigate(Screen.HOME)} mode="login" />;
+        return <EmailAuthScreen onNavigate={handleNavigate} onAuthenticate={() => handleNavigate(Screen.NOTIFICATIONS_INTRO)} mode="login" />;
       case Screen.SUBSCRIPTION:
         return <SubscriptionScreen onNavigate={handleNavigate} />;
 
@@ -143,25 +153,31 @@ const App: React.FC = () => {
       case Screen.HOME:
         return <HomeScreen onNavigate={handleNavigate} />;
       case Screen.SCANNER:
-        return <ScannerScreen onNavigate={handleNavigate} challenge={activeChallenge} />;
+        return <ScannerScreen onNavigate={handleNavigate} challenge={activeChallenge} onPhaseChange={handlePhaseChange} />;
       case Screen.COLLECTION:
         return <CollectionScreen onNavigate={handleNavigate} />;
-      case Screen.INSTRUCTIONS:
-        return <InstructionsScreen onNavigate={handleNavigate} setDetails={activeSet} />;
       case Screen.PROFILE:
         return <ProfileScreen onNavigate={handleNavigate} />;
       case Screen.PROFILE_SETTINGS:
         return <ProfileSettingsScreen onNavigate={handleNavigate} />;
-      case Screen.LEADERBOARD:
-        return <LeaderboardScreen onNavigate={handleNavigate} />;
       case Screen.QUESTS:
         return <QuestsScreen onNavigate={handleNavigate} />;
       case Screen.PUZZLES:
         return <PuzzlesScreen onNavigate={handleNavigate} />;
       case Screen.FEED:
         return <FeedScreen onNavigate={handleNavigate} />;
-      case Screen.CONNECT:
-        return <ConnectScreen onNavigate={handleNavigate} />;
+      case Screen.TRAINING:
+        return <TrainingScreen onNavigate={handleNavigate} />;
+      case Screen.TRAINING_INTRO:
+        return <TrainingIntroScreen onNavigate={handleNavigate} />;
+      case Screen.LEADERBOARD:
+        return <LeaderboardScreen onNavigate={handleNavigate} />;
+      case Screen.REWARDS:
+        return <RewardsScreen onNavigate={handleNavigate} />;
+      case Screen.MY_CREATIONS:
+        return <MyCreationsScreen onNavigate={handleNavigate} />;
+      case Screen.CREATE_POST:
+        return <CreatePostScreen onNavigate={handleNavigate} />;
 
       // --- Multiplayer / Games ---
       case Screen.HEAD_TO_HEAD:
@@ -188,11 +204,48 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="dark bg-slate-950 min-h-[100dvh] text-slate-100 selection:bg-orange-500/30">
+    <div className="dark bg-slate-950 h-[100dvh] overflow-hidden text-slate-100 selection:bg-orange-500/30">
       {renderScreen()}
 
-      {/* Navigation - Show on main 4 tabs plus Feed */}
-      {[Screen.HOME, Screen.SCANNER, Screen.COLLECTION, Screen.PROFILE, Screen.FEED, Screen.CONNECT].includes(currentScreen) && (
+      {/* Dev Bypass Menu - Only visible in Dev Mode */}
+      {localStorage.getItem('hellobrick_dev_mode') === 'true' && (
+        <div className="fixed bottom-24 left-4 z-[9999] pointer-events-none">
+          <div className="flex flex-col gap-2 pointer-events-auto">
+            <button 
+              onClick={() => {
+                localStorage.removeItem('hellobrick_dev_mode');
+                localStorage.removeItem('hellobrick_onboarding_finished');
+                localStorage.removeItem('hellobrick_authenticated');
+                window.location.href = '/';
+              }}
+              className="px-3 py-1 bg-red-500/80 backdrop-blur-md text-[10px] font-bold rounded-full text-white border border-red-400/50"
+            >
+              EXIT DEV
+            </button>
+            <select 
+              value={currentScreen}
+              onChange={(e) => handleNavigate(e.target.value as Screen)}
+              className="bg-slate-800/90 backdrop-blur-md text-[10px] font-bold p-1 rounded-md border border-white/20 text-white"
+            >
+              {Object.values(Screen).map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+        </div>
+      )}
+
+      {/* Navigation - Sticky Bottom Menu */}
+      {[
+        Screen.HOME, 
+        Screen.SCANNER, 
+        Screen.COLLECTION, 
+        Screen.PROFILE,
+        Screen.FEED,
+        Screen.PUZZLES,
+        Screen.TRAINING,
+        Screen.QUESTS,
+        Screen.LEADERBOARD,
+        Screen.MY_CREATIONS
+      ].includes(currentScreen) && showNav && (
         <BottomNav currentScreen={currentScreen} onNavigate={handleNavigate} />
       )}
     </div>

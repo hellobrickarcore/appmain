@@ -13,8 +13,8 @@ export const InstructionsScreen: React.FC<InstructionsScreenProps> = ({ onNaviga
     const [generatedSteps, setGeneratedSteps] = useState<any[]>([]);
 
     useEffect(() => {
-        // Mock AI-assisted generation of instructions taking 1.5 seconds finding logical steps
-        // In a real app, this would ping an AI generator service or load from DB.
+        // Mock smart generation of instructions taking 1.5 seconds finding logical steps
+        // In a real app, this would ping a generation service or load from DB.
         const timer = setTimeout(() => {
             const steps = [];
             
@@ -42,7 +42,7 @@ export const InstructionsScreen: React.FC<InstructionsScreenProps> = ({ onNaviga
         return (
             <div className="flex flex-col min-h-[100dvh] bg-slate-950 text-white items-center justify-center p-6 text-center">
                 <Wand2 className="w-12 h-12 text-orange-500 animate-pulse mb-6" />
-                <h2 className="text-2xl font-black mb-2">Generating AI Instructions</h2>
+                <h2 className="text-2xl font-black mb-2">Generating Dynamic Steps</h2>
                 <p className="text-slate-400 font-medium">Analyzing your available parts to create a custom build plan for {setDetails.name}...</p>
             </div>
         );

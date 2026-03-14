@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  yolo-backend:
+    build: .
+    container_name: hellobrick-yolo
+    restart: always
+    ports:
+      - "3003:3003"
+    environment:
+      - PYTHONUNBUFFERED=1
+    deploy:
+      resources:
+        limits:
+          memory: 1.5G
+        reservations:
+          memory: 512M

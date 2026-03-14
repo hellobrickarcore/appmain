@@ -1,6 +1,5 @@
-
 import React, { useEffect, useState, useRef } from 'react';
-import { Wifi, Users, ShieldCheck, Zap } from 'lucide-react';
+import { Wifi, Users, ShieldCheck, Zap, ChevronLeft, X, Sparkles } from 'lucide-react';
 import { Screen, GameModeId } from '../types';
 import { multiplayerService, Lobby } from '../services/multiplayerService';
 import { getCurrentUser } from '../services/supabaseService';
@@ -29,21 +28,18 @@ export const HeadToHeadMatchmakingScreen: React.FC<HeadToHeadMatchmakingScreenPr
                 }
                 userIdRef.current = user.id;
 
-                // 1. Find or create lobby
                 const activeLobby = await multiplayerService.findOrJoinLobby(user.id, modeId);
                 setLobby(activeLobby);
 
-                // 2. If already matched (joined as opponent)
                 if (activeLobby.opponent_id && activeLobby.status === 'matched') {
                     setStatus('CONNECTED');
                     setOpponent({
-                        name: 'LegoMaster',
-                        avatar: `https://picsum.photos/seed/${activeLobby.host_id}/100/100`,
+                        name: 'BrickMaster',
+                        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${activeLobby.host_id}`,
                         level: 12
                     });
                 }
 
-                // 3. Subscribe to real-time updates
                 unsubscribe = multiplayerService.subscribeToLobby(activeLobby.id, (updatedLobby) => {
                     setLobby(updatedLobby);
 
@@ -55,7 +51,7 @@ export const HeadToHeadMatchmakingScreen: React.FC<HeadToHeadMatchmakingScreenPr
 
                         setOpponent({
                             name: 'BrickHunter',
-                            avatar: `https://picsum.photos/seed/${oppId}/100/100`,
+                            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${oppId}`,
                             level: 15
                         });
                     }
@@ -77,7 +73,6 @@ export const HeadToHeadMatchmakingScreen: React.FC<HeadToHeadMatchmakingScreenPr
 
         return () => {
             if (unsubscribe) unsubscribe();
-            // Don't leave here, only on explicit cancel or match start
         };
     }, [modeId]);
 
@@ -105,94 +100,115 @@ export const HeadToHeadMatchmakingScreen: React.FC<HeadToHeadMatchmakingScreenPr
     };
 
     return (
-        <div className="flex flex-col min-h-[100dvh] bg-slate-900 font-sans text-white relative overflow-hidden">
-            {/* Animated Background */}
-            <div className="absolute inset-0 z-0 opacity-20">
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] border border-indigo-500/30 rounded-full animate-[ping_3s_linear_infinite]" />
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] border border-indigo-500/50 rounded-full animate-[ping_3s_linear_infinite_1s]" />
+        <div className="flex flex-col min-h-screen bg-[#050A18] font-sans text-white relative overflow-hidden">
+            <div className="absolute inset-0 z-0 pointer-events-none">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] border border-indigo-500/10 rounded-full animate-[ping_4s_linear_infinite]" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] border border-indigo-500/20 rounded-full animate-[ping_4s_linear_infinite_1.5s]" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200px] h-[200px] border border-orange-500/10 rounded-full shadow-[0_0_100px_rgba(249,115,22,0.05)]" />
             </div>
 
-            <div className="flex-1 flex flex-col items-center justify-center relative z-10 px-6">
+            {/* Header */}
+            <div className="relative z-50 px-6 pt-[max(env(safe-area-inset-top),3.5rem)] pb-4 flex items-center justify-between sticky top-0 bg-[#050A18]/80 backdrop-blur-xl border-b border-white/5">
+                <button 
+                    onClick={handleCancel}
+                    className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10"
+                >
+                    <ChevronLeft className="w-5 h-5 text-slate-300" />
+                </button>
+                <div className="flex flex-col items-center">
+                   <h1 className="text-sm font-black uppercase tracking-[0.2em] text-white">Matchmaking</h1>
+                   <div className="flex items-center gap-1.5 mt-0.5">
+                      <Zap className="w-2.5 h-2.5 text-yellow-500" />
+                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{getModeName()}</span>
+                   </div>
+                </div>
+                <div className="w-10" />
+            </div>
 
-                {/* Status Text */}
-                <div className="mb-12 text-center">
-                    <h2 className="text-2xl font-black mb-2 transition-all duration-300">
-                        {status === 'SEARCHING' ? 'Searching for opponent...' : 'Connected'}
-                    </h2>
-                    <p className="text-slate-400 text-sm font-medium uppercase tracking-widest flex items-center justify-center gap-2">
+            <div className="flex-1 flex flex-col items-center justify-center relative z-10 px-8">
+                {/* Status Indicator */}
+                <div className="mb-16 text-center">
+                    <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 px-6 py-2.5 rounded-full backdrop-blur-xl mb-4">
                         {status === 'SEARCHING' ? (
-                            <><Wifi className="w-4 h-4 animate-pulse" /> Scanning Lobby</>
+                            <><div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.5)]" /> <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Searching Global Lobbies</span></>
                         ) : (
-                            <><ShieldCheck className="w-4 h-4 text-green-500" /> Match Ready</>
+                            <><ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Opponent Secured</span></>
                         )}
-                    </p>
+                    </div>
                 </div>
 
-                {/* Avatars */}
-                <div className="flex items-center gap-4 mb-12">
-                    {/* Player */}
-                    <div className="flex flex-col items-center gap-2">
-                        <div className="w-24 h-24 rounded-full border-4 border-white overflow-hidden shadow-[0_0_30px_rgba(255,255,255,0.2)]">
-                            <img src={`https://picsum.photos/seed/${userIdRef.current || 'me'}/200/200`} className="w-full h-full object-cover" />
+                {/* Combatants Display */}
+                <div className="w-full flex items-center justify-center gap-4 mb-20">
+                    {/* Me */}
+                    <div className="flex flex-col items-center gap-4 group">
+                        <div className="w-28 h-28 rounded-[40px] border-4 border-indigo-500/30 p-1.5 bg-gradient-to-br from-indigo-500/20 to-transparent shadow-2xl transition-transform group-hover:scale-105">
+                            <div className="w-full h-full rounded-[32px] overflow-hidden bg-slate-900 border border-white/10">
+                                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userIdRef.current || 'hero'}`} className="w-full h-full object-cover" alt="Me" />
+                            </div>
                         </div>
-                        <span className="font-bold">You</span>
+                        <div className="text-center">
+                           <span className="block text-xs font-black uppercase tracking-widest text-white">Vanguard</span>
+                           <span className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter">You</span>
+                        </div>
                     </div>
 
                     {/* VS Badge */}
-                    <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl rotate-45 flex items-center justify-center shadow-lg z-20">
-                        <span className="-rotate-45 font-black text-xl italic">VS</span>
+                    <div className="relative">
+                       <div className="w-16 h-16 bg-white text-slate-950 rounded-3xl rotate-45 flex items-center justify-center shadow-[0_0_40px_rgba(255,255,255,0.2)] z-20 border-4 border-[#050A18]">
+                           <span className="-rotate-45 font-black text-2xl italic tracking-tighter">VS</span>
+                       </div>
+                       <Sparkles className="absolute -top-8 -left-8 w-6 h-6 text-yellow-500/20 animate-pulse" />
                     </div>
 
                     {/* Opponent */}
-                    <div className="flex flex-col items-center gap-2">
-                        {status === 'SEARCHING' ? (
-                            <div className="w-24 h-24 rounded-full border-4 border-slate-700 bg-slate-800 flex items-center justify-center animate-pulse">
-                                <Users className="w-8 h-8 text-slate-600" />
+                    <div className="flex flex-col items-center gap-4 group">
+                        <div className={`w-28 h-28 rounded-[40px] p-1.5 shadow-2xl transition-all duration-500 ${status === 'SEARCHING' ? 'border-4 border-white/5 bg-white/5 grayscale opacity-40' : 'border-4 border-rose-500/50 bg-rose-500/10 scale-100 group-hover:scale-105'}`}>
+                            <div className="w-full h-full rounded-[32px] overflow-hidden bg-slate-900 border border-white/10 flex items-center justify-center">
+                                {status === 'SEARCHING' ? (
+                                    <Users className="w-10 h-10 text-slate-700 animate-pulse" />
+                                ) : (
+                                    <img src={opponent?.avatar} className="w-full h-full object-cover animate-in zoom-in-50 duration-500" alt="Enemy" />
+                                )}
                             </div>
-                        ) : (
-                            <div className="w-24 h-24 rounded-full border-4 border-rose-500 overflow-hidden shadow-[0_0_30px_rgba(244,63,94,0.3)] animate-in zoom-in-50 duration-300">
-                                <img src={opponent.avatar} className="w-full h-full object-cover" />
-                            </div>
-                        )}
-                        <span className="font-bold text-slate-300">{opponent ? opponent.name : '...'}</span>
+                        </div>
+                        <div className="text-center">
+                           <span className={`block text-xs font-black uppercase tracking-widest ${status === 'SEARCHING' ? 'text-slate-800' : 'text-rose-500'}`}>
+                             {status === 'SEARCHING' ? 'Scanning...' : (opponent?.name || 'Challenger')}
+                           </span>
+                           <span className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter">Rank {opponent?.level || '??'}</span>
+                        </div>
                     </div>
                 </div>
 
-                {/* Game Mode Pill */}
-                <div className="bg-slate-800 px-6 py-3 rounded-2xl flex items-center gap-3 border border-slate-700 mb-8">
-                    <Zap className="w-5 h-5 text-yellow-400" />
-                    <div className="text-left">
-                        <span className="block text-[10px] font-bold text-slate-500 uppercase">Game Mode</span>
-                        <span className="block font-bold text-sm">{getModeName()}</span>
+                <div className="w-full max-w-xs space-y-4">
+                    <div className="bg-white/5 border border-white/5 rounded-3xl p-6 text-center backdrop-blur-md">
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Competition Mode</p>
+                        <p className="text-xl font-black text-white capitalize">{getModeName()}</p>
                     </div>
                 </div>
-
             </div>
 
             {/* Footer Action */}
-            <div className="p-6 pb-8 relative z-10 flex flex-col gap-3">
+            <div className="p-8 bg-[#050A18]/80 backdrop-blur-xl border-t border-white/5 z-20 space-y-4">
                 <button
                     onClick={handleStart}
                     disabled={status === 'SEARCHING'}
-                    className={`w-full py-4 rounded-2xl font-black text-lg uppercase tracking-wider transition-all ${status === 'SEARCHING'
-                        ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                        : 'bg-green-500 text-white shadow-lg shadow-green-500/30 hover:bg-green-400 active:scale-95'
+                    className={`w-full py-6 rounded-[32px] font-black text-xs uppercase tracking-[0.3em] transition-all relative overflow-hidden ${status === 'SEARCHING'
+                        ? 'bg-white/5 text-slate-700 border border-white/5 cursor-not-allowed'
+                        : 'bg-white text-slate-950 shadow-2xl active:scale-95'
                         }`}
                 >
-                    {status === 'SEARCHING' ? 'Waiting...' : 'Start Battle'}
+                    {status === 'SEARCHING' ? 'Waiting for Match...' : 'Enter Arena'}
+                    {status === 'CONNECTED' && <div className="absolute inset-0 bg-white/20 animate-shine" />}
                 </button>
 
                 <button
                     onClick={handleCancel}
-                    className="w-full py-3 text-slate-500 hover:text-white font-bold text-sm transition-colors uppercase tracking-widest"
+                    className="w-full py-2 text-slate-600 hover:text-white font-black text-[10px] uppercase tracking-[0.3em] transition-colors"
                 >
-                    Cancel Matchmaking
+                    Abandon Lobby
                 </button>
             </div>
         </div>
     );
 };
-
-
-
-

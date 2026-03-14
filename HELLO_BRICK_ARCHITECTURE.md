@@ -31,7 +31,7 @@ We solved the "temperamental" bounding box problem by implementing a **Geometric
 ### Unified Confidence Thresholds
 - **Frontend Floor**: `0.15` (GEOMETRY_RENDER_MIN).
 - **Backend Floor**: `0.15` (conf_floor).
-- By unifying these, we ensured that anything the camera sees can be processed by the backend, maximizing recall for small or angled bricks.
+- Bynifying these, we ensured that anything the camera sees can be processed by the backend, maximizing recall for small or angled bricks.
 
 ### Centroid Merging
 To prevent duplicate "Proposed" bricks, we use a **Centroid Intersection** algorithm. It compares the center-point of live-tracked bricks vs. newly captured bricks. If they are within a 5% coordinate margin, they are treated as the same unique object.

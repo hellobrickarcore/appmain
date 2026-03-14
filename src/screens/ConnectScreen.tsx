@@ -356,19 +356,11 @@ export const ConnectScreen: React.FC<ConnectScreenProps> = ({ onNavigate, isPro 
   };
 
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-[#faf9f6]">
+    <div className="flex flex-col min-h-screen bg-[#faf9f6]">
       {/* Header - Sticky */}
       <div className="bg-white/90 backdrop-blur-md sticky top-0 z-30 px-6 pt-[max(env(safe-area-inset-top),3.5rem)] pb-4 border-b border-slate-100">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => onNavigate(Screen.HOME)}
-              className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-slate-700 hover:bg-slate-100"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <h1 className="text-2xl font-black text-slate-900">Feed</h1>
-          </div>
+          <h1 className="text-2xl font-black text-slate-900">Feed</h1>
           <div className="flex gap-3">
             <button
               onClick={() => setShowSearch(!showSearch)}

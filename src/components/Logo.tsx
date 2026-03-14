@@ -43,13 +43,14 @@ export const Logo: React.FC<{
   // Mark component
   const Mark = () => (
     <div
-      className={`${markSizeClasses[size]} bg-[#FFD600] rounded-[26px] flex items-center justify-center shadow-lg shadow-yellow-500/10 ring-1 ring-black/5`}
-      style={{ borderRadius: size === 'xl' ? '26px' : size === 'lg' ? '20px' : size === 'md' ? '12px' : '8px' }}
+      className={`${markSizeClasses[size]} bg-[#FFD600] rounded-[26px] flex items-center justify-center shadow-[0_10px_30px_-10px_rgba(255,214,0,0.5)]`}
+      style={{ borderRadius: size === 'xl' ? '40px' : size === 'lg' ? '32px' : size === 'md' ? '20px' : '12px' }}
     >
-      <div className={`${innerSizeClasses[size]} bg-[#F97316] flex items-center justify-center shadow-inner`}>
-        <div className="flex gap-1.5">
-          <div className={`${squareSizeClasses[size]} bg-black`}></div>
-          <div className={`${squareSizeClasses[size]} bg-black`}></div>
+      <div className={`${innerSizeClasses[size]} bg-[#FF7A30] flex items-center justify-center shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)]`}
+           style={{ borderRadius: size === 'xl' ? '20px' : size === 'lg' ? '16px' : size === 'md' ? '10px' : '6px' }}>
+        <div className="flex gap-1 xl:gap-2">
+          <div className={`${squareSizeClasses[size]} bg-black rounded-full shadow-sm`}></div>
+          <div className={`${squareSizeClasses[size]} bg-black rounded-full shadow-sm`}></div>
         </div>
       </div>
     </div>

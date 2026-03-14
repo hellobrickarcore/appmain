@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ChevronLeft, Gem, Lock, Star, Play, Sparkles } from 'lucide-react';
+import React from 'react';
+import { ChevronLeft, Lock, Play, Trophy, Sparkles, Star } from 'lucide-react';
 import { Screen } from '../types';
 
 interface PuzzlesScreenProps {
@@ -7,163 +7,122 @@ interface PuzzlesScreenProps {
 }
 
 const LEVELS = [
-    { id: 1, name: 'Shape Fit', type: 'Easy', stars: 0, locked: false, gradient: 'from-emerald-400 to-green-500', emoji: '🟩' },
-    { id: 2, name: 'Color Match', type: 'Easy', stars: 0, locked: false, gradient: 'from-cyan-400 to-blue-500', emoji: '🎨' },
-    { id: 3, name: 'Balance Tower', type: 'Medium', stars: 0, locked: true, gradient: 'from-amber-400 to-orange-500', emoji: '🏗️' },
-    { id: 4, name: 'Bridge Builder', type: 'Medium', stars: 0, locked: true, gradient: 'from-orange-400 to-red-500', emoji: '🌉' },
-    { id: 5, name: 'Gear Logic', type: 'Hard', stars: 0, locked: true, gradient: 'from-red-400 to-rose-600', emoji: '⚙️' },
-    { id: 6, name: 'Master Architect', type: 'Expert', stars: 0, locked: true, gradient: 'from-purple-400 to-violet-600', emoji: '👑' },
+    { id: 1, name: 'Find a 2x4 Brick', type: 'Easy', stars: 0, locked: false, emoji: '🧱', xp: 100 },
+    { id: 2, name: 'Red Only Challenge', type: 'Easy', stars: 0, locked: false, emoji: '🎨', xp: 150 },
+    { id: 3, name: 'Technic Discovery', type: 'Medium', stars: 0, locked: true, emoji: '⚙️', xp: 300 },
+    { id: 4, name: 'Mini-fig Hunter', type: 'Medium', stars: 0, locked: true, emoji: '🌉', xp: 500 },
 ];
 
 export const PuzzlesScreen: React.FC<PuzzlesScreenProps> = ({ onNavigate }) => {
-    const [tappedLevel, setTappedLevel] = useState<number | null>(null);
-    const gems = LEVELS.filter(l => !l.locked).length * 100;
-
     const handlePlay = (level: typeof LEVELS[0]) => {
         if (level.locked) return;
-        setTappedLevel(level.id);
 
-        // Define challenge based on level
         const challenge = {
-            id: level.id,
-            name: level.name,
-            type: level.name === 'Shape Fit' ? 'SHAPE' : 'COLOR',
-            target: level.name === 'Shape Fit' ? 'Brick 2x4' : 'Red',
-            reward: 100
+            type: level.name,
+            difficulty: level.id,
+            isNew: true
         };
 
-        // Navigate to scanner to play puzzle
-        setTimeout(() => {
-            setTappedLevel(null);
-            onNavigate(Screen.SCANNER, { challenge });
-        }, 800);
+        onNavigate(Screen.SCANNER, { challenge });
     };
 
     return (
-        <div className="flex flex-col min-h-[100dvh] bg-[#0B1736] font-sans text-white relative overflow-hidden">
-            {/* Background effects */}
-            <div className="absolute top-0 right-0 w-80 h-80 bg-[#FFC905]/8 blur-[120px] rounded-full -translate-y-1/3 translate-x-1/4" />
-            <div className="absolute bottom-20 left-0 w-64 h-64 bg-blue-500/8 blur-[100px] rounded-full translate-y-1/4 -translate-x-1/4" />
+        <div className="flex flex-col min-h-screen bg-[#050A18] font-sans text-white relative overflow-hidden">
+            <div className="fixed top-0 left-0 right-0 h-96 bg-gradient-to-b from-blue-600/5 via-transparent to-transparent pointer-events-none z-0" />
 
-            {/* Floating decorative bricks */}
-            <div className="absolute top-24 right-6 w-4 h-4 bg-[#FFC905] rounded-sm rotate-12 opacity-20 animate-[float_6s_ease-in-out_infinite]" />
-            <div className="absolute top-60 left-4 w-3 h-3 bg-blue-400 rounded-sm -rotate-12 opacity-15 animate-[float_8s_ease-in-out_infinite_1s]" />
-
-            {/* Header */}
-            <div className="relative z-10 px-6 pt-[max(env(safe-area-inset-top),3.5rem)] pb-2 flex items-center justify-between">
-                <button
-                    onClick={() => onNavigate(Screen.HOME)}
-                    className="w-10 h-10 bg-white/8 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-white/15 active:scale-95 transition-all border border-white/10"
-                >
-                    <ChevronLeft className="w-5 h-5" />
-                </button>
-                <div className="flex items-center gap-2 opacity-0 pointer-events-none">
-                    <Gem className="w-4 h-4 text-[#FFC905] fill-[#FFC905]" />
-                    <span className="font-black text-sm">{gems}</span>
+            <main className="relative z-10 flex flex-col h-full overflow-y-auto no-scrollbar pb-32">
+                {/* Header */}
+                <div className="relative z-50 px-6 pt-[max(env(safe-area-inset-top),3.5rem)] pb-4 flex items-center justify-between sticky top-0 bg-[#050A18]/80 backdrop-blur-xl border-b border-white/5">
+                    <button
+                        onClick={() => onNavigate(Screen.HOME)}
+                        className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10 shadow-lg"
+                    >
+                        <ChevronLeft className="w-5 h-5 text-slate-300" />
+                    </button>
+                    <div className="flex flex-col items-center">
+                       <h1 className="text-sm font-black uppercase tracking-[0.2em] text-white">Challenges</h1>
+                       <div className="flex items-center gap-1 mt-0.5">
+                          <Trophy className="w-2.5 h-2.5 text-orange-500" />
+                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">3,400 XP Total</span>
+                       </div>
+                    </div>
+                    <div className="w-10" />
                 </div>
-            </div>
 
-            {/* Hero */}
-            <div className="relative z-10 px-6 pt-4 pb-6">
-                <h1 className="text-3xl font-black tracking-tight mb-1">Puzzles</h1>
-                <p className="text-blue-200/50 font-medium text-sm">Solve building challenges to earn gems</p>
-            </div>
+                <div className="px-6 pt-10 mb-10 text-left">
+                    <h2 className="text-4xl font-black text-white tracking-tight leading-tight">Missions</h2>
+                    <p className="text-slate-500 font-bold text-sm mt-2">Scan specific parts to unlock rewards and XP</p>
+                </div>
 
-            {/* Level map */}
-            <div className="flex-1 relative z-10 px-5 pb-28 overflow-y-auto no-scrollbar">
-                <div className="relative">
-                    {/* Vertical connecting track */}
-                    <div className="absolute left-[46px] top-8 bottom-8 w-[3px] bg-gradient-to-b from-emerald-500/30 via-amber-500/20 to-purple-500/10 rounded-full" />
-
-                    <div className="flex flex-col gap-5">
-                        {LEVELS.map((level) => (
-                            <div
-                                key={level.id}
-                                className={`relative flex items-center gap-4 transition-all duration-300 ${level.locked ? 'opacity-40' : ''
-                                    }`}
-                            >
-                                {/* Level number / lock badge */}
+                <div className="px-6 space-y-4">
+                    {LEVELS.map((level) => (
+                        <div
+                            key={level.id}
+                            onClick={() => handlePlay(level)}
+                            className={`
+                                relative p-8 rounded-[40px] border transition-all duration-300 group overflow-hidden
+                                ${level.locked 
+                                    ? 'bg-white/[0.02] border-white/5 opacity-50' 
+                                    : 'bg-white/5 border-white/10 hover:border-orange-500/50 hover:bg-white/[0.08] cursor-pointer active:scale-[0.97] shadow-xl'
+                                }
+                            `}
+                        >
+                            <div className="flex items-center gap-6 relative z-10">
                                 <div className={`
-                  relative z-10 w-[68px] h-[68px] rounded-2xl flex items-center justify-center flex-shrink-0
-                  shadow-lg transition-all duration-300
-                  ${level.locked
-                                        ? 'bg-white/5 border border-white/10'
-                                        : `bg-gradient-to-br ${level.gradient} shadow-lg`
-                                    }
-                  ${tappedLevel === level.id ? 'scale-110 ring-4 ring-white/20' : ''}
-                `}>
-                                    {level.locked ? (
-                                        <Lock className="w-6 h-6 text-white/30" />
-                                    ) : (
-                                        <>
-                                            <span className="text-2xl font-black text-white drop-shadow-sm">{level.id}</span>
-                                            <div className="absolute inset-0 bg-gradient-to-br from-white/25 to-transparent rounded-2xl pointer-events-none" />
-                                        </>
-                                    )}
+                                    w-20 h-20 rounded-[28px] flex items-center justify-center text-4xl shadow-2xl border
+                                    ${level.locked ? 'bg-slate-900 border-white/5 grayscale' : `bg-white/5 border-white/10 opacity-100`}
+                                `}>
+                                    {level.locked ? <Lock className="w-6 h-6 text-slate-700" /> : level.emoji}
                                 </div>
 
-                                {/* Card content */}
-                                <div
-                                    onClick={() => handlePlay(level)}
-                                    className={`
-                    flex-1 rounded-2xl p-4 pr-3 flex items-center justify-between
-                    transition-all duration-200
-                    ${level.locked
-                                            ? 'bg-white/[0.02] border border-white/5'
-                                            : 'bg-white/[0.05] border border-white/10 hover:bg-white/[0.08] cursor-pointer active:scale-[0.98]'
-                                        }
-                  `}
-                                >
-                                    <div>
-                                        <h3 className={`font-bold text-base leading-tight mb-1 ${level.locked ? 'text-white/40' : 'text-white'}`}>
-                                            {level.name}
-                                        </h3>
-                                        {level.locked ? (
-                                            <span className="text-[11px] font-bold text-white/20 uppercase tracking-wider">
-                                                Complete Level {level.id - 1} to unlock
-                                            </span>
-                                        ) : (
-                                            <div className="flex gap-1">
-                                                {[...Array(3)].map((_, i) => (
-                                                    <Star
-                                                        key={i}
-                                                        className={`w-3.5 h-3.5 ${i < level.stars
-                                                            ? 'text-[#FFC905] fill-[#FFC905]'
-                                                            : 'text-white/15'
-                                                            }`}
-                                                    />
-                                                ))}
-                                            </div>
-                                        )}
+                                <div className="flex-1 text-left">
+                                    <div className="flex items-center gap-2 mb-1.5">
+                                        <h3 className="font-black text-xl text-white leading-tight">{level.name}</h3>
+                                        {level.locked && <Lock className="w-4 h-4 text-slate-700" />}
                                     </div>
-
-                                    {!level.locked && (
-                                        <div className={`w-11 h-11 rounded-xl bg-[#FFC905] flex items-center justify-center shadow-lg shadow-yellow-500/20 transition-all duration-200 ${tappedLevel === level.id ? 'scale-90' : 'hover:scale-105'
-                                            }`}>
-                                            <Play className="w-5 h-5 text-[#0B1736] fill-[#0B1736] ml-0.5" />
+                                    <div className="flex items-center gap-3">
+                                        <div className={`px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest border ${level.locked ? 'border-slate-800 text-slate-700' : 'border-emerald-500/20 text-emerald-500 bg-emerald-500/5'}`}>
+                                            {level.type}
                                         </div>
-                                    )}
+                                        <div className="flex items-center gap-1.5">
+                                            <Sparkles className="w-3 h-3 text-orange-500" />
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                                +{level.xp} XP
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
+
+                                {!level.locked && (
+                                    <div className="w-12 h-12 rounded-full bg-white text-slate-950 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
+                                        <Play className="w-5 h-5 fill-current ml-0.5" />
+                                    </div>
+                                )}
                             </div>
+                            
+                            {/* Progres indicators if needed */}
+                            {!level.locked && (
+                               <div className="mt-6 flex gap-1 items-center justify-start opacity-30">
+                                  <Star className="w-3 h-3 text-yellow-500" />
+                                  <Star className="w-3 h-3 text-slate-500" />
+                                  <Star className="w-3 h-3 text-slate-500" />
+                               </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+
+                <div className="mt-16 px-10 text-center pb-20">
+                    <p className="text-[10px] font-black text-slate-700 uppercase tracking-[0.3em] mb-6">New Missions in 2d 14h</p>
+                    <div className="flex justify-center gap-4">
+                        {[1, 2, 3].map(i => (
+                           <div key={i} className="w-10 h-10 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-center">
+                              <Lock className="w-4 h-4 text-slate-800" />
+                           </div>
                         ))}
                     </div>
                 </div>
-
-                {/* Coming Soon footer */}
-                <div className="mt-10 mb-4 text-center flex flex-col items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-[#FFC905]/40" />
-                    <p className="text-xs font-bold text-blue-200/30 uppercase tracking-widest">
-                        More puzzles coming soon
-                    </p>
-                </div>
-            </div>
-
-            <style>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0) rotate(var(--tw-rotate, 0deg)); }
-          50% { transform: translateY(-10px) rotate(var(--tw-rotate, 0deg)); }
-        }
-      `}</style>
+            </main>
         </div>
     );
 };

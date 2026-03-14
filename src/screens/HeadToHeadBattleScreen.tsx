@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Clock, CheckCircle2 } from 'lucide-react';
+import { Clock, CheckCircle2, Zap, Target, Shield, Sparkles, Swords, ChevronLeft } from 'lucide-react';
 import { Screen, GameModeId, BattleResult } from '../types';
 import { xpHelpers } from '../services/xpService';
 import { detectFrame, OnnxDetection } from '../services/onnxDetectionService';
@@ -14,7 +14,7 @@ interface HeadToHeadBattleScreenProps {
 type BattleState = 'COUNTDOWN' | 'REVEAL' | 'PLAYING' | 'FINISHED';
 
 const MOCK_TARGETS = {
-    'TARGET': { label: '2x4 Red Brick', image: 'https://picsum.photos/seed/brick1/200/200' },
+    'TARGET': { label: '2x4 Red Brick', image: 'https://images.unsplash.com/photo-1585366447221-d552f9576f3d?auto=format&fit=crop&w=200&h=200' },
     'SPRINT': { label: '3 Blue Bricks', type: 'Category: Bricks', count: 3 },
     'MIRROR': { label: 'Any 2x2 Plate', type: 'Score Attack', count: 0 }
 };
@@ -71,7 +71,7 @@ export const HeadToHeadBattleScreen: React.FC<HeadToHeadBattleScreenProps> = ({ 
             const timer = setTimeout(() => {
                 setGameState('PLAYING');
                 startCamera();
-            }, 3000); // 3 second reveal
+            }, 3000);
             return () => clearTimeout(timer);
         } else if (gameState === 'PLAYING') {
             const timer = setInterval(() => {
@@ -87,7 +87,6 @@ export const HeadToHeadBattleScreen: React.FC<HeadToHeadBattleScreenProps> = ({ 
         }
     }, [gameState, playerScore, opponentScore]);
 
-    // Detection Loop Effect
     useEffect(() => {
         if (gameState === 'PLAYING' && isScanning && videoRef.current) {
             startDetectionLoop();
@@ -113,7 +112,7 @@ export const HeadToHeadBattleScreen: React.FC<HeadToHeadBattleScreenProps> = ({ 
             }
 
             if (gameState === 'PLAYING') {
-                detectionIntervalRef.current = window.setTimeout(loop, 200); // 5fps for battle
+                detectionIntervalRef.current = window.setTimeout(loop, 200);
             }
         };
 
@@ -130,14 +129,13 @@ export const HeadToHeadBattleScreen: React.FC<HeadToHeadBattleScreenProps> = ({ 
     const processDetections = (objects: OnnxDetection[]) => {
         scanAttemptsRef.current += 1;
         const target = MOCK_TARGETS[modeId];
-        const targetLabel = target.label.toLowerCase();
+        const targetLabel = (target as any).label.toLowerCase();
 
         for (const obj of objects) {
             const objLabel = obj.label.toLowerCase();
             let isMatch = false;
 
             if (modeId === 'TARGET') {
-                // Match like "2x4" in "2x4 Red Brick"
                 isMatch = targetLabel.includes(objLabel) || objLabel.includes(targetLabel.split(' ')[0]);
             } else if (modeId === 'SPRINT') {
                 isMatch = objLabel.includes('brick');
@@ -152,7 +150,6 @@ export const HeadToHeadBattleScreen: React.FC<HeadToHeadBattleScreenProps> = ({ 
     };
 
     const handleValidDetection = (detectionId: string) => {
-        // Use a set or simple check to avoid double-counting the same unique instance in a short window
         if (itemsFound.includes(detectionId)) return;
 
         setItemsFound(prev => [...prev, detectionId]);
@@ -183,7 +180,6 @@ export const HeadToHeadBattleScreen: React.FC<HeadToHeadBattleScreenProps> = ({ 
         const won = pScore > oScore;
 
         if (!isPro) {
-            // Fallback for non-pro (still let them see results but maybe no XP)
             const battleResult: BattleResult = {
                 won,
                 xp: 0,
@@ -243,44 +239,74 @@ export const HeadToHeadBattleScreen: React.FC<HeadToHeadBattleScreenProps> = ({ 
     };
 
     const getTargetUI = () => {
-        const target = MOCK_TARGETS[modeId];
+        const target = (MOCK_TARGETS as any)[modeId];
         return (
-            <div className="absolute top-24 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-md px-6 py-3 rounded-2xl flex flex-col items-center border border-white/20 animate-in slide-in-from-top-4">
-                <span className="text-[10px] font-bold text-yellow-400 uppercase tracking-widest mb-1">Current Objective</span>
-                <div className="flex items-center gap-3">
-                    {modeId === 'TARGET' && <img src={MOCK_TARGETS['TARGET'].image} className="w-8 h-8 rounded border border-white/20" />}
-                    <span className="font-black text-xl text-white">{target.label}</span>
-                </div>
+            <div className="absolute top-[15%] left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-top-12 duration-700">
+               <div className="bg-[#050A18]/80 backdrop-blur-3xl px-8 py-5 rounded-[40px] border border-white/10 shadow-3xl flex flex-col items-center">
+                   <div className="flex items-center gap-2 mb-2">
+                       <Target className="w-3.5 h-3.5 text-rose-500" />
+                       <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Arena Objective</span>
+                   </div>
+                   <div className="flex items-center gap-6">
+                       {modeId === 'TARGET' && <img src={MOCK_TARGETS['TARGET'].image} className="w-14 h-14 rounded-2xl border border-white/10 shadow-2xl" />}
+                       <span className="font-black text-2xl text-white tracking-tight">{target.label}</span>
+                   </div>
+               </div>
             </div>
         );
     };
 
     return (
-        <div className="fixed inset-0 bg-black font-sans text-white overflow-hidden flex flex-col">
-
+        <div className="fixed inset-0 bg-[#050A18] font-sans text-white overflow-hidden flex flex-col">
+            
             {gameState === 'COUNTDOWN' && (
-                <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900">
-                    <div className="text-center">
-                        <h1 className="text-[120px] font-black text-white animate-[ping_1s_linear_infinite]">{countdown}</h1>
-                        <p className="text-slate-400 font-bold uppercase tracking-widest mt-8">Get ready… challenge incoming.</p>
+                <div className="absolute inset-0 z-[100] flex items-center justify-center bg-[#050A18] flex-col overflow-hidden">
+                    <div className="absolute inset-0 z-0 opacity-20">
+                       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] border border-indigo-500/20 rounded-full animate-[ping_4s_linear_infinite]" />
+                    </div>
+                    <div className="relative z-10 flex flex-col items-center">
+                        <div className="w-48 h-48 bg-white/5 rounded-full flex items-center justify-center border border-white/10 mb-12 shadow-inner">
+                           <h1 className="text-[100px] font-black text-white tracking-widest leading-none drop-shadow-3xl">{countdown}</h1>
+                        </div>
+                        <div className="flex flex-col items-center gap-4">
+                           <p className="text-slate-500 font-black uppercase tracking-[0.4em] text-sm">Initializing Arena</p>
+                           <div className="flex gap-2">
+                              {[1, 2, 3].map(i => (
+                                 <div key={i} className={`w-2 h-2 rounded-full ${i <= (3-countdown) ? 'bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]' : 'bg-white/10'}`} />
+                              ))}
+                           </div>
+                        </div>
                     </div>
                 </div>
             )}
 
             {gameState === 'REVEAL' && (
-                <div className="absolute inset-0 z-50 flex items-center justify-center bg-rose-600 animate-in fade-in duration-300">
-                    <div className="text-center p-8">
-                        <p className="text-rose-200 font-black uppercase text-xl mb-4">Find This First</p>
-                        <div className="w-64 h-64 bg-white rounded-[40px] flex items-center justify-center mb-8 shadow-2xl mx-auto rotate-3">
+                <div className="absolute inset-0 z-[100] flex items-center justify-center bg-[#050A18] animate-in fade-in duration-500 overflow-hidden">
+                    <div className="absolute top-0 left-0 right-0 h-full bg-gradient-to-b from-rose-600/10 via-transparent to-transparent opacity-50" />
+                    
+                    <div className="relative z-20 text-center max-w-sm px-10">
+                        <div className="flex items-center justify-center gap-3 mb-10">
+                           <Swords className="w-6 h-6 text-rose-500" />
+                           <h2 className="text-sm font-black text-rose-500 uppercase tracking-[0.4em]">Mission Target</h2>
+                        </div>
+                        
+                        <div className="w-72 h-72 bg-white rounded-[64px] flex items-center justify-center mb-10 shadow-[0_40px_100px_rgba(0,0,0,0.5)] border-[12px] border-white/5 overflow-hidden transition-all relative">
                             {modeId === 'TARGET' ? (
-                                <img src={MOCK_TARGETS['TARGET'].image} className="w-40 h-40 object-contain" />
+                                <img src={MOCK_TARGETS['TARGET'].image} className="w-full h-full object-cover scale-110" />
                             ) : (
-                                <div className="text-slate-900 font-black text-4xl text-center px-4">
+                                <div className="text-slate-950 font-black text-5xl leading-tight px-10">
                                     {MOCK_TARGETS[modeId].label}
                                 </div>
                             )}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                         </div>
-                        <h2 className="text-4xl font-black text-white">{MOCK_TARGETS[modeId].label}</h2>
+                        
+                        <h3 className="text-3xl font-black text-white tracking-tight mb-4 ">{(MOCK_TARGETS as any)[modeId].label}</h3>
+                        <p className="text-slate-500 font-bold leading-relaxed">Identity confirmed. Searching environment for exact matches.</p>
+                        
+                        <div className="mt-12 flex justify-center">
+                           <div className="w-16 h-1 border-t-2 border-slate-800" />
+                        </div>
                     </div>
                 </div>
             )}
@@ -288,60 +314,87 @@ export const HeadToHeadBattleScreen: React.FC<HeadToHeadBattleScreenProps> = ({ 
             {gameState === 'PLAYING' && (
                 <>
                     <div className="absolute inset-0 z-0">
-                        <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover opacity-60" />
+                        <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover grayscale brightness-75 contrast-125" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#050A18] via-transparent to-[#050A18]/60" />
                     </div>
 
-                    <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-start z-20">
-                        <div className="flex flex-col gap-1">
-                            <div className="bg-slate-900/80 backdrop-blur rounded-xl px-4 py-2 flex items-center gap-2 border border-slate-700">
-                                <Clock className="w-4 h-4 text-white" />
-                                <span className="font-mono font-bold text-xl">{gameTimer}s</span>
-                            </div>
+                    {/* HUD Header */}
+                    <div className="absolute top-0 left-0 right-0 px-6 pt-16 flex justify-between items-start z-50">
+                        <div className="bg-[#050A18]/60 backdrop-blur-3xl rounded-[28px] p-1 border border-white/5 shadow-2xl">
+                           <div className="bg-white/5 px-6 py-3 rounded-[24px] flex items-center gap-4">
+                               <Clock className="w-5 h-5 text-indigo-400" />
+                               <span className="font-black text-3xl tracking-tighter text-white">{gameTimer}<span className="text-xs text-slate-500 ml-1">S</span></span>
+                           </div>
                         </div>
 
-                        <div className="flex flex-col items-end gap-2">
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-white shadow-black drop-shadow-md">Opponent</span>
-                                <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
-                            </div>
-                            <div className="bg-rose-500/90 backdrop-blur rounded-xl px-3 py-1.5 border border-rose-400">
-                                <span className="font-black text-sm">Score: {opponentScore}</span>
+                        <div className="flex flex-col items-end gap-3">
+                            <div className="flex items-center gap-3 bg-rose-500/10 px-4 py-2 rounded-2xl border border-rose-500/20">
+                                <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shadow-[0_0_10px_rgba(244,63,94,0.5)]" />
+                                <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest">Opponent Score: {opponentScore}</span>
                             </div>
                         </div>
                     </div>
 
                     {getTargetUI()}
 
+                    {/* Targeting Crosshair */}
                     <div className="absolute inset-0 pointer-events-none z-10 flex items-center justify-center">
-                        <div className="w-64 h-64 border-2 border-white/30 rounded-3xl relative">
-                            <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-white rounded-tl-xl" />
-                            <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-white rounded-tr-xl" />
-                            <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-white rounded-bl-xl" />
-                            <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-white rounded-br-xl" />
-                            <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-red-500/50" />
-                            <div className="absolute left-1/2 top-0 bottom-0 w-[1px] bg-red-500/50" />
+                        <div className="w-72 h-72 relative">
+                            <div className="absolute inset-0 border-2 border-white/10 rounded-full animate-[spin_20s_linear_infinite] p-4">
+                               <div className="w-2 h-2 bg-white/20 rounded-full absolute top-0 left-1/2 -translate-x-1/2" />
+                            </div>
+                            <div className="absolute inset-8 border border-white/5 rounded-full" />
+                            
+                            {/* Brackets */}
+                            <div className="absolute top-0 left-0 w-10 h-10 border-t-4 border-l-4 border-indigo-500 rounded-tl-3xl shadow-[0_0_20px_rgba(99,102,241,0.3)]" />
+                            <div className="absolute top-0 right-0 w-10 h-10 border-t-4 border-r-4 border-indigo-500 rounded-tr-3xl shadow-[0_0_20px_rgba(99,102,241,0.3)]" />
+                            <div className="absolute bottom-0 left-0 w-10 h-10 border-b-4 border-l-4 border-indigo-500 rounded-bl-3xl shadow-[0_0_20px_rgba(99,102,241,0.3)]" />
+                            <div className="absolute bottom-0 right-0 w-10 h-10 border-b-4 border-r-4 border-indigo-500 rounded-br-3xl shadow-[0_0_20px_rgba(99,102,241,0.3)]" />
+                            
+                            {/* Scanning line animation */}
+                            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-[scan_2s_ease-in-out_infinite]" />
                         </div>
                     </div>
 
-                    <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/90 to-transparent z-20">
+                    {/* HUD Footer */}
+                    <div className="absolute bottom-0 left-0 right-0 p-10 bg-gradient-to-t from-[#050A18] via-[#050A18]/80 to-transparent z-50">
                         <div className="flex items-end justify-between">
-                            <div>
-                                <p className="text-slate-400 text-xs font-bold uppercase mb-1">Your Progress</p>
-                                <div className="text-4xl font-black text-white">{playerScore} <span className="text-lg text-slate-500">/ {modeId === 'SPRINT' ? '3' : '-'}</span></div>
-                            </div>
-                            {modeId === 'SPRINT' && (
-                                <div className="flex gap-2">
-                                    {[...Array(3)].map((_, i) => (
-                                        <div key={i} className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${i < playerScore ? 'bg-green-500 border-green-500' : 'border-slate-600 bg-slate-800'}`}>
-                                            {i < playerScore && <CheckCircle2 className="w-5 h-5 text-white" />}
-                                        </div>
-                                    ))}
+                            <div className="text-left">
+                                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-2 block">Your Deployment</span>
+                                <div className="text-7xl font-black text-white tracking-tighter flex items-end">
+                                   {playerScore} 
+                                   <span className="text-xl text-slate-700 font-bold mb-4 ml-3">/ {modeId === 'SPRINT' ? '3' : '∞'}</span>
                                 </div>
-                            )}
+                            </div>
+                            
+                            <div className="flex flex-col items-end gap-6">
+                               {modeId === 'SPRINT' && (
+                                   <div className="flex gap-3">
+                                       {[...Array(3)].map((_, i) => (
+                                           <div key={i} className={`w-12 h-12 rounded-2xl flex items-center justify-center border-2 transition-all duration-500 ${i < playerScore ? 'bg-emerald-500 border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)]' : 'bg-white/5 border-white/10'}`}>
+                                               {i < playerScore ? <CheckCircle2 className="w-6 h-6 text-white" /> : <Shield className="w-5 h-5 text-slate-800" />}
+                                           </div>
+                                       ))}
+                                   </div>
+                               )}
+                               <div className="bg-indigo-500/10 border border-indigo-500/20 px-4 py-2 rounded-2xl flex items-center gap-3">
+                                  <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                                  <span className="text-[10px] font-black text-white uppercase tracking-widest">Earning +150 XP</span>
+                               </div>
+                            </div>
                         </div>
                     </div>
                 </>
             )}
+            
+            <style>{`
+               @keyframes scan {
+                  0% { top: 0; opacity: 0; }
+                  10% { opacity: 1; }
+                  90% { opacity: 1; }
+                  100% { top: 100%; opacity: 0; }
+               }
+            `}</style>
         </div>
     );
 };

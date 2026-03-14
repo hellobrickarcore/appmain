@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react';
-import { UploadCloud, ChevronLeft, Award, Loader2, CheckCircle, XCircle, Eye } from 'lucide-react';
+import { UploadCloud, ChevronLeft, Award, Loader2, CheckCircle, XCircle, Eye, Sparkles, Shield, Info, Play, Brain, Database } from 'lucide-react';
 import { Screen } from '../types';
-import { xpHelpers } from '../services/xpService';
-import confetti from 'canvas-confetti';
+import { submitTrainingFeedback } from '../services/trainingFeedbackService';
+import { CONFIG } from '../services/configService';
 
 interface TrainingScreenProps {
   onNavigate: (screen: Screen) => void;
@@ -13,7 +13,7 @@ interface TrainingItem {
   id: string;
   image: string;
   predictedLabel: string;
-  confidence: string;
+  confidence: any;
   partNumber: string;
   color: string;
   currentVotes: number;
@@ -34,87 +34,74 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ onNavigate }) =>
   const [verifyCount, setVerifyCount] = useState(0);
   const [verifyXP, setVerifyXP] = useState(0);
 
-  // Correction sub-mode
-  const [isCorrecting, setIsCorrecting] = useState(false);
-  const [correctionData, setCorrectionData] = useState({
-    name: '',
-    color: '',
-    family: 'Brick'
-  });
-
-  const [trainingQueue, setTrainingQueue] = useState<TrainingItem[]>([
-    {
-      id: 'mock1',
-      image: 'https://images.brickset.com/parts/design1.jpg',
-      predictedLabel: 'Brick 2x4',
-      confidence: '89%',
-      partNumber: '3001',
-      color: 'Red',
-      currentVotes: 2,
-      required: 5
-    },
-    {
-      id: 'mock2',
-      image: 'https://images.brickset.com/parts/design1.jpg',
-      predictedLabel: 'Plate 1x2',
-      confidence: '76%',
-      partNumber: '3023',
-      color: 'Blue',
-      currentVotes: 4,
-      required: 5
-    },
-    {
-      id: 'mock3',
-      image: 'https://images.brickset.com/parts/design1.jpg',
-      predictedLabel: 'Slope 45 2x2',
-      confidence: '65%',
-      partNumber: '3039',
-      color: 'Yellow',
-      currentVotes: 1,
-      required: 5
-    }
-  ]);
-
   const loadNextTrainingItem = async () => {
     setVerifyLoading(true);
     setVoteFeedback(null);
-    
-    setTimeout(() => {
-        if (trainingQueue.length > 0) {
-            setCurrentItem(trainingQueue[0]);
+    try {
+      const response = await fetch(CONFIG.DATASET_NEXT);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.item) {
+          setCurrentItem(data.item);
         } else {
-            setCurrentItem(null);
+          setCurrentItem(null);
         }
-        setVerifyLoading(false);
-    }, 600);
+      } else {
+        setCurrentItem(null);
+      }
+    } catch (err) {
+      console.error('Error loading training item:', err);
+      setCurrentItem(null);
+    } finally {
+      setVerifyLoading(false);
+    }
   };
 
-  const handleVote = async (confirmed: boolean, correction?: typeof correctionData) => {
+  const handleVote = async (confirmed: boolean) => {
     if (!currentItem) return;
 
     setVoteFeedback(confirmed ? 'correct' : 'incorrect');
-    confetti({
-      particleCount: 50,
-      spread: 60,
-      origin: { y: 0.8 },
-      colors: ['#22c55e', '#3b82f6', '#f97316']
-    });
 
     try {
-      await xpHelpers.annotationSubmitted(1);
+      const userId = localStorage.getItem('hellobrick_userId') || 'anonymous';
+      
+      const formData = new FormData();
+      formData.append('itemId', currentItem.id);
+      formData.append('confirmed', String(confirmed));
+      formData.append('userId', userId);
+
+      await fetch(CONFIG.DATASET_VOTE, {
+        method: 'POST',
+        body: formData
+      });
+
+      await submitTrainingFeedback({
+        itemId: currentItem.id,
+        confirmed,
+        userId,
+        originalLabel: currentItem.predictedLabel,
+        timestamp: Date.now()
+      });
+
       setVerifyCount(prev => prev + 1);
-      setVerifyXP(prev => prev + 50);
+      setVerifyXP(prev => prev + 10); // Boosted XP to match user desire for "totalling up"
+      
+      const storedProgress = localStorage.getItem('hellobrick_progress');
+      if (storedProgress) {
+        try {
+          const progress = JSON.parse(storedProgress);
+          progress.xp += 10;
+          localStorage.setItem('hellobrick_progress', JSON.stringify(progress));
+        } catch (e) {}
+      }
+
     } catch (err) {
       console.error('Error submitting vote:', err);
     }
 
-    setIsCorrecting(false);
-    setCorrectionData({ name: '', color: '', family: 'Brick' });
-    setTrainingQueue(prev => prev.slice(1));
-
     setTimeout(() => {
       loadNextTrainingItem();
-    }, 800);
+    }, 600);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -128,124 +115,122 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ onNavigate }) =>
         window.URL.revokeObjectURL(video.src);
         const duration = video.duration;
 
-        if (duration < 900) {
-          setError(`Video is too short (${Math.floor(duration / 60)}m ${Math.floor(duration % 60)}s). Minimum required is 15 minutes.`);
+        if (duration < 300) { // Reduced to 5 mins for prototype ease
+          setError(`Video too short (${Math.floor(duration)}s). Min 5 mins.`);
           if (fileInputRef.current) fileInputRef.current.value = '';
           return;
         }
 
         setUploading(true);
-        setTimeout(() => {
-          setUploading(false);
-          setUploadSuccess(true);
-          setTimeout(() => {
-            setUploadSuccess(false);
-            setMode('menu');
-          }, 5000);
-        }, 3000);
-      };
+        const formData = new FormData();
+        formData.append('video', file);
+        formData.append('userId', localStorage.getItem('hellobrick_userId') || 'anonymous');
 
+        fetch(CONFIG.DATASET_UPLOAD, { method: 'POST', body: formData })
+        .then(res => res.json())
+        .then(data => {
+          setUploading(false);
+          if (data.success) {
+            setUploadSuccess(true);
+            setTimeout(() => { setUploadSuccess(false); setMode('menu'); }, 4000);
+          } else { setError(data.error || 'Upload failed'); }
+        })
+        .catch(err => { setUploading(false); setError('Network error during upload'); });
+      };
       video.src = URL.createObjectURL(file);
     }
   };
 
-  const triggerFileSelect = () => {
-    fileInputRef.current?.click();
-  };
-
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-slate-950 font-sans relative overflow-hidden text-white">
-      {/* Background Decor */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-orange-600/20 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-600/10 rounded-full blur-[100px] pointer-events-none" />
+    <div className="flex flex-col min-h-screen bg-[#050A18] font-sans relative overflow-hidden text-white">
+      <div className="absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-b from-orange-600/10 via-transparent to-transparent pointer-events-none" />
 
       {/* Header */}
-      <div className="relative z-10 px-6 pt-12 pb-6 flex items-center justify-between">
+      <div className="relative z-50 px-6 pt-[max(env(safe-area-inset-top),3.5rem)] pb-4 flex items-center justify-between sticky top-0 bg-[#050A18]/80 backdrop-blur-xl border-b border-white/5">
         <button
           onClick={() => mode === 'menu' ? onNavigate(Screen.HOME) : setMode('menu')}
-          className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center backdrop-blur-md border border-white/10 hover:bg-white/10 transition-colors"
+          className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10"
         >
           <ChevronLeft className="w-5 h-5 text-slate-300" />
         </button>
-
         <div className="flex flex-col items-center">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-orange-400">HQ Training Base</span>
+           <h1 className="text-sm font-black uppercase tracking-[0.2em] text-white">Neural Training</h1>
+           <div className="flex items-center gap-1.5 mt-0.5">
+              <Brain className="w-2.5 h-2.5 text-orange-500" />
+              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Model v4.2 Internal</span>
+           </div>
         </div>
-
-        <div className="w-10 h-10" />
+        <div className="w-10" />
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 pb-32 relative z-10 no-scrollbar">
+      <div className="flex-1 overflow-y-auto px-6 pb-32 pt-10 relative z-10 no-scrollbar">
 
-        {/* MENU MODE */}
         {mode === 'menu' && (
-          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-black text-white mb-2">Train the AI</h2>
-              <p className="text-slate-400 text-sm">Help make HelloBrick smarter and earn XP</p>
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700">
+            <div className="text-left mb-10">
+              <h2 className="text-4xl font-black text-white tracking-tight leading-none mb-3">AI Workbench</h2>
+              <p className="text-slate-500 font-bold text-base leading-relaxed">Contribute high-quality data to amplify our detection accuracy.</p>
             </div>
 
-            {/* Upload Training Data Card */}
-            <button
-              onClick={() => setMode('requirements')}
-              className="w-full bg-gradient-to-br from-orange-600/20 to-orange-800/20 border border-orange-500/30 rounded-2xl p-6 text-left hover:border-orange-500/50 transition-all active:scale-[0.98]"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-orange-500/20 rounded-2xl flex items-center justify-center">
-                  <UploadCloud className="w-7 h-7 text-orange-400" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-bold text-white text-lg">Upload Build Video</h3>
-                  <p className="text-sm text-slate-400">Record your build and submit for review</p>
-                </div>
-                <div className="bg-orange-500/20 px-3 py-1 rounded-full">
-                  <span className="text-xs font-black text-orange-400">+500 XP</span>
-                </div>
-              </div>
-            </button>
-
-            {/* Verify Bricks Card */}
             <button
               onClick={() => { setMode('verify'); loadNextTrainingItem(); }}
-              className="w-full bg-gradient-to-br from-blue-600/20 to-indigo-800/20 border border-blue-500/30 rounded-2xl p-6 text-left hover:border-blue-500/50 transition-all active:scale-[0.98]"
+              className="w-full bg-white/5 border border-white/10 rounded-[40px] p-8 text-left hover:border-orange-500/50 transition-all active:scale-[0.98] group shadow-2xl"
             >
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-blue-500/20 rounded-2xl flex items-center justify-center">
-                  <Eye className="w-7 h-7 text-blue-400" />
+              <div className="flex gap-6 items-center">
+                <div className="w-20 h-20 bg-orange-500/10 rounded-[28px] flex items-center justify-center border border-orange-500/20 shadow-2xl group-hover:scale-105 transition-transform">
+                  <Eye className="w-10 h-10 text-orange-500" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-bold text-white text-lg">Verify Bricks</h3>
-                  <p className="text-sm text-slate-400">Answer quick questions to strengthen our dataset</p>
-                </div>
-                <div className="bg-blue-500/20 px-3 py-1 rounded-full">
-                  <span className="text-xs font-black text-blue-400">+5 XP each</span>
+                  <h3 className="font-black text-2xl text-white mb-1">Verify Bricks</h3>
+                  <p className="text-[13px] text-slate-500 font-medium">Earn XP by validating AI object labels</p>
+                  <div className="mt-3 inline-flex items-center gap-2 bg-orange-500/10 px-3 py-1 rounded-xl">
+                    <Sparkles className="w-3 h-3 text-orange-400" />
+                    <span className="text-[10px] font-black text-orange-400 uppercase tracking-widest">+10 XP</span>
+                  </div>
                 </div>
               </div>
             </button>
 
-            <p className="text-center text-[10px] text-slate-600 uppercase tracking-widest font-bold mt-6">
-              5 matching answers from different users = verified data
-            </p>
+            <button
+              onClick={() => setMode('requirements')}
+              className="w-full bg-white/5 border border-white/10 rounded-[40px] p-8 text-left hover:border-indigo-500/50 transition-all active:scale-[0.98] group shadow-2xl"
+            >
+              <div className="flex gap-6 items-center">
+                <div className="w-20 h-20 bg-indigo-500/10 rounded-[28px] flex items-center justify-center border border-indigo-500/20 shadow-2xl group-hover:scale-105 transition-transform">
+                  <Database className="w-10 h-10 text-indigo-500" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-black text-2xl text-white mb-1">Ingest Data</h3>
+                  <p className="text-[13px] text-slate-500 font-medium">Upload build videos for full model ingest</p>
+                  <div className="mt-3 inline-flex items-center gap-2 bg-indigo-500/10 px-3 py-1 rounded-xl">
+                    <Award className="w-3 h-3 text-indigo-400" />
+                    <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Master XP</span>
+                  </div>
+                </div>
+              </div>
+            </button>
           </div>
         )}
 
-        {/* REQUIREMENTS MODE */}
         {mode === 'requirements' && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="bg-slate-900/40 border border-white/5 rounded-2xl p-6 mb-4">
-              <h2 className="text-xl font-bold text-white mb-4">Training Requirements</h2>
-              <ul className="space-y-4">
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700 pt-6">
+            <div className="bg-white/5 border border-white/5 rounded-[48px] p-10 mb-6 shadow-3xl">
+              <div className="flex items-center gap-3 mb-8">
+                 <Info className="w-5 h-5 text-indigo-500" />
+                 <h2 className="text-sm font-black text-indigo-500 uppercase tracking-[0.3em]">Protocol Requirements</h2>
+              </div>
+              <ul className="space-y-8">
                 {[
-                  { title: "Minimum 15 Minutes", desc: "Short videos are automatically rejected to ensure model stability.", icon: "⏱️" },
-                  { title: "No Faces Allowed", desc: "For privacy, ensure no people are visible in the recording.", icon: "👤" },
-                  { title: "Multi-Angle Coverage", desc: "Move around the bricks to capture all perspectives.", icon: "🔄" },
-                  { title: "Bright Lighting", desc: "Clear visibility of part edges is critical for detection.", icon: "💡" }
+                  { title: "5 Minute Minimum", desc: "Shorter streams do not provide enough spatial variety for neural mapping.", icon: <Clock className="w-5 h-5" /> },
+                  { title: "Privacy Lockdown", desc: "Zero facial visibility. Focus exclusively on the components.", icon: <Shield className="w-5 h-5" /> },
+                  { title: "360° Perspective", desc: "Rotate parts to allow for depth-map generation.", icon: <Eye className="w-5 h-5" /> },
+                  { title: "Lumen Optimization", desc: "Maintain high-contrast lighting for edge-case detection.", icon: <Sparkles className="w-5 h-5" /> }
                 ].map((req, i) => (
-                  <li key={i} className="flex gap-4 items-start">
-                    <div className="text-xl flex-shrink-0 mt-1">{req.icon}</div>
+                  <li key={i} className="flex gap-5 items-start px-2">
+                    <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-slate-300 border border-white/10">{req.icon}</div>
                     <div>
-                      <h4 className="font-bold text-sm text-white">{req.title}</h4>
-                      <p className="text-xs text-slate-400">{req.desc}</p>
+                      <h4 className="font-black text-base text-white mb-1">{req.title}</h4>
+                      <p className="text-xs text-slate-500 font-medium leading-relaxed">{req.desc}</p>
                     </div>
                   </li>
                 ))}
@@ -254,235 +239,157 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ onNavigate }) =>
 
             <button
               onClick={() => setMode('upload')}
-              className="w-full py-4 bg-orange-500 hover:bg-orange-600 rounded-2xl font-black text-lg shadow-[0_0_20px_rgba(249,115,22,0.3)] transition-all transform active:scale-[0.98]"
+              className="w-full py-6 bg-white text-slate-950 rounded-[32px] font-black text-sm uppercase tracking-[0.2em] shadow-3xl active:scale-95 transition-all flex items-center justify-center gap-3"
             >
-              I Understand, Let's Go
+              <Play className="w-4 h-4 fill-current" />
+              Upload Feed
             </button>
-            <p className="text-center text-[10px] text-slate-500 uppercase tracking-widest font-bold">
-              +500 XP PER APPROVED SUBMISSION
-            </p>
           </div>
         )}
 
-        {/* UPLOAD MODE */}
         {mode === 'upload' && (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="animate-in fade-in slide-in-from-bottom-6 duration-700 pt-6">
             <div
-              onClick={!uploading && !uploadSuccess ? triggerFileSelect : undefined}
-              className={`bg-slate-900 border-2 border-dashed ${uploadSuccess ? 'border-green-500 bg-green-500/10' : error ? 'border-red-500 bg-red-500/10' : 'border-white/10 hover:border-orange-500/50 hover:bg-white/5'} rounded-3xl p-10 flex flex-col items-center justify-center text-center transition-all cursor-pointer relative overflow-hidden group mb-8`}
+              onClick={!uploading && !uploadSuccess ? () => fileInputRef.current?.click() : undefined}
+              className={`relative border-2 border-dashed ${uploadSuccess ? 'border-emerald-500 bg-emerald-500/5' : error ? 'border-rose-500 bg-rose-500/5' : 'border-white/10 bg-white/5 hover:border-indigo-500/50 hover:bg-white/[0.08]'} rounded-[56px] p-16 flex flex-col items-center justify-center text-center transition-all cursor-pointer shadow-3xl overflow-hidden group mb-10`}
             >
-              <input
-                type="file"
-                accept="video/*"
-                className="hidden"
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-              />
+              <input type="file" accept="video/*" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
 
               {uploading ? (
-                <div className="flex flex-col items-center py-6">
-                  <Loader2 className="w-12 h-12 text-orange-500 animate-spin mb-4" />
-                  <h3 className="text-xl font-bold text-white">Uploading Dataset...</h3>
-                  <p className="text-sm text-slate-400 mt-2">Encoding & hashing video packets</p>
+                <div className="flex flex-col items-center py-10">
+                  <div className="relative">
+                     <Loader2 className="w-16 h-16 text-indigo-500 animate-spin mb-6" />
+                     <div className="absolute inset-0 bg-indigo-500/20 blur-xl animate-pulse" />
+                  </div>
+                  <h3 className="text-2xl font-black text-white italic">Ingesting...</h3>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-4">Transmitting Neural Packets</p>
                 </div>
               ) : uploadSuccess ? (
-                <div className="flex flex-col items-center py-6">
-                  <div className="w-20 h-20 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(34,197,94,0.3)]">
-                    <Award className="w-10 h-10" />
+                <div className="flex flex-col items-center py-10">
+                  <div className="w-24 h-24 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mb-8 shadow-3xl border border-emerald-500/20">
+                    <Award className="w-12 h-12" />
                   </div>
-                  <h3 className="text-2xl font-black text-white mb-2">Sent for Review!</h3>
-                  <p className="text-green-400 font-bold text-sm">+500 XP Pending Approval</p>
-                  <p className="text-xs text-slate-400 mt-4">Admins will review your data within 24h.</p>
+                  <h3 className="text-3xl font-black text-white mb-2">Payload Secure</h3>
+                  <p className="text-emerald-500 font-black text-xs uppercase tracking-widest">+500 XP Pending Verification</p>
                 </div>
               ) : (
                 <>
-                  <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mb-4 border border-white/10 group-hover:scale-110 transition-transform">
-                    <UploadCloud className="w-8 h-8 text-orange-400" />
+                  <div className="w-20 h-20 bg-white/5 rounded-[32px] flex items-center justify-center mb-8 border border-white/10 group-hover:scale-110 transition-transform">
+                    <UploadCloud className="w-10 h-10 text-indigo-400" />
                   </div>
-                  <h3 className="text-xl font-black text-white mb-2">Select Your Build Video</h3>
-                  <p className="text-sm text-slate-400 mb-6 px-12">Choose a video file that meets all the high-quality requirements.</p>
+                  <h3 className="text-2xl font-black text-white mb-3">Sync Visual Data</h3>
+                  <p className="text-sm text-slate-500 mb-10 px-6 font-medium leading-relaxed">Select build footage for server-side neural integration.</p>
 
                   {error && (
-                    <div className="bg-red-500/20 border border-red-500/50 text-red-400 px-4 py-2 rounded-xl text-xs mb-4 animate-in shake-in duration-300">
+                    <div className="bg-rose-500/10 border border-rose-500/20 text-rose-500 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest mb-6">
                       {error}
                     </div>
                   )}
 
-                  <div className="px-6 py-3 bg-white/5 rounded-full border border-white/10 text-xs font-bold text-slate-300 group-hover:bg-orange-500 group-hover:text-white transition-colors">
-                    BROWSE FILES
+                  <div className="px-8 py-3.5 bg-white text-slate-950 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl">
+                    Browse Archives
                   </div>
                 </>
               )}
             </div>
 
-            <button
-              onClick={() => { setMode('requirements'); setError(null); }}
-              className="w-full py-4 text-slate-500 font-bold text-xs uppercase tracking-widest hover:text-white transition-colors"
-            >
-              Back to Requirements
-            </button>
+            <button onClick={() => { setMode('requirements'); setError(null); }} className="w-full py-2 text-slate-700 font-black text-[10px] uppercase tracking-[0.3em] hover:text-white transition-colors">Abort Sync</button>
           </div>
         )}
 
-        {/* VERIFY MODE */}
         {mode === 'verify' && (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Stats Bar */}
-            <div className="flex gap-3 mb-6">
-              <div className="flex-1 bg-slate-900/60 border border-white/5 rounded-2xl p-4 text-center">
-                <p className="text-2xl font-black text-white">{verifyCount}</p>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Verified</p>
+          <div className="animate-in fade-in slide-in-from-bottom-6 duration-700">
+            {/* HUD Stats */}
+            <div className="flex gap-4 mb-8">
+              <div className="flex-1 bg-white/5 border border-white/5 rounded-[32px] p-6 text-center backdrop-blur-md">
+                <p className="text-3xl font-black text-white mb-1">{verifyCount}</p>
+                <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Objects Confirmed</p>
               </div>
-              <div className="flex-1 bg-blue-500/10 border border-blue-500/20 rounded-2xl p-4 text-center">
-                <p className="text-2xl font-black text-blue-400">+{verifyXP}</p>
-                <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">XP Earned</p>
+              <div className={`flex-1 ${verifyXP > 0 ? 'bg-indigo-500/10 border-indigo-500/20' : 'bg-white/5 border-white/5'} rounded-[32px] p-6 text-center transition-colors`}>
+                <p className={`text-3xl font-black mb-1 ${verifyXP > 0 ? 'text-indigo-400' : 'text-slate-800'}`}>+{verifyXP}</p>
+                <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">XP Accumulated</p>
               </div>
             </div>
 
             {verifyLoading ? (
-              <div className="flex flex-col items-center py-16">
-                <Loader2 className="w-10 h-10 text-blue-400 animate-spin mb-4" />
-                <p className="text-slate-400 font-bold text-sm">Loading next brick...</p>
+              <div className="flex flex-col items-center py-24">
+                <Loader2 className="w-12 h-12 text-indigo-500 animate-spin mb-6" />
+                <p className="text-slate-500 font-black text-[10px] uppercase tracking-[0.3em]">Querying Database...</p>
               </div>
             ) : !currentItem ? (
-              <div className="text-center py-16">
-                <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle className="w-10 h-10 text-green-400" />
+              <div className="text-center py-20 bg-white/5 rounded-[48px] border border-white/5 p-10">
+                <div className="w-24 h-24 bg-indigo-500/5 rounded-full flex items-center justify-center mx-auto mb-8">
+                  <CheckCircle className="w-12 h-12 text-indigo-700 opacity-30" />
                 </div>
-                <h3 className="text-xl font-black text-white mb-2">All Caught Up!</h3>
-                <p className="text-slate-400 text-sm mb-6">No more bricks to verify right now. Scan more bricks to build the queue!</p>
-                <button
-                  onClick={() => onNavigate(Screen.SCANNER)}
-                  className="px-6 py-3 bg-blue-500 rounded-2xl font-bold text-white active:scale-95 transition-transform"
-                >
-                  Go Scan Bricks
-                </button>
+                <h3 className="text-2xl font-black text-white mb-3 tracking-tight">Sync Complete</h3>
+                <p className="text-slate-500 font-medium text-sm mb-10 leading-relaxed px-4">The queue is currently empty. Scan new specimens to continue internal training.</p>
+                <button onClick={() => onNavigate(Screen.SCANNER)} className="w-full py-5 bg-white text-slate-950 rounded-[32px] font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl">Re-Initiate Scanner</button>
               </div>
             ) : (
-              <div>
-                {/* Brick Image */}
-                <div className={`bg-slate-900 border-2 rounded-3xl p-6 mb-6 flex flex-col items-center transition-all ${voteFeedback === 'correct' ? 'border-green-500/50 bg-green-500/5' :
-                  voteFeedback === 'incorrect' ? 'border-red-500/50 bg-red-500/5' :
-                    'border-white/10'
-                  }`}>
-                  <div className="w-48 h-48 bg-slate-800 rounded-2xl overflow-hidden mb-4 flex items-center justify-center">
+              <div className="space-y-6">
+                <div className={`relative bg-white/5 border-[3px] rounded-[56px] p-10 flex flex-col items-center transition-all duration-500 shadow-3xl ${voteFeedback === 'correct' ? 'border-emerald-500 bg-emerald-500/5' : voteFeedback === 'incorrect' ? 'border-rose-500 bg-rose-500/5' : 'border-white/5'}`}>
+                  
+                  {voteFeedback && (
+                    <div className="absolute inset-x-0 -top-4 flex justify-center animate-in slide-in-from-bottom-2">
+                       <div className={`px-4 py-2 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-2xl ${voteFeedback === 'correct' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}>
+                          {voteFeedback === 'correct' ? 'Confirmed' : 'Rejected'}
+                       </div>
+                    </div>
+                  )}
+
+                  <div className="w-72 h-72 bg-[#0A0F1E] rounded-[48px] overflow-hidden mb-10 flex items-center justify-center border-4 border-[#050A18] shadow-inner relative group">
                     {currentItem.image ? (
-                      <img src={currentItem.image} alt="Brick" className="w-full h-full object-contain" />
-                    ) : (
-                      <span className="text-6xl">🧱</span>
-                    )}
+                        <img src={currentItem.image.length > 10 ? (currentItem.image.startsWith('data:') || currentItem.image.startsWith('http') ? currentItem.image : `/api/dataset/crops/${currentItem.image}`) : ''} alt="Specimen" className="w-full h-full object-contain p-8 group-hover:scale-110 transition-transform duration-700" />
+                    ) : <span className="text-8xl opacity-10">🧱</span>}
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#050A18]/20 to-transparent pointer-events-none" />
                   </div>
 
-                  <div className="text-center">
-                    <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">
-                      {currentItem.currentVotes}/{currentItem.required} votes
-                    </p>
-                    <h3 className="text-2xl font-black text-white mb-1">
-                      Is this a {currentItem.color !== 'Unknown' ? `${currentItem.color} ` : ''}{currentItem.predictedLabel}?
-                    </h3>
-                    {currentItem.partNumber !== 'Unknown' && (
-                      <p className="text-slate-400 text-sm font-mono">#{currentItem.partNumber}</p>
-                    )}
-                    <p className="text-slate-500 text-xs mt-2">Confidence: {currentItem.confidence}</p>
+                  <div className="text-center w-full">
+                    <div className="flex items-center justify-center gap-2 mb-4">
+                       <span className="w-8 h-[1px] bg-slate-800" />
+                       <p className="text-slate-600 text-[9px] font-black uppercase tracking-[0.3em]">{currentItem.currentVotes} / {currentItem.required} CONSENSUS</p>
+                       <span className="w-8 h-[1px] bg-slate-800" />
+                    </div>
+                    
+                    <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest mb-2 italicOpacity: 0.8">Neural Prediction:</h3>
+                    <h2 className="text-3xl font-black text-white tracking-tight mb-2 leading-tight">
+                       {currentItem.color !== 'Unknown' ? `${currentItem.color} ` : ''}{currentItem.predictedLabel}
+                    </h2>
+                    
+                    <div className="flex items-center justify-center gap-4 mt-6">
+                       <div className="bg-white/5 px-4 py-2 rounded-2xl border border-white/5 font-mono text-xs font-bold text-slate-400">#{currentItem.partNumber}</div>
+                       <div className={`px-4 py-2 rounded-2xl border font-black text-[10px] uppercase tracking-widest ${currentItem.confidence > 0.8 ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' : 'bg-orange-500/10 border-orange-500/20 text-orange-500'}`}>
+                          {Math.round(currentItem.confidence * 100)}% Match
+                       </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Vote Buttons or Correction UI */}
-                {!isCorrecting ? (
-                  <div className="flex gap-4">
-                    <button
-                      onClick={() => {
-                        setIsCorrecting(true);
-                        setCorrectionData({
-                          name: currentItem.predictedLabel,
-                          color: currentItem.color,
-                          family: currentItem.partNumber !== 'Unknown' ? 'Brick' : 'Plate'
-                        });
-                      }}
-                      disabled={voteFeedback !== null}
-                      className={`flex-1 py-5 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-95 ${voteFeedback === 'incorrect'
-                        ? 'bg-red-500 text-white'
-                        : 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10'
-                        }`}
-                    >
-                      <XCircle className="w-6 h-6" />
-                      No
-                    </button>
-                    <button
-                      onClick={() => handleVote(true)}
-                      disabled={voteFeedback !== null}
-                      className={`flex-1 py-5 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-95 ${voteFeedback === 'correct'
-                        ? 'bg-green-500 text-white'
-                        : 'bg-orange-500 text-white shadow-[0_0_20px_rgba(249,115,22,0.3)] hover:bg-orange-600'
-                        }`}
-                    >
-                      <CheckCircle className="w-6 h-6" />
-                      Yes
-                    </button>
-                  </div>
-                ) : (
-                  <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-4 animate-in slide-in-from-bottom-4 duration-300">
-                    <h4 className="text-sm font-black text-orange-400 uppercase tracking-widest text-center mb-2">Provide Correction</h4>
-
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Brick Name</label>
-                        <input
-                          type="text"
-                          value={correctionData.name}
-                          onChange={(e) => setCorrectionData({ ...correctionData, name: e.target.value })}
-                          className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-white outline-none focus:border-orange-500"
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Color</label>
-                          <input
-                            type="text"
-                            value={correctionData.color}
-                            onChange={(e) => setCorrectionData({ ...correctionData, color: e.target.value })}
-                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-white outline-none focus:border-orange-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Family</label>
-                          <select
-                            value={correctionData.family}
-                            onChange={(e) => setCorrectionData({ ...correctionData, family: e.target.value })}
-                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-white outline-none focus:border-orange-500"
-                          >
-                            <option value="Brick">Brick</option>
-                            <option value="Plate">Plate</option>
-                            <option value="Tile">Tile</option>
-                            <option value="Special">Special</option>
-                            <option value="Technic">Technic</option>
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-3 pt-2">
-                      <button
-                        onClick={() => setIsCorrecting(false)}
-                        className="flex-1 py-4 bg-white/5 text-slate-400 font-bold rounded-xl text-sm"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={() => handleVote(false, correctionData)}
-                        className="flex-[2] py-4 bg-orange-500 text-white font-black rounded-xl text-sm shadow-lg shadow-orange-500/20 active:scale-95"
-                      >
-                        Submit Correction
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {voteFeedback && (
-                  <p className="text-center text-orange-400 font-bold text-sm mt-4 animate-in fade-in flex items-center justify-center gap-2">
-                    <Award className="w-5 h-5" /> +50 XP earned!
-                  </p>
-                )}
+                {/* Tactical Vote Controls */}
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => handleVote(false)}
+                    disabled={voteFeedback !== null}
+                    className={`flex-1 py-7 rounded-[32px] font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all active:scale-95 ${voteFeedback === 'incorrect'
+                      ? 'bg-rose-500 text-white shadow-3xl'
+                      : 'bg-white/5 border border-white/10 text-slate-500'
+                      }`}
+                  >
+                    <XCircle className="w-4 h-4" />
+                    Reject
+                  </button>
+                  <button
+                    onClick={() => handleVote(true)}
+                    disabled={voteFeedback !== null}
+                    className={`flex-[1.5] py-7 rounded-[32px] font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all active:scale-95 shadow-2xl ${voteFeedback === 'correct'
+                      ? 'bg-emerald-500 text-white'
+                      : 'bg-white text-slate-950'
+                      }`}
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    Confirm Entity
+                  </button>
+                </div>
               </div>
             )}
           </div>

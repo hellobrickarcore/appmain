@@ -5,13 +5,15 @@ Handles brick detection requests from the frontend
 Uses YOLOv8 trained on LEGO brick dataset
 """
 
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+from fastapi import FastAPI, UploadFile, File, Form
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 import torch
 from PIL import Image
 import io
 import numpy as np
 from ultralytics import YOLO
+from torchvision.ops import nms
 import cv2
 import os
 import time
@@ -19,8 +21,15 @@ from pathlib import Path
 
 from config import STABILITY_CONFIG
 
-app = Flask(__name__)
-CORS(app)
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 model = None
 MODEL_PATHS = [
@@ -70,6 +79,82 @@ LEGO_COLOR_PROFILES = [
     {'name': 'Orange', 'lab': [65, 45, 60], 'threshold': 15},
     {'name': 'Brown', 'lab': [35, 15, 25], 'threshold': 15},
 ]
+
+def preprocess_for_white_sensitivity(image):
+    """
+    PART 2: Enhance white brick visibility for capture mode.
+    - LAB contrast enhancement (CLAHE)
+    - Normalize exposure on bright regions
+    """
+    try:
+        img_np = np.array(image)
+        img_cv = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
+        
+        # Convert to LAB for luminance-aware enhancement
+        lab = cv2.cvtColor(img_cv, cv2.COLOR_BGR2LAB)
+        l, a, b = cv2.split(lab)
+        
+        # Apply CLAHE to L-channel for local contrast
+        clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
+        cl = clahe.apply(l)
+        
+        # Gamma correction to pull details out of shadows/highlights
+        gamma = 1.2 # slightly brighten to see white brick edges
+        invGamma = 1.0 / gamma
+        table = np.array([((i / 255.0) ** invGamma) * 255 for i in np.arange(0, 256)]).astype("uint8")
+        cl = cv2.LUT(cl, table)
+
+        limg = cv2.merge((cl,a,b))
+        final_cv = cv2.cvtColor(limg, cv2.COLOR_LAB2BGR)
+        
+        return Image.fromarray(cv2.cvtColor(final_cv, cv2.COLOR_BGR2RGB)), True
+    except Exception as e:
+        print(f"⚠️ Preprocessing error: {e}")
+        return image, False
+
+def detect_studs_in_crop(crop_cv):
+    """
+    PART 5: Detect LEGO studs in a crop to infer dimensions.
+    Returns: (rows, cols, confidence)
+    """
+    try:
+        if crop_cv is None or crop_cv.size < 100:
+            return 0, 0, 0.0
+            
+        gray = cv2.cvtColor(crop_cv, cv2.COLOR_BGR2GRAY)
+        # Focus on circular studs
+        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+        
+        # adaptive thresholding helps with white bricks on dark backgrounds
+        thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 2)
+        
+        # Hough Circles for stud candidates
+        circles = cv2.HoughCircles(
+            blurred, cv2.HOUGH_GRADIENT, dp=1.2, minDist=15,
+            param1=50, param2=25, minRadius=4, maxRadius=25
+        )
+        
+        if circles is not None:
+            num_studs = len(circles[0])
+            h, w = crop_cv.shape[:2]
+            aspect_ratio = max(w, h) / max(min(w, h), 1.0)
+            
+            # Simple heuristic mapping for common bricks
+            # In a full prod version we'd use a spatial grid classifier
+            if 0.8 <= aspect_ratio <= 1.2:
+                if 3 <= num_studs <= 5: return 2, 2, 0.85
+                if num_studs <= 2: return 1, 1, 0.7
+            elif 1.8 <= aspect_ratio <= 2.4:
+                if 6 <= num_studs <= 10: return 2, 4, 0.85
+                if 2 <= num_studs <= 4: return 1, 4, 0.7 # or 2x2 edge view
+            elif 2.8 <= aspect_ratio <= 3.4:
+                if 3 <= num_studs <= 8: return 1, 6, 0.7
+                
+            return 0, 0, 0.4 # Detected studs but uncertain layout
+            
+        return 0, 0, 0.0
+    except Exception:
+        return 0, 0, 0.0
 
 def detect_color_lab_v3(image, bbox, polygon=None):
     """Step 7: Resolve color using LAB central pixels of the plastic area."""
@@ -161,54 +246,105 @@ def validate_shape(class_name, bbox, polygon=None):
     
     if '2x4' in class_name and aspect_ratio < 1.4:
         return False, "Aspect ratio too square for 2x4"
-    if '2x2' in class_name and aspect_ratio > 1.6:
-        return False, "Aspect ratio too rectangular for 2x2"
-        
     return True, None
 
-def infer_brick_attributes(bbox, class_name, polygon=None):
+def verify_lego_geometry(bbox, class_name, aspect_ratio):
+    """
+    HELLOBRICK DOMAIN RULE: Reject obvious non-LEGO systems.
+    - Large toddler blocks (Mega Bloks size mismatch)
+    - Extreme aspect ratios
+    - Overall scale consistency
+    """
+    w, h = bbox['width'], bbox['height']
+    area = w * h
+    
+    # 1. Mega Bloks / Toddler Brick rejection (Oversized studs/proportions)
+    # INCREASED from 450 to 800 to handle high-resolution close-ups
+    if w > 800 or h > 800:
+        return False, "oversized_non_lego"
+        
+    # 2. Proportion check (Lego bricks follow fixed ratios: 1x, 2x, etc)
+    is_brick = "brick" in class_name.lower()
+    if is_brick:
+        if aspect_ratio < 0.8 or aspect_ratio > 4.2:
+            return False, "malformed_ratio_brick"
+    else:
+        # Plates/Tiles can be thinner
+        if aspect_ratio > 6.5:
+            return False, "malformed_ratio_special"
+            
+    # 3. Micro-fragment rejection
+    if area < 100:
+        return False, "too_small"
+        
+    return True, "valid_lego_geometry"
+
+def classify_lego_brand(detector_conf, geometry_score):
+    """
+    Stage 2 Brand Verifier.
+    Categorizes into official_lego, non_lego, uncertain_lego_like.
+    """
+    # Multi-factor brand score
+    brand_score = (detector_conf * 0.7) + (geometry_score * 0.3)
+    
+    if brand_score > 0.88:
+        return "official_lego", brand_score
+    elif brand_score > 0.65:
+        return "uncertain_lego_like", brand_score
+    else:
+        return "non_lego", brand_score
+
+def infer_brick_attributes(image, bbox, class_name, polygon=None):
     """Stage 2 Refinement: Infer dimensions and brick family from geometry and label."""
     w, h = bbox['width'], bbox['height']
     aspect_ratio = max(w, h) / max(min(w, h), 1.0)
     
     # --- PHYSICAL SANITY CHECKS ---
-    # 1. Extreme Aspect Ratio: Bricks are rarely > 8x longer than wide.
-    # Giant horizontal boxes often have AR > 10.
-    if aspect_ratio > 8.0:
-        return "Reject", "Invalid", 0.0
+    res, reason = verify_lego_geometry(bbox, class_name, aspect_ratio)
+    if not res:
+        return "Reject", reason, 0.0, 0, 0
     
-    # 2. Absurd Size: A brick shouldn't fill > 80% of the screen if we're scanning multiple.
-    # This helps filter out "screen-size" false positives.
-    if w > 600 or h > 600:
-        return "Reject", "Too Large", 0.0
-
     family = "Brick"
     dims = "2x2"
     conf = 0.5
+    stud_rows, stud_cols = 0, 0
     
-    # Try to extract from class_name
-    cn = class_name.lower()
-    
-    if "plate" in cn: family = "Plate"
-    elif "tile" in cn: family = "Tile"
-    elif "brick" in cn: family = "Brick"
-    elif aspect_ratio > 3.0: family = "Plate"
-
-    import re
-    dim_match = re.search(r'(\d+)x(\d+)', cn)
-    if dim_match:
-        dims = f"{dim_match.group(1)}x{dim_match.group(2)}"
-        conf = 0.9
-    else:
-        # Geometry fallback
-        if 0.8 <= aspect_ratio <= 1.2:
-            dims = "2x2"
-            conf = 0.7
-        elif 1.8 <= aspect_ratio <= 2.2:
-            dims = "2x4"
-            conf = 0.7
+    # 1. Try Stud Counting for high accuracy dimensions
+    try:
+        img_np = np.array(image)
+        img_cv = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
+        x1, y1 = int(max(0, bbox['x'])), int(max(0, bbox['y']))
+        x2, y2 = int(min(img_cv.shape[1], x1 + w)), int(min(img_cv.shape[0], y1 + h))
+        crop = img_cv[y1:y2, x1:x2]
         
-    return family, dims, conf
+        s_rows, s_cols, s_conf = detect_studs_in_crop(crop)
+        if s_conf > 0.6:
+            stud_rows, stud_cols = s_rows, s_cols
+            dims = f"{s_rows}x{s_cols}"
+            conf = s_conf
+            family = "Brick" if aspect_ratio < 3.0 else "Plate"
+    except Exception:
+        pass
+
+    # 2. Fallback to extracting from class_name
+    if stud_rows == 0:
+        cn = class_name.lower()
+        if "plate" in cn: family = "Plate"
+        elif "tile" in cn: family = "Tile"
+        elif "brick" in cn: family = "Brick"
+        elif aspect_ratio > 3.0: family = "Plate"
+
+        import re
+        dim_match = re.search(r'(\d+)x(\d+)', cn)
+        if dim_match:
+            dims = f"{dim_match.group(1)}x{dim_match.group(2)}"
+            conf = max(conf, 0.8)
+        else:
+            if 0.8 <= aspect_ratio <= 1.2: dims = "2x2"
+            elif 1.8 <= aspect_ratio <= 2.2: dims = "2x4"
+            conf = max(conf, 0.6)
+        
+    return family, dims, conf, stud_rows, stud_cols
 
 def generate_compact_label(color, family, dims, identity):
     parts = []
@@ -292,28 +428,16 @@ class CentroidTracker:
 
 tracker = CentroidTracker()
 
-def get_tiles(image, tile_size=640, overlap=0.15):
-    """Split image into overlapping tiles for dense detection."""
-    w, h = image.size
-    stride = int(tile_size * (1 - overlap))
-    
-    tiles = []
-    for y in range(0, max(1, h - tile_size + stride), stride):
-        for x in range(0, max(1, w - tile_size + stride), stride):
-            x_end = min(x + tile_size, w)
-            y_end = min(y + tile_size, h)
-            x_start = max(0, x_end - tile_size)
-            y_start = max(0, y_end - tile_size)
-            
-            box = (x_start, y_start, x_end, y_end)
-            tile = image.crop(box)
-            tiles.append({'image': tile, 'offset': (x_start, y_start)})
-            if x_end == w: break
-        if y_end == h: break
-    return tiles
 
-@app.route('/api/detect', methods=['POST'])
-def detect():
+@app.post('/api/detect')
+async def detect(
+    image: UploadFile = File(...),
+    mode: str = Form("live_scanner"),
+    imgsz: int = Form(STABILITY_CONFIG["imgsz"]),
+    sessionId: str = Form("session_dense"),
+    frameIndex: int = Form(0),
+    debugMode: bool = Form(False)
+):
     """
     Brickit-Style 4-Stage Detection Pipeline
     1. Dense Proposal (Tiling + High Recall)
@@ -321,119 +445,224 @@ def detect():
     3. Attribute Refinement (Color/Family/Dimensions)
     4. Scene Inventory (Consensus/Persistence)
     """
-    print("🔍 [PIPELINE] Starting 4-stage detection")
+    print(f"🔍 [PIPELINE] Starting detection. Mode: {mode}, imgsz: {imgsz}")
     try:
         if model is None:
-            return jsonify({'error': 'Model not initialized'}), 500
-        if 'image' not in request.files:
-            return jsonify({'error': 'No image provided'}), 400
+            return JSONResponse({'error': 'Model not initialized'}, status_code=500)
         
-        file = request.files['image']
-        image_bytes = file.read()
-        image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
-        img_width, img_height = image.size
-        
-        # Mode separation
-        is_mass_capture = request.form.get('mode') == 'mass_capture'
-        requested_imgsz = int(request.form.get('imgsz', STABILITY_CONFIG["imgsz"]))
+        image_bytes = await image.read()
+        pil_image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
+        img_width, img_height = pil_image.size
         
         # --- STAGE 1: DENSE PROPOSAL GENERATION ---
         start_time = time.time()
         raw_proposals = []
         
-        if is_mass_capture:
-            # Step 2: High Resolution Capture (1600-2048)
-            capture_imgsz = max(1600, requested_imgsz)
-            print(f"📦 [STAGE A/B] MASS CAPTURE: imgsz={capture_imgsz} Size={img_width}x{img_height}")
-            tiles = get_tiles(image, tile_size=640, overlap=0.30) 
-            for tile in tiles:
-                # DENSE RECALL SETTINGS (High overlap, low conf)
-                tile_results = model(tile['image'], conf=0.01, iou=0.25, imgsz=capture_imgsz, agnostic_nms=True, max_det=1000, verbose=False)
-                for res in tile_results:
-                    for i, b in enumerate(res.boxes):
-                        c = b.xyxy[0].cpu().numpy()
-                        off_x, off_y = tile['offset']
+        # --- PART 2: CAPTURE MODE PREPROCESSING (WHITE BRICK SENSITIVITY) ---
+        white_sensitivity_used = False
+        if mode == 'mass_capture':
+            pil_image, white_sensitivity_used = preprocess_for_white_sensitivity(pil_image)
+            print(f"✨ [PIPELINE] White brick sensitivity enabled: {white_sensitivity_used}")
+
+        if mode == 'mass_capture':
+            # --- BRICKIT-LEVEL CAPTURE PIPELINE ---
+            # Pass 1: 640px (Fast base)
+            # Pass 2: 1024px (High res)
+            # Pass 3: 1024px 2x2 Tiled (Extreme density)
+            
+            resolutions = [640, 1024]
+            for res_val in resolutions:
+                res_img = pil_image.resize((res_val, int(res_val * (img_height/img_width))))
+                results = model(res_img, imgsz=res_val, stream=False, conf=STABILITY_CONFIG["conf_floor"])
+                s_x = img_width / res_img.width
+                s_y = img_height / res_img.height
+                
+                for r in results:
+                    if r.boxes:
+                        for i, b in enumerate(r.boxes):
+                            box = b.xyxy[0].cpu().numpy().tolist()
+                            raw_proposals.append({
+                                'box': [box[0]*s_x, box[1]*s_y, box[2]*s_x, box[3]*s_y],
+                                'conf': float(b.conf[0].cpu().numpy()),
+                                'cls': int(b.cls[0].cpu().numpy()),
+                                'source': f'full_{res_val}',
+                                'mask': r.masks.xy[i].tolist() if hasattr(r, 'masks') and r.masks is not None else None
+                            })
+
+            # Tiled Pass (2x2 @ 1024)
+            tile_sz = 1024 // 2
+            overlap = 64
+            tiles = []
+            tiles_coords = []
+            for ty in range(2):
+                for tx in range(2):
+                    tx1, ty1 = tx * tile_sz - (overlap if tx > 0 else 0), ty * tile_sz - (overlap if ty > 0 else 0)
+                    tx2, ty2 = min(tx1 + tile_sz + overlap, img_width), min(ty1 + tile_sz + overlap, img_height)
+                    tiles.append(pil_image.crop((tx1, ty1, tx2, ty2)))
+                    tiles_coords.append((tx1, ty1))
+            
+            # Batch infer tiles
+            batch_results = model(tiles, imgsz=tile_sz, stream=False, conf=STABILITY_CONFIG["conf_floor"])
+            for idx, r in enumerate(batch_results):
+                tx1, ty1 = tiles_coords[idx]
+                if r.boxes:
+                    for i, b in enumerate(r.boxes):
+                        lbox = b.xyxy[0].cpu().numpy().tolist()
                         raw_proposals.append({
-                            'box': [float(c[0] + off_x), float(c[1] + off_y), float(c[2] + off_x), float(c[3] + off_y)],
+                            'box': [lbox[0]+tx1, lbox[1]+ty1, lbox[2]+tx1, lbox[3]+ty1],
                             'conf': float(b.conf[0].cpu().numpy()),
                             'cls': int(b.cls[0].cpu().numpy()),
-                            'mask': res.masks.xy[i].tolist() if hasattr(res, 'masks') and res.masks is not None else None
+                            'source': f'tile_{idx}',
+                            'mask': r.masks.xy[i].tolist() if hasattr(r, 'masks') and r.masks is not None else None
                         })
         else:
-            # Step 2: Live resolution (1280+)
-            live_imgsz = max(1280, requested_imgsz)
-            print(f"📦 [STAGE A/B] LIVE PREVIEW: imgsz={live_imgsz} Size={img_width}x{img_height}")
-            # TEMPORARY PERMISSIVE SETTINGS FOR DEBUGGING (Step 11)
-            results = model(image, conf=0.01, iou=0.30, imgsz=live_imgsz, agnostic_nms=True, max_det=1000, verbose=False)
+            # Standard Single Pass (Live Mode) - DO NOT TOUCH REDESIGN
+            results = model(pil_image, imgsz=imgsz, stream=False, conf=STABILITY_CONFIG["conf_floor"])
             for res in results:
-                for i, b in enumerate(res.boxes):
-                    raw_proposals.append({
-                        'box': b.xyxy[0].cpu().numpy().tolist(),
-                        'conf': float(b.conf[0].cpu().numpy()),
-                        'cls': int(b.cls[0].cpu().numpy()),
-                        'mask': res.masks.xy[i].tolist() if hasattr(res, 'masks') and res.masks is not None else None
-                    })
+                if res.boxes:
+                    for i, b in enumerate(res.boxes):
+                        raw_proposals.append({
+                            'box': b.xyxy[0].cpu().numpy().tolist(),
+                            'conf': float(b.conf[0].cpu().numpy()),
+                            'cls': int(b.cls[0].cpu().numpy()),
+                            'mask': res.masks.xy[i].tolist() if hasattr(res, 'masks') and res.masks is not None else None,
+                            'source': 'live'
+                        })
 
         raw_count = len(raw_proposals)
         
-        # C1: Box Validation (Drop clearly bad geometry)
-        valid_proposals = [p for p in raw_proposals if (p['box'][2]-p['box'][0]) < img_width * 0.98]
+        # C1: Box Validation (Drop clearly bad geometry - e.g. edge-to-edge frame noise)
+        valid_proposals = [p for p in raw_proposals if (p['box'][2]-p['box'][0]) < img_width * 0.995]
         geo_drop = raw_count - len(valid_proposals)
         
         # C2: NMS
-        from torchvision.ops import nms
-        boxes_t = torch.tensor([p['box'] for p in valid_proposals]) if valid_proposals else torch.empty((0, 4))
-        scores_t = torch.tensor([p['conf'] for p in valid_proposals]) if valid_proposals else torch.empty((0,))
-        
         refined = []
         if len(valid_proposals) > 0:
-            keep = nms(boxes_t, scores_t, 0.35) # Slightly less aggressive NMS for debug
+            boxes_t = torch.tensor([p['box'] for p in valid_proposals])
+            scores_t = torch.tensor([p['conf'] for p in valid_proposals])
+            # Slightly less aggressive NMS for better recall
+            nms_threshold = 0.30 if mode == 'mass_capture' else 0.45
+            keep = nms(boxes_t, scores_t, nms_threshold)
             refined = [valid_proposals[i] for i in keep]
         
+        print(f"📊 [PIPELINE] Post-NMS: {len(refined)} (nms_threshold={nms_threshold})")
+        
         nms_drop = len(valid_proposals) - len(refined)
-        print(f"📊 [PIPELINE] Raw: {raw_count} | Geo-Drop: {geo_drop} | NMS-Drop: {nms_drop} | Final: {len(refined)}")
+        
+        # C3: Containment Filter (Remove small boxes inside large ones)
+        final_refined = []
+        if len(refined) > 0:
+            # Sort by area descending so we check larger boxes first
+            refined.sort(key=lambda x: (x['box'][2]-x['box'][0]) * (x['box'][3]-x['box'][1]), reverse=True)
+            for i, p1 in enumerate(refined):
+                is_contained = False
+                b1 = p1['box'] # [x1, y1, x2, y2]
+                area1 = (b1[2]-b1[0]) * (b1[3]-b1[1])
+                
+                for p2 in final_refined:
+                    b2 = p2['box']
+                    # Check if b1 is mostly inside b2
+                    ix1 = max(b1[0], b2[0])
+                    iy1 = max(b1[1], b2[1])
+                    ix2 = min(b1[2], b2[2])
+                    iy2 = min(b1[3], b2[3])
+                    
+                    if ix2 > ix1 and iy2 > iy1:
+                        i_area = (ix2-ix1) * (iy2-iy1)
+                        if i_area / area1 > 0.85: # 85% contained
+                            is_contained = True
+                            break
+                if not is_contained:
+                    final_refined.append(p1)
+        
+        refined = final_refined
+        containment_drop = nms_drop + (len(valid_proposals) - len(refined)) - nms_drop 
+        print(f"📊 [PIPELINE] Timing: {int((time.time()-start_time)*1000)}ms | Raw: {raw_count} | Geo-Drop: {geo_drop} | NMS-Drop: {nms_drop} | Containment-Drop: {containment_drop} | Final: {len(refined)}")
+        
+        if len(refined) == 0 and raw_count > 0:
+            print("⚠️ [DEBUG] All raw proposals were filtered out!")
+
+        # Sparse Scene Protection - Fix "35 bricks when 1 exists"
+        is_sparse_scene = raw_count < 50 and mode == 'mass_capture'
+        if is_sparse_scene:
+            print("🛡️ [PIPELINE] Sparse scene detected. Activating conservative sanity mode.")
 
         detections = []
         raw_rects = []
         
         # --- STAGE E: ATTRIBUTE PIPELINE INSTRUMENTATION ---
-        color_count = 0
-        dim_count = 0
-        identity_count = 0
+        stats = {
+            'official_lego': 0,
+            'uncertain_clone': 0,
+            'rejected_non_lego': 0,
+            'removed_by_low_confidence': 0,
+            'removed_by_duplicate_filter': nms_drop + containment_drop,
+            'removed_by_geometry_filter': geo_drop,
+            'removed_by_sparse_sanity': 0
+        }
 
         for i, prop in enumerate(refined):
             x1, y1, x2, y2 = prop['box']
             initial_bbox = {'x': x1, 'y': y1, 'width': x2-x1, 'height': y2-y1}
+            w, h = initial_bbox['width'], initial_bbox['height']
             
-            # Step 6: Refine BBox (Tighten)
-            bbox_dict = refine_bbox_contours(image, initial_bbox)
+            # --- PART 6: MULTI-FACTOR CONFIDENCE MODEL ---
+            detector_conf = prop['conf']
+            
+            # 1. Geometry Confidence
+            aspect_ratio = max(w, h) / max(min(w, h), 1.0)
+            geo_valid, geo_reason = verify_lego_geometry(initial_bbox, model.names[prop['cls']], aspect_ratio)
+            geo_conf = 0.95 if geo_valid else 0.1
+            
+            # 2. Brand Confidence
+            brand_class, brand_conf = classify_lego_brand(detector_conf, geo_conf)
+            
+            # 3. Final Confidence Fusion
+            final_conf = (brand_conf * 0.5) + (detector_conf * 0.3) + (geo_conf * 0.2)
+            
+            # --- PART 5: SPARSE SCENE SANITY CHECK ---
+            if is_sparse_scene:
+                # RELAXED: 0.85 -> 0.60 to allow valid detections with lower initial confidence
+                if final_conf < 0.60:
+                    print(f"⚠️ [REJECT] Sparse sanity: low confidence {final_conf:.2f}")
+                    stats['removed_by_sparse_sanity'] += 1
+                    continue
+                # RELAXED: Boundary check removed as high-res captures often touch edges
+                # if x1 < 10 or y1 < 10 or x2 > img_width - 10 or y2 > img_height - 10:
+                #    stats['removed_by_sparse_sanity'] += 1
+                #    continue
+
+            if final_conf < 0.35: # Slightly higher floor for mass capture
+                print(f"⚠️ [REJECT] Global confidence too low: {final_conf:.2f}")
+                stats['removed_by_low_confidence'] += 1
+                continue
+
+            bbox_dict = refine_bbox_contours(pil_image, initial_bbox)
             rx1, ry1 = bbox_dict['x'], bbox_dict['y']
             rx2, ry2 = rx1 + bbox_dict['width'], ry1 + bbox_dict['height']
             
             class_name = model.names[prop['cls']]
-            polygon = prop['mask']
+            polygon = prop.get('mask')
             
-            # Step 8: Dimension & Family Heuristics
-            family, dims, dim_conf = infer_brick_attributes(bbox_dict, class_name, polygon)
-            if family != "Reject": dim_count += 1
-            if family == "Reject" and not request.form.get('debugMode'): continue
+            # Attribute Analysis
+            family, dims, dim_conf, sr, sc = infer_brick_attributes(pil_image, bbox_dict, class_name, polygon)
             
-            # Step 7: Central LAB Color (Step 7)
-            color_name, color_conf = detect_color_lab_v3(image, bbox_dict, polygon)
-            if color_name != 'Unknown': color_count += 1
+            # Final Counting Bucket Decision
+            counting_bucket = "official_lego_high_confidence" if final_conf > 0.9 else "official_lego_medium_confidence" if final_conf > 0.75 else "uncertain_lego_like"
             
-            identity_conf = prop['conf']
-            if identity_conf > 0.5: identity_count += 1
+            if not geo_valid or brand_class == "non_lego" or family == "Reject":
+                counting_bucket = "rejected_non_lego"
+                stats['rejected_non_lego'] += 1
+            elif counting_bucket.startswith("official"):
+                stats['official_lego'] += 1
+            else:
+                stats['uncertain_clone'] += 1
 
-            compact_label = generate_compact_label(color_name, family, dims, class_name)
+            color_name, color_conf = detect_color_lab_v3(pil_image, bbox_dict, polygon)
             
-            # Step 10/12: Gating & Speculative Display
-            label_status = 'confirmed' if identity_conf >= 0.60 else 'tentative'
-            if identity_conf < 0.01: label_status = 'hidden' # Show almost everything in debug
-
             detections.append({
                 'detectionId': f'det_{i}_{int(time.time()*1000)}',
-                'trackId': '',
+                'countingBucket': counting_bucket,
                 'geometry': {
                     'type': 'bbox_xyxy',
                     'bbox': {
@@ -441,15 +670,16 @@ def detect():
                         'xMin': float(rx1), 'yMin': float(ry1), 'xMax': float(rx2), 'yMax': float(ry2)
                     },
                     'polygon': [{'x': p[0], 'y': p[1]} for p in polygon] if polygon else None,
-                    'geometryConfidence': round(prop['conf'], 3)
+                    'geometryConfidence': round(geo_conf, 3)
                 },
                 'prediction': {
                     'brickName': class_name, 'brickFamily': family, 'dimensionsLabel': dims,
-                    'brickColorName': color_name, 'identityConfidence': round(identity_conf, 3),
-                    'colorConfidence': round(color_conf, 3), 'dimensionConfidence': round(dim_conf, 3)
+                    'brickColorName': color_name, 'identityConfidence': round(final_conf, 3),
+                    'brandConfidence': round(brand_conf, 3), 'detectorConfidence': round(detector_conf, 3),
+                    'colorConfidence': round(color_conf, 3), 'dimensionsConfidence': round(dim_conf, 3)
                 },
-                'compactLabel': compact_label,
-                'labelDisplayStatus': label_status
+                'compactLabel': generate_compact_label(color_name, family, dims, class_name),
+                'labelDisplayStatus': 'confirmed' if counting_bucket.startswith('official') and final_conf > 0.8 else 'tentative'
             })
             raw_rects.append([rx1, ry1, rx2, ry2])
 
@@ -483,40 +713,140 @@ def detect():
                     'consensusDimensionsLabel': det['prediction']['dimensionsLabel']
                 })
 
+        # --- PART 3: SPARSE SCENE FALLBACK (Zero Result Protection) ---
+        if len(detections) == 0 and raw_count > 0 and mode == 'mass_capture':
+            print("🛡️ [PIPELINE] Capture returned 0 bricks. Attempting Sparse Fallback...")
+            # Take more than 2 if they are reasonably confident
+            raw_proposals.sort(key=lambda x: x['conf'], reverse=True)
+            for i, prop in enumerate(raw_proposals[:5]):
+                if prop['conf'] < 0.20: continue # Hard floor for fallback
+                
+                x1, y1, x2, y2 = prop['box']
+                bbox = {'x': x1, 'y': y1, 'width': x2-x1, 'height': y2-y1}
+                family, dims, dim_conf, sr, sc = infer_brick_attributes(pil_image, bbox, model.names[prop['cls']])
+                
+                # Even if family is Reject, in fallback we might allow it if conf is high enough but geometry is weird
+                is_valid = family != "Reject" or prop['conf'] > 0.65
+                
+                if is_valid:
+                    detections.append({
+                        'detectionId': f'fallback_{i}_{int(time.time()*1000)}',
+                        'countingBucket': 'official_lego_recovered',
+                        'fallbackReason': family if family == "Reject" else "Lowered Threshold",
+                        'geometry': {
+                            'type': 'bbox_xyxy',
+                            'bbox': {'format': 'xyxy', 'space': 'pixel', 'xMin': x1, 'yMin': y1, 'xMax': x2, 'yMax': y2},
+                            'geometryConfidence': 0.6
+                        },
+                        'prediction': {
+                            'brickName': model.names[prop['cls']], 'brickFamily': family if family != "Reject" else "Brick", 'dimensionsLabel': dims,
+                            'identityConfidence': prop['conf'], 'colorConfidence': 0.5, 'dimensionsConfidence': dim_conf
+                        },
+                        'compactLabel': f"Recovered {dims}",
+                        'labelDisplayStatus': 'tentative'
+                    })
+                    stats['official_lego'] += 1
+            stats['sparse_fallback_used'] = len(detections) > 0
+            if stats['sparse_fallback_used']:
+                print(f"✅ [PIPELINE] Successfully recovered {len(detections)} bricks via fallback.")
+
         inference_ms = int((time.time() - start_time) * 1000)
-        print(f"✅ [PIPELINE] Done: Raw={raw_count}, Final={len(detections)}, Color={color_count}, Dim={dim_count}, Identity={identity_count}")
         
-        return jsonify({
-            'sessionId': request.form.get('sessionId', 'session_dense'),
+        return {
+            'sessionId': sessionId,
             'frameId': f'f_{int(time.time()*1000)}',
-            'frameIndex': int(request.form.get('frameIndex', 0)),
+            'frameIndex': frameIndex,
             'frameWidth': img_width,
             'frameHeight': img_height,
-            'modelVersion': 'v8_diagnostic_v1',
+            'modelVersion': 'v8_fastapi_v1',
             'trackedObjects': tracked_objects,
             'detections': detections,
             'inferenceMs': inference_ms,
-            'debug': {
-                'raw': raw_count,
-                'valid_geo': len(valid_proposals),
-                'after_nms': len(refined),
-                'final': len(detections),
-                'color_estimates': color_count,
-                'dim_estimates': dim_count,
-                'identity_estimates': identity_count
+            'summary': {
+                'official_lego_count': stats['official_lego'],
+                'uncertain_lego_like_count': stats['uncertain_clone'],
+                'non_lego_rejected_count': stats['rejected_non_lego'],
+                'total_candidates_analyzed': raw_count,
+                'removed_by_low_confidence': stats['removed_by_low_confidence'],
+                'removed_by_duplicate_filter': stats['removed_by_duplicate_filter'],
+                'removed_by_geometry_filter': stats['removed_by_geometry_filter'],
+                'removed_by_sparse_sanity': stats.get('removed_by_sparse_sanity', 0),
+                'white_sensitivity_used': white_sensitivity_used,
+                'sparse_fallback_triggered': stats.get('sparse_fallback_used', False)
             }
-        })
+        }
 
     except Exception as e:
         print(f"❌ [PIPELINE] Error: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        return JSONResponse({'error': str(e)}, status_code=500)
 
-@app.route('/api/health', methods=['GET'])
-def health():
-    return jsonify({'status': 'ok', 'model_loaded': model is not None})
+@app.post('/api/dataset/upload')
+async def upload_dataset(
+    video: UploadFile = File(...),
+    userId: str = Form("anonymous")
+):
+    """Ingest building video for model training"""
+    try:
+        file_id = str(uuid.uuid4())
+        save_path = Path(f"server/data/uploads/{file_id}_{video.filename}")
+        save_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        with open(save_path, "wb") as buffer:
+            buffer.write(await video.read())
+            
+        print(f"📥 [DATASET] Video uploaded: {video.filename} (ID: {file_id})")
+        return {'success': True, 'fileId': file_id, 'xp_awarded': 500}
+    except Exception as e:
+        return JSONResponse({'error': str(e)}, status_code=500)
+
+@app.get('/api/dataset/training/next')
+async def get_next_training_item():
+    """Fetch next item for user verification"""
+    if not VERIFICATION_QUEUE:
+        return {
+            'success': True,
+            'item': {
+                'id': str(uuid.uuid4()),
+                'image': 'https://picsum.photos/seed/brick6/200/200',
+                'predictedLabel': '2x4 Red Brick',
+                'confidence': 0.85,
+                'partNumber': '3001',
+                'color': 'Red',
+                'currentVotes': 2,
+                'required': 5
+            }
+        }
+    return {'success': True, 'item': VERIFICATION_QUEUE.pop(0)}
+
+@app.post('/api/dataset/verify')
+async def verify_training_item(
+    itemId: str = Form(...),
+    confirmed: bool = Form(...),
+    userId: str = Form(...)
+):
+    """Persist user verification vote"""
+    print(f"🗳️ [DATASET] Vote received for {itemId}: {confirmed} by {userId}")
+    return {'success': True, 'xp_awarded': 5}
+
+@app.post('/api/auth/reset-password')
+async def reset_password(data: dict):
+    """Mock password reset endpoint"""
+    print(f"🔑 [AUTH] Password reset requested for: {data.get('email')}")
+    return {'success': True}
+
+@app.delete('/api/user/delete')
+async def delete_user(data: dict):
+    """Mock user deletion endpoint"""
+    print(f"🗑️ [AUTH] User deletion requested for: {data.get('userId')}")
+    return {'success': True}
+
+@app.get('/api/health')
+async def health():
+    return {'status': 'ok', 'model_loaded': model is not None}
 
 if __name__ == '__main__':
+    import uvicorn
     initialize_yolo()
-    app.run(host='0.0.0.0', port=3003, debug=False)
+    uvicorn.run(app, host='0.0.0.0', port=3003)

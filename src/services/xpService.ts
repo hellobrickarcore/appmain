@@ -44,14 +44,30 @@ export const emitXPEvent = async (event: XPEvent): Promise<XPResponse> => {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-      throw new Error(error.error || 'Failed to process XP event');
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch (e) {
+        errorData = { error: 'Failed to parse error response', status: response.status };
+      }
+      
+      console.error('❌ XP Event Error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData,
+        event: event
+      });
+      throw new Error(errorData.error || `Server returned ${response.status}`);
     }
 
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('❌ Error emitting XP event:', error);
+    console.error('❌ Exception in emitXPEvent:', error);
+    // Ensure we don't log just {}
+    if (typeof error === 'object' && error !== null) {
+      console.log('Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    }
     throw error;
   }
 };
@@ -59,17 +75,26 @@ export const emitXPEvent = async (event: XPEvent): Promise<XPResponse> => {
 /**
  * Get user XP summary
  */
-export const getUserXP = async (userId: string): Promise<UserXP> => {
+export const getUserXP = async (userId: string): Promise<UserXP & { today_xp?: number }> => {
   try {
     const response = await fetch(`${CONFIG.XP_ME}?user_id=${userId}`);
 
     if (!response.ok) {
-      throw new Error('Failed to get user XP');
+      const errorText = await response.text();
+      console.error('❌ Failed to get user XP:', {
+        status: response.status,
+        response: errorText,
+        userId
+      });
+      throw new Error(`Failed to get user XP: ${response.status}`);
     }
 
     return await response.json();
   } catch (error) {
     console.error('❌ Error getting user XP:', error);
+    if (typeof error === 'object' && error !== null) {
+      console.log('Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    }
     throw error;
   }
 };

@@ -8,23 +8,9 @@
  */
 
 import { FrameDetection, ScanFrameResponse, DETECTION_THRESHOLDS, DetectionOverlay, TrackedObject } from '../types/detection';
-
-// Detection API URL
-// In native iOS, we can't use the Vite proxy, so hit the YOLO server directly
-const getDetectionAPIUrl = (): string => {
-  // Check if running inside Capacitor native shell (not a browser)
-  const isNative = !!(window as any).Capacitor?.isNativePlatform?.() ||
-    window.location.protocol === 'capacitor:' ||
-    window.location.protocol === 'ionic:';
-
-  if (isNative) {
-    // Direct connection to YOLO server on the Mac's LAN IP
-    return 'http://192.168.1.217:3003/api';
-  }
-
-  // In dev mode (browser), use the Vite proxy
-  return import.meta.env.VITE_DETECTION_API || '/api';
-};
+import { Capacitor } from '@capacitor/core';
+import { CONFIG } from './configService';
+import { subscriptionService } from './subscriptionService';
 
 /**
  * Send a frame to the detection server and return canonical ScanFrameResponse.
@@ -37,75 +23,73 @@ export const detectBricks = async (
     mode?: 'mass_capture' | 'live_scanner';
     imgsz?: number;
     debugMode?: boolean;
+    detectorState?: string;
+    captureInProgress?: boolean;
+    timeoutMs?: number;
   } = {}
 ): Promise<ScanFrameResponse> => {
-  const { sessionId = 'session_manual', frameIndex = 0, mode = 'live_scanner', imgsz } = options;
+  const { 
+    sessionId = 'session_manual', 
+    frameIndex = 0, 
+    mode = 'live_scanner', 
+    imgsz, 
+    debugMode = false,
+    detectorState = 'unknown',
+    timeoutMs = mode === 'mass_capture' ? 15000 : 5000
+  } = options;
+
+  const stage = mode === 'mass_capture' ? 'holistic_capture' : 'live_detection';
+  const targetDimension = mode === 'mass_capture' ? 960 : 416;
+
+  let responseText = '';
+  let status = 0;
+  let aborted = false;
+
   try {
-    let canvas: HTMLCanvasElement;
+    // 1. Prepare Source Canvas
+    let source: HTMLCanvasElement | HTMLImageElement | HTMLVideoElement | ImageBitmap;
+    let originalWidth = 0;
+    let originalHeight = 0;
 
     if (image instanceof HTMLCanvasElement) {
-      canvas = image;
-    } else if (image instanceof HTMLImageElement) {
-      canvas = document.createElement('canvas');
-      canvas.width = image.width;
-      canvas.height = image.height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Could not get canvas context');
-      ctx.drawImage(image, 0, 0);
+      source = image;
+      originalWidth = image.width;
+      originalHeight = image.height;
     } else if (image instanceof HTMLVideoElement) {
-      canvas = document.createElement('canvas');
-      canvas.width = image.videoWidth;
-      canvas.height = image.videoHeight;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Could not get canvas context');
-      ctx.drawImage(image, 0, 0);
+      source = image;
+      originalWidth = image.videoWidth;
+      originalHeight = image.videoHeight;
+    } else if (image instanceof HTMLImageElement) {
+      source = image;
+      originalWidth = image.width;
+      originalHeight = image.height;
     } else if (typeof image === 'string') {
-      const img = await loadImageFromUrl(image);
-      canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Could not get canvas context');
-      ctx.drawImage(img, 0, 0);
+      source = await loadImageFromUrl(image);
+      originalWidth = source.width;
+      originalHeight = source.height;
     } else if (image instanceof File) {
-      const img = await loadImageFromFile(image);
-      canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Could not get canvas context');
-      ctx.drawImage(img, 0, 0);
+      source = await loadImageFromFile(image);
+      originalWidth = source.width;
+      originalHeight = source.height;
     } else {
-      throw new Error('Invalid image type');
+      throw new Error('Unsupported image type');
     }
 
-    const originalWidth = canvas.width;
-    const originalHeight = canvas.height;
+    // 2. Resize maintaining aspect ratio
+    const scale = Math.min(targetDimension / originalWidth, targetDimension / originalHeight);
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.floor(originalWidth * scale);
+    canvas.height = Math.floor(originalHeight * scale);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Could not get 2D context');
+    ctx.drawImage(source, 0, 0, originalWidth, originalHeight, 0, 0, canvas.width, canvas.height);
 
-    // Mass capture allows higher resolution for YOLO to see small 6ft distant objects
-    const MAX_DIM = mode === 'mass_capture' ? 1600 : 1024;
-    let processedCanvas = canvas;
-    let scaleX = 1;
-    let scaleY = 1;
+    const scaleX = originalWidth / canvas.width;
+    const scaleY = originalHeight / canvas.height;
 
-    if (canvas.width > MAX_DIM || canvas.height > MAX_DIM) {
-      const scale = Math.min(MAX_DIM / canvas.width, MAX_DIM / canvas.height);
-      processedCanvas = document.createElement('canvas');
-      processedCanvas.width = Math.floor(canvas.width * scale);
-      processedCanvas.height = Math.floor(canvas.height * scale);
-      scaleX = canvas.width / processedCanvas.width;
-      scaleY = canvas.height / processedCanvas.height;
-      const ctx = processedCanvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(canvas, 0, 0, processedCanvas.width, processedCanvas.height);
-      }
-    }
-
+    // 3. Prepare Form Data
     const blob = await new Promise<Blob>((resolve, reject) => {
-      processedCanvas.toBlob((blob) => {
-        if (blob) resolve(blob);
-        else reject(new Error('Failed to convert canvas to blob'));
-      }, 'image/jpeg', 0.85);
+      canvas.toBlob((b) => b ? resolve(b) : reject('Blob creation failed'), 'image/jpeg', 0.85);
     });
 
     const formData = new FormData();
@@ -113,69 +97,71 @@ export const detectBricks = async (
     formData.append('sessionId', sessionId);
     formData.append('frameIndex', frameIndex.toString());
     formData.append('mode', mode);
-    if (imgsz) formData.append('imgsz', imgsz.toString());
+    formData.append('imgsz', (imgsz || targetDimension).toString());
+    formData.append('debugMode', debugMode.toString());
 
-    const apiUrl = getDetectionAPIUrl();
-    const response = await fetch(`${apiUrl}/detect`, {
+    // 4. Execute Request
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    const response = await fetch(CONFIG.DETECT_IMAGE, {
       method: 'POST',
       body: formData,
-      mode: 'cors'
+      signal: controller.signal
     });
 
-    if (!response.ok) {
-      throw new Error(`Detection failed with status ${response.status}`);
+    clearTimeout(timeoutId);
+    status = response.status;
+    responseText = await response.text();
+
+    if (!responseText.trim().startsWith('{')) {
+      throw new Error(`Non-JSON response (starts with ${responseText.trim().slice(0, 10)})`);
     }
 
-    const data = await response.json();
-
-    // ─── CANONICAL ADAPTER ───────────────────────────────────────
-    // Map server response to our strict types
+    const data = JSON.parse(responseText);
+    
+    // 5. Canonical Adapter
     const detections: FrameDetection[] = (data.detections || []).map((det: any, idx: number) => {
       const geo = det.geometry || {};
       const bbox = geo.bbox || {};
       const pred = det.prediction || {};
 
-      return {
-        detectionId: det.detectionId || `det_${idx}_${Date.now()}`,
-        detectionIndex: det.detectionIndex ?? idx,
-        trackId: det.trackId || '',
-        geometry: {
-          type: geo.type || 'bbox_xyxy',
-          bbox: {
-            format: 'xyxy',
-            space: 'pixel',
-            xMin: (bbox.xMin ?? 0) * scaleX,
-            yMin: (bbox.yMin ?? 0) * scaleY,
-            xMax: (bbox.xMax ?? 0) * scaleX,
-            yMax: (bbox.yMax ?? 0) * scaleY
+        return {
+          detectionId: det.detectionId || `det_${idx}_${Date.now()}`,
+          detectionIndex: idx,
+          trackId: det.trackId || '',
+          geometry: {
+            type: geo.type || 'bbox_xyxy',
+            bbox: {
+              format: 'xyxy',
+              space: 'pixel',
+              xMin: (bbox.xMin ?? 0) * scaleX,
+              yMin: (bbox.yMin ?? 0) * scaleY,
+              xMax: (bbox.xMax ?? 0) * scaleX,
+              yMax: (bbox.yMax ?? 0) * scaleY
+            },
+            polygon: geo.polygon?.map((p: any) => ({
+              x: (p.x ?? 0) * scaleX,
+              y: (p.y ?? 0) * scaleY
+            })),
+            geometryConfidence: geo.geometryConfidence ?? 0
           },
-          polygon: geo.polygon?.map((p: any) => ({
-            x: (p.x ?? 0) * scaleX,
-            y: (p.y ?? 0) * scaleY
-          })),
-          geometryConfidence: geo.geometryConfidence ?? 0
-        },
-        prediction: {
-          brickPartId: pred.brickPartId,
-          brickPartNum: pred.brickPartNum,
-          brickName: pred.brickName,
-          brickFamily: pred.brickFamily,
-          dimensionsLabel: pred.dimensionsLabel,
-          brickColorId: pred.brickColorId,
-          brickColorName: pred.brickColorName,
-          identityConfidence: pred.identityConfidence ?? 0,
-          colorConfidence: pred.colorConfidence ?? 0,
-          dimensionConfidence: pred.dimensionConfidence ?? 0,
-          rawModelClass: pred.rawModelClass,
-          rawModelConfidence: pred.rawModelConfidence ?? 0
-        },
-        compactLabel: det.compactLabel,
-        candidates: det.candidates || [],
-        quality: det.quality || {},
-        reviewStatus: det.reviewStatus || 'unreviewed',
-        labelDisplayStatus: det.labelDisplayStatus || 'tentative'
-      } satisfies FrameDetection;
-    });
+          prediction: {
+            brickName: pred.brickName,
+            brickFamily: pred.brickFamily,
+            dimensionsLabel: pred.dimensionsLabel,
+            brickColorName: pred.brickColorName,
+            identityConfidence: pred.identityConfidence ?? 0,
+            colorConfidence: pred.colorConfidence ?? 0,
+            dimensionConfidence: pred.dimensionConfidence ?? 0,
+            brandConfidence: pred.brandConfidence ?? 0,
+            detectorConfidence: pred.detectorConfidence ?? 0,
+          },
+          compactLabel: det.compactLabel,
+          labelDisplayStatus: det.labelDisplayStatus || 'tentative',
+          countingBucket: det.countingBucket
+        };
+      });
 
     const trackedObjects: TrackedObject[] = (data.trackedObjects || []).map((to: any) => {
       const geo = to.stableGeometry || {};
@@ -183,10 +169,10 @@ export const detectBricks = async (
       return {
         trackedObjectId: to.trackedObjectId || `track_${to.trackId}`,
         trackId: to.trackId,
-        status: to.status || 'active',
+        status: (to.status || 'active') as any,
         totalFramesSeen: to.totalFramesSeen ?? 1,
         stableGeometry: {
-          type: geo.type || 'bbox_xyxy',
+          type: (geo.type || 'bbox_xyxy') as any,
           bbox: {
             format: 'xyxy',
             space: 'pixel',
@@ -208,26 +194,44 @@ export const detectBricks = async (
         geometryConfidence: to.geometryConfidence ?? 0,
         identityConfidence: to.identityConfidence ?? 0,
         colorConfidence: to.colorConfidence ?? 0,
-        labelDisplayStatus: to.labelDisplayStatus || 'confirmed',
+        labelDisplayStatus: (to.labelDisplayStatus || 'confirmed') as any,
         promotedToCollection: to.promotedToCollection ?? false
       };
     });
 
     return {
-      sessionId: data.sessionId,
-      frameId: data.frameId,
-      frameIndex: data.frameIndex,
+      sessionId: data.sessionId || sessionId,
+      frameId: data.frameId || `f_${Date.now()}`,
+      frameIndex: data.frameIndex ?? frameIndex,
       frameWidth: originalWidth,
       frameHeight: originalHeight,
-      modelVersion: data.modelVersion,
+      modelVersion: data.modelVersion || 'v8_fastapi_v1',
       detections,
-      trackedObjects
+      trackedObjects,
+      debug: data.debug,
+      summary: {
+        ...data.summary,
+        total_raw_candidates: data.summary?.total_candidates_analyzed || 0
+      },
+      inferenceMs: data.inferenceMs || 0
     };
-  } catch (error) {
-    console.error('Brick detection error:', error);
+
+  } catch (error: any) {
+    if (error.name === 'AbortError') aborted = true;
+    
+    console.error('🔍 SCANNER ERROR DIAGNOSTICS:', {
+      stage,
+      requestUrl: CONFIG.DETECT_IMAGE,
+      status,
+      responseText: responseText.slice(0, 100), 
+      aborted,
+      detectorState,
+      message: error.message
+    });
     throw error;
   }
 };
+
 
 /**
  * 🔒 OVERLAY ADAPTER
@@ -241,39 +245,22 @@ export function toDetectionOverlay(
   const geometry = isTracked
     ? (detection as TrackedObject).stableGeometry
     : (detection as FrameDetection).geometry;
-
-  // For TrackedObjects, build a synthetic prediction from consensus fields
   const prediction = (detection as any).prediction;
-  const tracked = detection as TrackedObject;
 
-  if (!geometry?.bbox) return null;
-  // Allow tracked objects even without prediction (they have consensus fields)
-  if (!isTracked && !prediction) return null;
+  if (!geometry?.bbox || !prediction) return null;
 
   const geoConf = isTracked
-    ? (tracked.geometryConfidence ?? 0)
+    ? (detection as any).geometryConfidence
     : (detection as FrameDetection).geometry?.geometryConfidence ?? 0;
 
-  // Gating for overlays - Stage 1 (0.10 floor)
-  if (geoConf < 0.10) return null;
+  // Gating for overlays - Stage 1 (Allow all if debug)
+  const isDebug = (detection as any).labelDisplayStatus === 'hidden' || (detection as any).debugMode;
+  if (!isDebug && geoConf < DETECTION_THRESHOLDS.GEOMETRY_RENDER_MIN) return null;
 
   const status = (detection as any).labelDisplayStatus || 'tentative';
 
-  // Extract attributes from either prediction (raw) or consensus (tracked)
-  const brickFamily = prediction?.brickFamily || tracked.consensusBrickFamily || 'Brick';
-  const dimensionsLabel = prediction?.dimensionsLabel || tracked.consensusDimensionsLabel || '';
-  const colorName = prediction?.brickColorName || tracked.consensusColorName || 'Unknown';
-  const identityConf = prediction?.identityConfidence ?? tracked.identityConfidence ?? 0;
-  const colorConf = prediction?.colorConfidence ?? tracked.colorConfidence ?? 0;
-  const dimConf = prediction?.dimensionConfidence ?? 0;
-  const label = (detection as any).compactLabel || tracked.consensusBrickName || generationFallbackLabel(detection as any);
-
-  // Phase 12: Weighted Fusion Confidence Model
-  // Formula: (geometry * 0.20) + (identity * 0.40) + (color * 0.25) + (dimension * 0.15)
-  const finalConfidence = (geoConf * 0.20) + (identityConf * 0.40) + (colorConf * 0.25) + (dimConf * 0.15);
-
   return {
-    id: isTracked ? tracked.trackedObjectId : (detection as FrameDetection).detectionId,
+    id: isTracked ? (detection as TrackedObject).trackedObjectId : (detection as FrameDetection).detectionId,
     trackId: detection.trackId,
     box: geometry.bbox,
     polygon: geometry.polygon,
@@ -281,23 +268,19 @@ export function toDetectionOverlay(
 
     // Confidence scores
     geometryConfidence: geoConf,
-    identityConfidence: identityConf,
-    colorConfidence: colorConf,
-    dimensionConfidence: dimConf,
-    finalConfidence: Math.max(0, Math.min(1, finalConfidence)),
+    identityConfidence: prediction.identityConfidence ?? 0,
+    colorConfidence: prediction.colorConfidence ?? 0,
+    dimensionConfidence: prediction.dimensionConfidence ?? 0,
 
     // Phase 7/8 Attributes
-    brickFamily,
-    dimensionsLabel,
-    colorName,
-    compactLabel: label,
+    brickFamily: prediction.brickFamily,
+    dimensionsLabel: prediction.dimensionsLabel,
+    compactLabel: (detection as any).compactLabel || generationFallbackLabel(detection as any),
 
     // Status
     isTracked,
     isStable: geoConf >= DETECTION_THRESHOLDS.GEOMETRY_STABLE_MIN,
-    labelDisplayStatus: status,
-    x: geometry.bbox.xMin,
-    y: geometry.bbox.yMin
+    labelDisplayStatus: status
   };
 }
 

@@ -1,11 +1,13 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.hellobrick.app',
+  appId: 'com.hellobrick.app.mobile',
   appName: 'HelloBrick',
   webDir: 'dist',
   server: {
     androidScheme: 'https',
+    cleartext: true, // Allow HTTP during development if needed, but production uses HTTPS
+    allowNavigation: ['api.keydesignmedia.xyz']
   },
   plugins: {
     Camera: {

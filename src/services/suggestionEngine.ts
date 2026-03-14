@@ -1,99 +1,108 @@
-/**
- * Suggestion Engine for HelloBrick
- * Matches user's inventory against a set database.
- */
-
 import { Brick, LegoSet } from '../types';
+import { getConversationalIdeas } from './geminiService';
+
+const RECON_DATABASE: LegoSet[] = [
+    {
+        id: 'set_001',
+        name: 'Mini Space Shuttle',
+        setNumber: '31117-M',
+        image: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&q=80&w=400',
+        partCount: 12,
+        ownedParts: 0,
+        bricks: [
+            { id: 'b1', name: '2x4 White Brick', count: 4, category: 'Bricks', color: 'White', image: 'https://picsum.photos/seed/b1/100/100' },
+            { id: 'b2', name: '1x2 Blue Plate', count: 4, category: 'Plates', color: 'Blue', image: 'https://picsum.photos/seed/b2/100/100' },
+            { id: 'b3', name: '2x2 Technic Pin', count: 4, category: 'Technic', color: 'Grey', image: 'https://picsum.photos/seed/b3/100/100' },
+        ]
+    },
+    {
+        id: 'set_002',
+        name: 'Red Race Car',
+        setNumber: '60322-C',
+        image: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&q=80&w=400',
+        partCount: 8,
+        ownedParts: 0,
+        bricks: [
+            { id: 'r1', name: '2x2 Red Brick', count: 4, category: 'Bricks', color: 'Red', image: 'https://picsum.photos/seed/r1/100/100' },
+            { id: 'r2', name: '1x4 Black Plate', count: 4, category: 'Plates', color: 'Black', image: 'https://picsum.photos/seed/r2/100/100' },
+        ]
+    },
+    {
+        id: 'set_003',
+        name: 'Garden Flower',
+        setNumber: '40460-F',
+        image: 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&q=80&w=400',
+        partCount: 15,
+        ownedParts: 0,
+        bricks: [
+            { id: 'g1', name: '1x1 Green Round', count: 10, category: 'Bricks', color: 'Green', image: 'https://picsum.photos/seed/g1/100/100' },
+            { id: 'g2', name: '4x4 Yellow Plate', count: 5, category: 'Plates', color: 'Yellow', image: 'https://picsum.photos/seed/g2/100/100' },
+        ]
+    }
+];
 
 export const suggestionEngine = {
     /**
      * Calculate how much of each set can be built with current inventory
-     * Generates dynamic build suggestions based on actual owned pieces.
      */
     getSuggestions(userBricks: Brick[]): LegoSet[] {
-        if (!userBricks || userBricks.length === 0) return [];
+        if (!userBricks) return RECON_DATABASE;
 
-        const suggestions: LegoSet[] = [];
-        const colorGroups: Record<string, { count: number, bricks: Brick[] }> = {};
+        return RECON_DATABASE.map(set => {
+            let ownedParts = 0;
+            
+            // For each required brick in the set
+            const updatedBricks = set.bricks.map(reqBrick => {
+                // Find matching brick in user inventory (match by name and color)
+                const inventoryMatch = userBricks.find(ub => 
+                    ub.name.toLowerCase().includes(reqBrick.name.toLowerCase()) ||
+                    (ub.category === reqBrick.category && ub.color === reqBrick.color)
+                );
+                
+                const countOwned = inventoryMatch ? Math.min(inventoryMatch.count, reqBrick.count) : 0;
+                ownedParts += countOwned;
+                
+                return { ...reqBrick, owned: countOwned };
+            });
 
-        userBricks.forEach(b => {
-            const color = b.color || 'Mixed';
-            if (!colorGroups[color]) colorGroups[color] = { count: 0, bricks: [] };
-            colorGroups[color].count += b.count;
-            colorGroups[color].bricks.push(b);
-        });
+            return {
+                ...set,
+                ownedParts,
+                bricks: updatedBricks as any
+            };
+        }).sort((a, b) => (b.ownedParts / b.partCount) - (a.ownedParts / a.partCount));
+    },
 
-        // 1. Color-themed builds (Generated from actual inventory)
-        Object.entries(colorGroups).forEach(([color, data], idx) => {
-            if (data.count >= 3) {
-                let theme = 'Structure';
-                if (color.toLowerCase() === 'red') theme = 'Firetruck';
-                else if (color.toLowerCase() === 'blue') theme = 'Spaceship';
-                else if (color.toLowerCase() === 'green') theme = 'Treehouse';
-                else if (color.toLowerCase() === 'yellow') theme = 'Construction Vehicle';
-                else if (color.toLowerCase() === 'black') theme = 'Batmobile';
-                else if (color.toLowerCase() === 'white') theme = 'Snow Speeder';
-
-                const requiredBricks = data.bricks.map(b => ({
-                    ...b,
-                    count: Math.max(1, Math.floor(b.count * 0.8)), // Build uses ~80% of their bricks of this color
-                    owned: b.count
-                }));
-
-                const partCount = requiredBricks.reduce((acc, b) => acc + b.count, 0);
-
-                suggestions.push({
-                    id: `dyn_color_${color}_${idx}`,
-                    setNumber: `MOC-${Math.floor(Math.random() * 9000) + 1000}`,
-                    name: `${color} ${theme} Mini-Build`,
-                    image: 'https://images.brickset.com/sets/images/11013-1.jpg',
-                    partCount: partCount,
-                    ownedParts: partCount, // 100% buildable
-                    bricks: requiredBricks
-                });
-            }
-        });
-
-        // 2. Mix and match
-        const totalBricks = userBricks.reduce((a,b)=>a+b.count,0);
-        if (totalBricks >= 10) {
-            const topBricks = [...userBricks].sort((a,b) => b.count - a.count).slice(0, 5);
-            const reqParts = topBricks.map(b => ({
+    /**
+     * Smart "Creative" Suggestions
+     * Pulls conversational builds from Gemini.
+     */
+    async getSmartCreativeIdeas(userBricks: Brick[], query: string): Promise<any[]> {
+        try {
+            const results = await getConversationalIdeas(query, userBricks);
+            return results.builds.map(b => ({
                 ...b,
-                count: Math.min(b.count, 5),
-                 owned: b.count
+                xp: b.difficulty === 'Ready' ? 100 : b.difficulty === 'Almost' ? 200 : 500
             }));
-            const pCount = reqParts.reduce((acc, b) => acc + b.count, 0);
-
-            suggestions.push({
-                id: `dyn_mixed_1`,
-                setNumber: `MOC-MIXED`,
-                name: `Rainbow Tower`,
-                image: 'https://images.brickset.com/sets/images/10698-1.jpg',
-                partCount: pCount,
-                ownedParts: pCount, // 100% buildable
-                bricks: reqParts
+        } catch (err) {
+            console.error('[SuggestionEngine] Gemini failed, falling back to static themes', err);
+            
+            const colorCounts: Record<string, number> = {};
+            userBricks.forEach(b => {
+                 const c = b.color || 'Unknown';
+                 colorCounts[c] = (colorCounts[c] || 0) + b.count;
             });
-        }
-        
-        // 3. Add one aspirational set that they are missing pieces for
-        if (totalBricks > 0) {
-            const hasBlue = userBricks.some(b => b.color?.toLowerCase() === 'blue');
-             suggestions.push({
-                id: `asp_1`,
-                setNumber: `75257`,
-                name: `Micro Millennium Falcon`,
-                image: 'https://images.brickset.com/sets/images/75257-1.jpg',
-                partCount: 45,
-                ownedParts: Math.min(totalBricks, 20),
-                bricks: [
-                    { id: 'b1', name: 'Plate 2x4', count: 10, category: 'Plate', color: 'Light Gray', image: 'https://images.brickset.com/parts/design1.jpg', owned: userBricks.find(b=>b.color==='Light Gray')?.count || 0 },
-                    { id: 'b2', name: 'Brick 1x2', count: 20, category: 'Brick', color: 'Light Gray', image: 'https://images.brickset.com/parts/design1.jpg', owned: userBricks.find(b=>b.color==='Light Gray' && b.name.includes('1x2'))?.count || 0 },
-                    { id: 'b3', name: 'Engine piece', count: 15, category: 'Cone', color: 'Trans-Light Blue', image: 'https://images.brickset.com/parts/design1.jpg', owned: hasBlue ? 2 : 0 }
-                ]
-            });
-        }
 
-        return suggestions.sort((a, b) => (b.ownedParts / b.partCount) - (a.ownedParts / a.partCount));
+            const dominantColor = Object.entries(colorCounts).sort((a,b) => b[1] - a[1])[0]?.[0] || 'Mixed';
+
+            return [
+                {
+                    title: `Cyberpunk ${dominantColor} City`,
+                    description: `Using your ${colorCounts[dominantColor] || 0} ${dominantColor} pieces, you could build a futuristic skyscraper base.`,
+                    difficulty: 'Master',
+                    xp: 250
+                }
+            ];
+        }
     }
 };

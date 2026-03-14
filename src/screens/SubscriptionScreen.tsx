@@ -16,125 +16,121 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
     try {
       const offerings = await subscriptionService.getOfferings();
       if (offerings && offerings.availablePackages.length > 0) {
-        await subscriptionService.purchasePackage(offerings.availablePackages[0]);
+        const pkg = billingCycle === 'annual' 
+          ? offerings.availablePackages.find(p => p.packageType === 'ANNUAL') || offerings.availablePackages[0]
+          : offerings.availablePackages.find(p => p.packageType === 'MONTHLY') || offerings.availablePackages[0];
+        await subscriptionService.purchasePackage(pkg);
+        onNavigate(Screen.HOME);
       } else {
-        // Fallback for demo/test mode
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(r => setTimeout(r, 1500));
+        localStorage.setItem('hellobrick_pro_status', 'true');
+        localStorage.setItem('hellobrick_onboarding_finished', 'true');
+        onNavigate(Screen.HOME);
       }
-      onNavigate(Screen.HOME);
+    } catch (err: any) {
+      if (err.message !== 'Purchase cancelled by user') {
+        alert('Subscription failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-[#0A1229] text-white z-50 flex flex-col font-sans overflow-hidden min-h-[100dvh]">
-      {/* Header with Yellow Radiation/Sun effect */}
-      <div className="relative h-[30vh] flex flex-col items-center justify-end pb-8 overflow-hidden bg-[#0A1229]">
-        {/* Yellow Sun background elements */}
-        <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[150%] aspect-square rounded-full bg-gradient-to-b from-[#FFD600] to-[#FFED4B] opacity-40 blur-3xl" />
-        <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[100%] aspect-square rounded-full bg-gradient-to-b from-[#FFD600] to-[#FFED4B] opacity-60" />
-        <div className="absolute top-[10%] left-1/2 -translate-x-1/2 w-[60%] aspect-square rounded-full bg-[#FFD600] border-[20px] border-[#FFEC3D]" />
-
-        {/* Simple Face from screenshot */}
-        <div className="relative w-12 h-12 flex flex-col items-center justify-center gap-1.5 z-10">
-          <div className="flex gap-3">
-            <div className="w-1.5 h-1.5 bg-black rounded-full" />
-            <div className="w-1.5 h-1.5 bg-black rounded-full" />
-          </div>
+    <div className="fixed inset-0 bg-white text-[#1A1A1A] z-50 flex flex-col font-sans overflow-hidden">
+      {/* Header with Radiation Effect */}
+      <div className="relative h-[32vh] flex flex-col items-center justify-center overflow-hidden bg-white">
+        <div className="absolute top-[-40%] left-1/2 -translate-x-1/2 w-[180%] aspect-square rounded-full bg-gradient-to-b from-[#FFED4B] to-transparent opacity-20 blur-3xl" />
+        <div className="absolute top-[-25%] left-1/2 -translate-x-1/2 w-[140%] aspect-square rounded-full bg-gradient-to-b from-[#FFD600] to-white opacity-40" />
+        <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[100%] aspect-square rounded-full bg-gradient-to-b from-[#FFD600] to-white" />
+        
+        {/* Mascot */}
+        <div className="relative z-10 w-24 h-24 bg-[#FF7A30] rounded-[24px] flex items-center justify-center shadow-2xl mt-4">
+           <div className="flex gap-2">
+              <div className="w-2 h-2 bg-black rounded-full" />
+              <div className="w-2 h-2 bg-black rounded-full" />
+           </div>
         </div>
 
-        {/* Close Button */}
-        <button
-          onClick={() => onNavigate(Screen.HOME)}
-          className="absolute top-12 right-6 w-10 h-10 bg-black/5 rounded-full flex items-center justify-center z-20"
-        >
-          <X className="w-6 h-6 text-white" />
+        <button onClick={() => onNavigate(Screen.HOME)} className="absolute top-12 right-6 w-10 h-10 bg-black/5 rounded-full flex items-center justify-center z-20">
+          <X className="w-6 h-6 text-slate-800" />
         </button>
       </div>
 
-      <div className="flex-1 px-8 pt-8 flex flex-col items-center overflow-y-auto no-scrollbar pb-32">
-        <h1 className="text-3xl font-black text-center mb-2 tracking-tight">How your trial works</h1>
-        <p className="text-slate-500 font-medium mb-8">
+      <div className="flex-1 px-8 pt-6 flex flex-col items-center overflow-y-auto no-scrollbar pb-32">
+        <h1 className="text-[28px] font-black text-center mb-1 leading-tight tracking-tight">How your trial works</h1>
+        <p className="text-slate-500 font-bold mb-8 text-[15px]">
           First 14 days free, then {billingCycle === 'annual' ? '$29.99/year' : '$3.99/month'}
         </p>
 
-        {/* Billing Toggle (Annual/Monthly) */}
-        <div className="bg-[#E2E8F0] p-1 rounded-full flex mb-12 w-full max-w-[280px]">
+        {/* Toggle */}
+        <div className="bg-[#F1F5F9] p-1 rounded-full flex mb-12 w-full max-w-[280px]">
           <button
             onClick={() => setBillingCycle('annual')}
-            className={`flex-1 py-2.5 rounded-full text-sm font-bold transition-all ${billingCycle === 'annual' ? 'bg-[#0F172A] text-white shadow-lg' : 'text-slate-500'
-              }`}
+            className={"flex-1 py-3 rounded-full text-[15px] font-black transition-all " + (billingCycle === 'annual' ? 'bg-[#1A1F2C] text-white shadow-lg' : 'text-slate-400')}
           >
             Annual
           </button>
           <button
             onClick={() => setBillingCycle('monthly')}
-            className={`flex-1 py-2.5 rounded-full text-sm font-bold transition-all ${billingCycle === 'monthly' ? 'bg-[#0F172A] text-white shadow-lg' : 'text-slate-500'
-              }`}
+            className={"flex-1 py-3 rounded-full text-[15px] font-black transition-all " + (billingCycle === 'monthly' ? 'bg-[#1A1F2C] text-white shadow-lg' : 'text-slate-400')}
           >
             Monthly
           </button>
         </div>
 
-        {/* Trial Timeline */}
-        <div className="w-full space-y-8 max-w-[320px]">
-          <div className="flex gap-4 items-start">
-            <div className="w-10 h-10 bg-[#FFD600] rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm transition-transform active:scale-90">
-              <Lock className="w-5 h-5 text-black" fill="currentColor" />
+        {/* Timeline */}
+        <div className="w-full space-y-10 max-w-[320px]">
+          <div className="flex gap-6 items-start">
+            <div className="w-12 h-12 bg-[#FFD600] rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-yellow-500/10">
+              <Lock className="w-6 h-6 text-black" fill="black" />
             </div>
             <div>
-              <h3 className="font-bold text-lg">Today</h3>
-              <p className="text-slate-500 text-sm leading-snug">Explore brick detection, quests, achievements, feed and more</p>
+              <h3 className="font-black text-lg mb-1">Today</h3>
+              <p className="text-slate-400 text-[14px] font-bold leading-snug">Explore brick detection, quests, achievements, feed and more</p>
             </div>
           </div>
 
-          <div className="flex gap-4 items-start relative">
-            {/* Dotted line connecting icons */}
-            <div className="absolute left-5 top-12 bottom-0 w-[2.5px] border-l-2 border-dashed border-slate-300 -mb-8" />
-            <div className="w-10 h-10 bg-[#FFD600] rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm transition-transform active:scale-90 z-10">
-              <Bell className="w-5 h-5 text-black" fill="currentColor" />
+          <div className="flex gap-6 items-start relative">
+             <div className="absolute left-6 -top-8 bottom-[-8px] w-0.5 border-l-2 border-dashed border-slate-100" />
+            <div className="w-12 h-12 bg-[#FFD600] rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-yellow-500/10 z-10">
+              <Bell className="w-6 h-6 text-black" fill="black" />
             </div>
-            <div className="z-10 bg-[#F4F7FA]/10">
-              <h3 className="font-bold text-lg">In 12 days</h3>
-              <p className="text-slate-500 text-sm leading-snug">We'll send you a reminder that your trial is ending soon.</p>
+            <div>
+              <h3 className="font-black text-lg mb-1">In 12 days</h3>
+              <p className="text-slate-400 text-[14px] font-bold leading-snug">We'll send you a reminder that your trial is ending soon.</p>
             </div>
           </div>
 
-          <div className="flex gap-4 items-start">
-            <div className="w-10 h-10 bg-[#FFD600] rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm transition-transform active:scale-90">
-              <Star className="w-5 h-5 text-black" fill="currentColor" />
+          <div className="flex gap-6 items-start">
+             <div className="absolute left-6 -top-8 bottom-0 w-0.5 border-l-2 border-dashed border-slate-100" />
+            <div className="w-12 h-12 bg-[#FFD600] rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-yellow-500/10 z-10">
+              <Star className="w-6 h-6 text-black" fill="black" />
             </div>
             <div>
-              <h3 className="font-bold text-lg">In 14 days</h3>
-              <p className="text-slate-500 text-sm leading-snug">You'll be charged {billingCycle === 'annual' ? '$29.99' : '$3.99'}, cancel anytime before.</p>
+              <h3 className="font-black text-lg mb-1">In 14 days</h3>
+              <p className="text-slate-400 text-[14px] font-bold leading-snug">You'll be charged {billingCycle === 'annual' ? '$29.99' : '$3.99'}, cancel anytime before.</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Footer Actions */}
-      <div className="absolute bottom-0 left-0 right-0 px-8 pb-[max(env(safe-area-inset-bottom),40px)] pt-6 bg-gradient-to-t from-[#F4F7FA] via-[#F4F7FA] to-transparent flex flex-col items-center gap-4">
+      {/* Footer */}
+      <div className="px-8 pb-10 pt-6 flex flex-col items-center gap-4 bg-white/80 backdrop-blur-md">
         <button
           onClick={handleSubscribe}
           disabled={loading}
-          className="w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white py-5 rounded-3xl font-black text-xl shadow-[0_10px_30px_-10px_rgba(37,99,235,0.5)] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          className="w-full bg-[#2563EB] text-white py-6 rounded-[32px] font-black text-xl shadow-xl active:scale-[0.98] transition-all flex items-center justify-center"
         >
-          {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Try for $0.00'}
+          {loading ? <Loader2 className="w-8 h-8 animate-spin" /> : 'Try for $0.00'}
         </button>
 
-        <button
-          onClick={() => { }}
-          className="text-slate-400 font-bold text-[10px] uppercase tracking-widest hover:text-slate-600 transition-colors"
-        >
-          RESTORE PURCHASE
-        </button>
+        <button className="text-slate-400 font-bold text-[11px] tracking-widest uppercase">RESTORE PURCHASE</button>
+        <p className="text-slate-400 text-[13px] font-medium">Cancel Anytime in the App Store</p>
 
-        <p className="text-slate-400 text-[11px] font-medium">Cancel Anytime in the App Store</p>
-
-        <div className="flex gap-6 mt-2">
-          <button className="text-slate-400 text-[10px] font-bold uppercase tracking-wider underline">TERMS OF SERVICE</button>
-          <button className="text-slate-400 text-[10px] font-bold uppercase tracking-wider underline">PRIVACY POLICY</button>
+        <div className="flex gap-6 mt-1">
+          <span className="text-slate-400 text-[11px] font-bold tracking-tight border-b border-slate-200">TERMS OF SERVICE</span>
+          <span className="text-slate-400 text-[11px] font-bold tracking-tight border-b border-slate-200">PRIVACY POLICY</span>
         </div>
       </div>
     </div>

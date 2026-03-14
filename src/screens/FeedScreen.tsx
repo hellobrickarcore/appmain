@@ -1,6 +1,5 @@
-// @ts-nocheck
 import React, { useState, useEffect } from 'react';
-import { Heart, MessageCircle, Share2, MoreVertical, ChevronLeft, User, Lock, Globe } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreVertical, ChevronLeft, Lock, Globe, Plus, Sparkles } from 'lucide-react';
 import { Screen } from '../types';
 
 interface FeedPost {
@@ -27,64 +26,48 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Mock feed data - in production, fetch from API
   useEffect(() => {
-    // Simulate API call
+    // Simulated API Fetch
     setTimeout(() => {
       setPosts([
         {
           id: '1',
           userId: 'user1',
-          userName: 'BrickMaster42',
-          userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=BrickMaster',
+          userName: 'MasterBuilder',
+          userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Master',
           isPrivate: false,
-          image: 'https://picsum.photos/seed/lego1/400/400',
-          title: 'Epic Castle Build',
-          description: 'Just finished this amazing castle! Used 2,500+ bricks. Took me 3 weeks but totally worth it! 🏰',
-          bricksUsed: 2500,
-          likes: 124,
-          comments: 23,
+          image: 'https://images.unsplash.com/photo-1563811771046-ba984ff30900?auto=format&fit=crop&q=80&w=800',
+          title: 'Cyberpunk Skyline',
+          description: 'Used almost 4,000 Technic parts for this neon-lit modular build. 🧱',
+          bricksUsed: 3950,
+          likes: 412,
+          comments: 45,
           isLiked: false,
-          timestamp: Date.now() - 3600000, // 1 hour ago
+          timestamp: Date.now() - 3600000,
         },
         {
           id: '2',
           userId: 'user2',
-          userName: 'BrickLover99',
-          userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=LEGOLover',
+          userName: 'BrickHuntress',
+          userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Huntress',
           isPrivate: false,
-          image: 'https://picsum.photos/seed/lego2/400/400',
-          title: 'Space Station MOC',
-          description: 'My latest space station creation! Features working lights and rotating sections.',
-          bricksUsed: 1800,
-          likes: 89,
-          comments: 15,
+          image: 'https://images.unsplash.com/photo-1472457897821-70d3819a0e24?auto=format&fit=crop&q=80&w=800',
+          title: 'Forest Retreat',
+          description: 'Simple 1x2 and 2x4 build focusing on organic shapes and textures.',
+          bricksUsed: 800,
+          likes: 215,
+          comments: 12,
           isLiked: true,
-          timestamp: Date.now() - 7200000, // 2 hours ago
-        },
-        {
-          id: '3',
-          userId: 'user3',
-          userName: 'BrickBuilder',
-          userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=BrickBuilder',
-          isPrivate: true,
-          image: 'https://picsum.photos/seed/lego3/400/400',
-          title: 'Secret Project',
-          description: 'Working on something special...',
-          bricksUsed: 500,
-          likes: 45,
-          comments: 8,
-          isLiked: false,
-          timestamp: Date.now() - 10800000, // 3 hours ago
-        },
+          timestamp: Date.now() - 7200000,
+        }
       ]);
       setLoading(false);
-    }, 500);
+    }, 800);
   }, []);
 
   const handleLike = (postId: string) => {
-    setPosts(posts.map(post =>
-      post.id === postId
+    setPosts(posts.map(post => 
+      post.id === postId 
         ? { ...post, isLiked: !post.isLiked, likes: post.isLiked ? post.likes - 1 : post.likes + 1 }
         : post
     ));
@@ -102,116 +85,101 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
   };
 
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-slate-50">
+    <div className="flex flex-col min-h-screen bg-[#050A18] text-white font-sans overflow-hidden">
+      <div className="absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-b from-blue-600/5 via-transparent to-transparent pointer-events-none" />
+
       {/* Header */}
-      <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between sticky top-0 z-10">
-        <button
+      <div className="relative z-50 px-6 pt-[max(env(safe-area-inset-top),3.5rem)] pb-4 flex items-center justify-between sticky top-0 bg-[#050A18]/80 backdrop-blur-xl border-b border-white/5">
+        <button 
           onClick={() => onNavigate(Screen.HOME)}
-          className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-slate-100"
+          className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10"
         >
-          <ChevronLeft className="w-5 h-5 text-slate-700" />
+          <ChevronLeft className="w-5 h-5 text-slate-300" />
         </button>
-        <h1 className="text-lg font-black text-slate-900">Feed</h1>
-        <div className="w-10" /> {/* Spacer */}
+        <div className="flex flex-col items-center">
+           <h1 className="text-sm font-black uppercase tracking-[0.2em] text-white">Community</h1>
+           <div className="flex items-center gap-1 mt-0.5">
+             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
+             <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">342 Online</span>
+           </div>
+        </div>
+        <button
+          onClick={() => onNavigate(Screen.CREATE_POST)}
+          className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center shadow-lg shadow-orange-500/20 active:scale-95 transition-all"
+        >
+          <Plus className="w-5 h-5 text-white" />
+        </button>
       </div>
 
-      {/* Feed Posts */}
-      <div className="flex-1 overflow-y-auto pb-20">
+      <div className="flex-1 overflow-y-auto no-scrollbar pb-32">
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="text-slate-400">Loading feed...</div>
-          </div>
-        ) : posts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 px-4">
-            <div className="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center mb-4">
-              <MessageCircle className="w-8 h-8 text-slate-400" />
-            </div>
-            <h2 className="text-xl font-black text-slate-900 mb-2">No posts yet</h2>
-            <p className="text-slate-500 text-center">Be the first to share your creation!</p>
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <div className="w-10 h-10 border-2 border-white/5 border-t-orange-500 rounded-full animate-spin" />
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Fetching Latest Builds...</p>
           </div>
         ) : (
-          posts.map((post) => (
-            <div key={post.id} className="bg-white border-b border-slate-200">
-              {/* Post Header */}
-              <div className="px-4 py-3 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={post.userAvatar}
-                    alt={post.userName}
-                    className="w-10 h-10 rounded-full"
-                  />
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-900">{post.userName}</span>
-                      {post.isPrivate ? (
-                        <Lock className="w-3 h-3 text-slate-400" />
-                      ) : (
-                        <Globe className="w-3 h-3 text-slate-400" />
-                      )}
+          <div className="space-y-6 pt-6">
+            {posts.map((post) => (
+              <div key={post.id} className="relative group px-4">
+                 <div className="bg-white/5 border border-white/5 rounded-[40px] overflow-hidden shadow-2xl pb-4">
+                    {/* Post Header */}
+                    <div className="px-6 py-4 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 overflow-hidden p-0.5">
+                          <img src={post.userAvatar} className="w-full h-full rounded-xl" alt={post.userName} />
+                        </div>
+                        <div className="text-left">
+                          <div className="flex items-center gap-1.5">
+                             <span className="font-black text-white text-sm">@{post.userName}</span>
+                             {post.isPrivate ? <Lock className="w-3 h-3 text-slate-600" /> : <Globe className="w-3 h-3 text-slate-600" />}
+                          </div>
+                          <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">{formatTimeAgo(post.timestamp)}</span>
+                        </div>
+                      </div>
+                      <MoreVertical className="w-5 h-5 text-slate-700" />
                     </div>
-                    <span className="text-xs text-slate-500">{formatTimeAgo(post.timestamp)}</span>
-                  </div>
-                </div>
-                <button className="p-2 hover:bg-slate-100 rounded-full">
-                  <MoreVertical className="w-5 h-5 text-slate-400" />
-                </button>
+
+                    {/* Image Area */}
+                    <div className="px-4">
+                       <div className="relative rounded-[32px] overflow-hidden aspect-square border border-white/5">
+                         <img src={post.image} className="w-full h-full object-cover" alt={post.title} />
+                         <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-xl px-3 py-1 rounded-full border border-white/10 flex items-center gap-2">
+                           <Sparkles className="w-3 h-3 text-yellow-400" />
+                           <span className="text-[9px] font-black text-white uppercase tracking-widest">Featured</span>
+                         </div>
+                       </div>
+                    </div>
+
+                    {/* Actions & Info */}
+                    <div className="px-6 py-5">
+                       <div className="flex items-center gap-6 mb-5">
+                          <button onClick={() => handleLike(post.id)} className="flex items-center gap-2 group">
+                             <Heart className={`w-6 h-6 transition-all ${post.isLiked ? 'fill-red-500 text-red-500 scale-110' : 'text-slate-500 group-active:scale-95'}`} />
+                             <span className={`text-sm font-black ${post.isLiked ? 'text-white' : 'text-slate-500'}`}>{post.likes}</span>
+                          </button>
+                          <button className="flex items-center gap-2">
+                             <MessageCircle className="w-6 h-6 text-slate-500" />
+                             <span className="text-sm font-black text-slate-500">{post.comments}</span>
+                          </button>
+                          <button className="ml-auto w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/5">
+                             <Share2 className="w-4 h-4 text-slate-500" />
+                          </button>
+                       </div>
+
+                       <div className="text-left">
+                         <h3 className="font-black text-lg text-white mb-2 leading-tight">{post.title}</h3>
+                         <p className="text-sm text-slate-500 font-medium leading-relaxed mb-4">{post.description}</p>
+                         <div className="inline-flex items-center gap-2 bg-orange-500/10 px-3 py-1 rounded-full border border-orange-500/10">
+                            <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest">{post.bricksUsed.toLocaleString()} Bricks</span>
+                         </div>
+                       </div>
+                    </div>
+                 </div>
               </div>
-
-              {/* Post Image */}
-              <div className="relative">
-                <img
-                  src={post.image}
-                  alt={post.title}
-                  className="w-full aspect-square object-cover"
-                />
-                {post.isPrivate && (
-                  <div className="absolute top-4 right-4 bg-black/60 backdrop-blur px-3 py-1 rounded-full flex items-center gap-2">
-                    <Lock className="w-3 h-3 text-white" />
-                    <span className="text-xs font-bold text-white">Private</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Post Actions */}
-              <div className="px-4 py-3">
-                <div className="flex items-center gap-4 mb-2">
-                  <button
-                    onClick={() => handleLike(post.id)}
-                    className={`flex items-center gap-2 ${post.isLiked ? 'text-red-500' : 'text-slate-700'}`}
-                  >
-                    <Heart className={`w-6 h-6 ${post.isLiked ? 'fill-current' : ''}`} />
-                    <span className="font-bold">{post.likes}</span>
-                  </button>
-                  <button className="flex items-center gap-2 text-slate-700">
-                    <MessageCircle className="w-6 h-6" />
-                    <span className="font-bold">{post.comments}</span>
-                  </button>
-                  <button className="flex items-center gap-2 text-slate-700">
-                    <Share2 className="w-6 h-6" />
-                  </button>
-                </div>
-
-                {/* Post Info */}
-                <div className="mb-2">
-                  <h3 className="font-black text-slate-900 mb-1">{post.title}</h3>
-                  <p className="text-sm text-slate-700 mb-2">{post.description}</p>
-                  <div className="flex items-center gap-4 text-xs text-slate-500">
-                    <span>🧱 {post.bricksUsed.toLocaleString()} bricks</span>
-                  </div>
-                </div>
-
-                {/* View Comments Button */}
-                {post.comments > 0 && (
-                  <button className="text-xs text-slate-500 hover:text-slate-700">
-                    View all {post.comments} comments
-                  </button>
-                )}
-              </div>
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </div>
     </div>
   );
 };
-

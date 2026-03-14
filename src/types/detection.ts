@@ -48,6 +48,8 @@ export interface BrickPrediction {
     identityConfidence: number; // 0..1
     colorConfidence: number; // 0..1
     dimensionConfidence: number; // 0..1
+    brandConfidence: number; // 0..1
+    detectorConfidence: number; // 0..1
 
     rawModelClass?: string;
     rawModelConfidence?: number;
@@ -93,6 +95,7 @@ export interface FrameDetection {
 
     reviewStatus: ReviewStatus;
     labelDisplayStatus: LabelDisplayStatus;
+    countingBucket?: 'official_lego' | 'uncertain_lego_like' | 'rejected_non_lego';
 }
 
 export interface ScanFrameResponse {
@@ -103,16 +106,29 @@ export interface ScanFrameResponse {
     frameHeight: number;
     modelVersion: string;
     detections: FrameDetection[];
-    trackedObjects?: TrackedObject[];
+    trackedObjects: TrackedObject[];
     inferenceMs?: number;
     debug?: {
         raw: number;
         valid_geo: number;
         after_nms: number;
         final: number;
-        color_estimates: number;
-        dim_estimates: number;
-        identity_estimates: number;
+        color_estimates?: number;
+        dim_estimates?: number;
+        identity_estimates?: number;
+    };
+    summary?: {
+        official_lego_count: number;
+        uncertain_lego_like_count: number;
+        non_lego_rejected_count: number;
+        total_raw_candidates: number;
+        removed_by_low_confidence: number;
+        removed_by_duplicate_filter: number;
+        removed_by_non_lego_filter: number;
+        removed_by_geometry_filter: number;
+        removed_by_sparse_sanity?: number;
+        white_sensitivity_used?: boolean;
+        sparse_fallback_triggered?: boolean;
     };
 }
 
@@ -163,16 +179,12 @@ export interface DetectionOverlay {
     geometryType: 'bbox' | 'polygon';
     box?: { xMin: number; yMin: number; xMax: number; yMax: number };
     polygon?: { x: number; y: number }[];
-    x?: number; // Added for display debugging
-    y?: number; // Added for display debugging
     geometryConfidence: number;
     identityConfidence: number;
     colorConfidence: number;
     dimensionConfidence: number;
-    finalConfidence: number;
     brickFamily?: string;
     dimensionsLabel?: string;
-    colorName?: string;
     isTracked: boolean;
     isStable: boolean;
     displayText?: string;

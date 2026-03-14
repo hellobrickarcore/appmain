@@ -1,188 +1,215 @@
-
 import React, { useEffect, useState } from 'react';
-import { Trophy, RefreshCw, Meh, Frown, ChevronDown, ChevronUp, Clock, Target, Lightbulb } from 'lucide-react';
+import { Trophy, RefreshCw, Meh, Frown, ChevronDown, ChevronUp, Clock, Target, Lightbulb, Sparkles, Swords, ChevronLeft } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Screen, BattleResult } from '../types';
 
 interface HeadToHeadResultScreenProps {
-    onNavigate: (screen: Screen) => void;
-    result: BattleResult | null;
+  onNavigate: (screen: Screen) => void;
+  result: BattleResult | null;
 }
 
 export const HeadToHeadResultScreen: React.FC<HeadToHeadResultScreenProps> = ({ onNavigate, result }) => {
-    const [showSummary, setShowSummary] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
+  
+  useEffect(() => {
+      if (result?.won) {
+          const duration = 4000;
+          const end = Date.now() + duration;
 
-    useEffect(() => {
-        if (result?.won) {
-            const duration = 3000;
-            const end = Date.now() + duration;
+          const frame = () => {
+            confetti({
+              particleCount: 3,
+              angle: 60,
+              spread: 60,
+              origin: { x: 0, y: 0.6 },
+              colors: ['#6366F1', '#F59E0B', '#10B981']
+            });
+            confetti({
+              particleCount: 3,
+              angle: 120,
+              spread: 60,
+              origin: { x: 1, y: 0.6 },
+              colors: ['#6366F1', '#F59E0B', '#10B981']
+            });
+      
+            if (Date.now() < end) {
+              requestAnimationFrame(frame);
+            }
+          };
+          frame();
+      }
+  }, [result]);
 
-            const frame = () => {
-                confetti({
-                    particleCount: 2,
-                    angle: 60,
-                    spread: 55,
-                    origin: { x: 0 },
-                    colors: ['#F59E0B', '#EF4444', '#3B82F6']
-                });
-                confetti({
-                    particleCount: 2,
-                    angle: 120,
-                    spread: 55,
-                    origin: { x: 1 },
-                    colors: ['#F59E0B', '#EF4444', '#3B82F6']
-                });
+  if (!result) return null;
 
-                if (Date.now() < end) {
-                    requestAnimationFrame(frame);
-                }
-            };
-            frame();
-        }
-    }, [result]);
+  const timeToFirst = Math.floor(Math.random() * 8) + 2; 
 
-    if (!result) return null;
+  return (
+    <div className="flex flex-col min-h-screen bg-[#050A18] font-sans text-white relative overflow-hidden">
+        
+        {/* Background Visuals */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className={`absolute top-0 left-0 right-0 h-[600px] bg-gradient-to-b opacity-20 ${result.won ? 'from-emerald-600/20' : 'from-rose-600/20'} via-transparent to-transparent`} />
+            {result.won && (
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-indigo-600/5 rounded-full blur-[120px] animate-pulse" />
+            )}
+        </div>
 
-    // Mock stats since we don't track them in the prototype
-    const timeToFirst = Math.floor(Math.random() * 8) + 2;
-
-    return (
-        <div className={`flex flex-col min-h-[100dvh] font-sans text-white relative overflow-hidden ${result.won ? 'bg-indigo-600' : 'bg-slate-900'}`}>
-
-            {/* Background Patterns */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-[-20%] left-[-20%] w-[140%] h-[70%] bg-gradient-to-b from-white/10 to-transparent rounded-b-[50%]" />
-            </div>
-
-            <div className="flex-1 flex flex-col items-center justify-center p-8 relative z-10">
-
-                {/* Outcome Icon */}
-                <div className="mb-6 animate-in zoom-in duration-500">
+        <div className="flex-1 flex flex-col items-center justify-center p-8 relative z-10 pt-20">
+            
+            {/* Outcome Visual */}
+            <div className="relative mb-12 group">
+                <div className={`absolute inset-0 rounded-full blur-[40px] opacity-50 ${result.won ? 'bg-emerald-500 shadow-[0_0_80px_rgba(16,185,129,0.5)]' : 'bg-rose-500/30'}`} />
+                <div className={`w-40 h-40 rounded-[60px] flex items-center justify-center border-4 relative z-10 transition-transform group-hover:scale-110 duration-500 shadow-3xl ${result.won ? 'bg-emerald-500 border-emerald-400' : 'bg-slate-900 border-white/5'}`}>
                     {result.won ? (
-                        <div className="w-32 h-32 bg-yellow-400 rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(250,204,21,0.5)] border-8 border-white/20">
-                            <Trophy className="w-16 h-16 text-yellow-900" />
-                        </div>
+                        <Trophy className="w-16 h-16 text-slate-950" />
                     ) : (
-                        <div className="w-32 h-32 bg-slate-700 rounded-full flex items-center justify-center shadow-lg border-8 border-slate-600">
-                            {result.playerScore === result.opponentScore ? (
-                                <Meh className="w-16 h-16 text-slate-400" />
-                            ) : (
-                                <Frown className="w-16 h-16 text-slate-400" />
-                            )}
+                        <div className="relative">
+                           <Swords className="w-16 h-16 text-slate-700" />
+                           <div className="absolute inset-0 flex items-center justify-center opacity-30">
+                              {result.playerScore === result.opponentScore ? <Meh className="w-10 h-10" /> : <Frown className="w-10 h-10" />}
+                           </div>
                         </div>
                     )}
                 </div>
-
-                <h1 className="text-5xl font-black mb-2 tracking-tight text-center">
-                    {result.won ? 'VICTORY!' : result.playerScore === result.opponentScore ? 'DRAW' : 'DEFEAT'}
-                </h1>
-                <p className="text-white/70 font-bold uppercase tracking-widest mb-10">
-                    {result.won ? 'Outstanding Performance' : 'Better luck next time'}
-                </p>
-
-                {/* Score Card */}
-                <div className="bg-black/20 backdrop-blur-md rounded-[32px] p-6 w-full max-w-xs flex items-center justify-between mb-8 border border-white/10">
-                    <div className="text-center">
-                        <div className="w-12 h-12 rounded-full bg-white/20 mx-auto mb-2 overflow-hidden">
-                            <img src="https://picsum.photos/seed/me/100/100" />
-                        </div>
-                        <span className="block font-black text-2xl">{result.playerScore}</span>
-                        <span className="text-[10px] font-bold uppercase opacity-60">You</span>
-                    </div>
-
-                    <div className="text-white/30 font-black text-2xl">VS</div>
-
-                    <div className="text-center">
-                        <div className="w-12 h-12 rounded-full bg-white/20 mx-auto mb-2 overflow-hidden">
-                            <img src="https://picsum.photos/seed/u2/100/100" />
-                        </div>
-                        <span className="block font-black text-2xl">{result.opponentScore}</span>
-                        <span className="text-[10px] font-bold uppercase opacity-60">Opponent</span>
-                    </div>
-                </div>
-
-                {/* Rewards */}
-                <div className="flex items-center gap-2 bg-white/20 px-6 py-3 rounded-full mb-8">
-                    <span className="font-bold text-sm">Reward:</span>
-                    <span className="font-black text-xl text-yellow-300">+{result.xp} XP</span>
-                </div>
-
-                {/* Toggle Summary */}
-                <button
-                    onClick={() => setShowSummary(!showSummary)}
-                    className="flex items-center gap-2 text-white/70 hover:text-white font-bold text-sm mb-6 transition-colors"
-                >
-                    {showSummary ? 'Hide Match Details' : 'View Match Details'}
-                    {showSummary ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                </button>
-
-                {/* Summary Section */}
-                {showSummary && (
-                    <div className="w-full max-w-xs bg-white/10 backdrop-blur-md rounded-2xl p-5 mb-8 border border-white/10 animate-in slide-in-from-top-2 fade-in">
-                        <h3 className="text-xs font-bold uppercase tracking-widest text-white/60 mb-4 border-b border-white/10 pb-2">Battle Statistics</h3>
-
-                        <div className="space-y-4">
-                            {/* Stat 1 */}
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2 text-sm font-medium text-white/90">
-                                    <Clock className="w-4 h-4 text-indigo-300" />
-                                    Time to First Find
-                                </div>
-                                <div className="font-mono font-bold">{timeToFirst}s</div>
-                            </div>
-
-                            {/* Stat 2 */}
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2 text-sm font-medium text-white/90">
-                                    <Target className="w-4 h-4 text-rose-300" />
-                                    Total Detected
-                                </div>
-                                <div className="font-mono font-bold">
-                                    <span className="text-green-400">{result.playerScore}</span> / <span className="text-slate-400">{result.opponentScore}</span>
-                                </div>
-                            </div>
-
-                            {/* Tip Box */}
-                            <div className="bg-black/20 rounded-xl p-3 flex gap-3 mt-4">
-                                <Lightbulb className="w-5 h-5 text-yellow-400 flex-shrink-0" />
-                                <div>
-                                    <p className="text-[10px] font-bold text-yellow-400 uppercase mb-0.5">Skill Tip</p>
-                                    <p className="text-xs text-white/80 leading-snug">
-                                        {result.won
-                                            ? "Keep moving your camera slowly to maintain high tracking accuracy."
-                                            : "Ensure good lighting to speed up detection times."}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                {result.won && (
+                   <div className="absolute -top-4 -right-4 bg-orange-500 p-3 rounded-2xl shadow-2xl rotate-12 animate-bounce">
+                      <Sparkles className="w-5 h-5 text-white" />
+                   </div>
                 )}
-
             </div>
 
-            {/* Footer Actions */}
-            <div className="p-6 bg-black/20 backdrop-blur-md pb-[max(env(safe-area-inset-bottom),2rem)]">
-                <div className="flex gap-3">
-                    <button
-                        onClick={() => onNavigate(Screen.HEAD_TO_HEAD)}
-                        className="flex-1 py-4 rounded-2xl bg-white/10 font-bold hover:bg-white/20 transition-colors"
-                    >
-                        Leave
-                    </button>
-                    <button
-                        onClick={() => onNavigate(Screen.H2H_MATCHMAKING)}
-                        className="flex-[2] py-4 rounded-2xl bg-white text-indigo-900 font-black shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2"
-                    >
-                        <RefreshCw className="w-5 h-5" />
-                        Rematch
-                    </button>
+            <h1 className="text-5xl font-black mb-3 tracking-tighter text-center uppercase">
+                {result.won ? 'Conquered' : result.playerScore === result.opponentScore ? 'Stalemate' : 'Neutralized'}
+            </h1>
+            <p className="text-slate-500 font-black uppercase tracking-[0.3em] text-[10px] mb-12">
+                {result.won ? 'Dominance established in the Arena' : 'Regroup and re-initialize systems'}
+            </p>
+
+            {/* Match Stats Table */}
+            <div className="w-full max-w-sm bg-white/5 border border-white/5 rounded-[48px] p-10 mb-10 overflow-hidden relative">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl -mr-16 -mt-16" />
+                
+                <div className="flex items-center justify-between mb-10">
+                    <div className="flex flex-col items-center gap-3">
+                        <div className="w-16 h-16 rounded-2xl border-2 border-indigo-500/30 p-1">
+                             <div className="w-full h-full rounded-xl overflow-hidden bg-slate-900 border border-white/10">
+                                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=hero`} className="w-full h-full object-cover" />
+                             </div>
+                        </div>
+                        <div className="text-center">
+                           <span className="block text-[10px] font-black text-slate-500 uppercase tracking-widest">You</span>
+                           <span className="block font-black text-3xl text-white">{result.playerScore}</span>
+                        </div>
+                    </div>
+                    
+                    <div className="flex flex-col items-center gap-1">
+                       <span className="text-[10px] font-black text-slate-700 uppercase tracking-[0.2em]">VS</span>
+                       <div className="h-12 w-[1px] bg-gradient-to-b from-white/5 via-white/20 to-white/5" />
+                    </div>
+
+                    <div className="flex flex-col items-center gap-3">
+                        <div className="w-16 h-16 rounded-2xl border-2 border-white/5 p-1 opacity-60">
+                             <div className="w-full h-full rounded-xl overflow-hidden bg-slate-900 border border-white/10">
+                                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=enemy`} className="w-full h-full object-cover" />
+                             </div>
+                        </div>
+                        <div className="text-center">
+                           <span className="block text-[10px] font-black text-slate-500 uppercase tracking-widest">Enemy</span>
+                           <span className="block font-black text-3xl text-slate-400">{result.opponentScore}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className={`p-5 rounded-3xl border flex items-center justify-center gap-4 ${result.won ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-white/5 border-white/5'}`}>
+                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Earnings:</span>
+                   <div className="flex items-center gap-2">
+                       <Sparkles className={`w-3.5 h-3.5 ${result.won ? 'text-yellow-500' : 'text-slate-500'}`} />
+                       <span className={`text-xl font-black ${result.won ? 'text-white' : 'text-slate-400'}`}>+{result.xp} XP</span>
+                   </div>
                 </div>
             </div>
 
+            {/* Toggle Summary */}
+            <button
+                onClick={() => setShowSummary(!showSummary)}
+                className="flex items-center gap-2.5 bg-white/5 px-6 py-2.5 rounded-full text-slate-500 hover:text-white font-black text-[10px] uppercase tracking-widest mb-10 transition-all active:scale-95 border border-white/5"
+            >
+                {showSummary ? 'Condense Data' : 'Deep Analytics'}
+                {showSummary ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+
+            {/* Summary Section */}
+            {showSummary && (
+                <div className="w-full max-w-sm bg-[#0A0F1E] rounded-[40px] p-8 mb-10 border border-white/10 animate-in slide-in-from-top-4 duration-500">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-8 flex items-center gap-2">
+                       <Shield className="w-3 h-3" />
+                       Battle Analytics
+                    </h3>
+
+                    <div className="space-y-6">
+                        <div className="flex items-center justify-between group">
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400">
+                                   <Clock className="w-5 h-5" />
+                                </div>
+                                <span className="text-sm font-bold text-slate-300">Target Reaction</span>
+                            </div>
+                            <div className="font-black text-white text-lg">{timeToFirst}s</div>
+                        </div>
+
+                        <div className="flex items-center justify-between group">
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 bg-rose-500/10 rounded-xl flex items-center justify-center text-rose-400">
+                                   <Target className="w-5 h-5" />
+                                </div>
+                                <span className="text-sm font-bold text-slate-300">Scanner Lock</span>
+                            </div>
+                            <div className="font-black text-white text-lg">
+                                <span className="text-emerald-500">{result.playerScore}</span>
+                                <span className="text-slate-700 mx-2">/</span>
+                                <span className="text-slate-500">{result.opponentScore}</span>
+                            </div>
+                        </div>
+
+                        <div className="bg-[#050A18] rounded-3xl p-5 flex gap-4 mt-8 border border-white/5">
+                            <div className="w-10 h-10 bg-yellow-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                               <Lightbulb className="w-5 h-5 text-yellow-500" />
+                            </div>
+                            <div>
+                                <p className="text-[9px] font-black text-yellow-500 uppercase tracking-widest mb-1">Combat Tip</p>
+                                <p className="text-xs text-slate-400 font-medium leading-relaxed italic">
+                                    {result.won 
+                                        ? "Perfect focus maintained. Your detection latency is in the 98th percentile." 
+                                        : "Enhance environment luminance to prioritize faster object confirmation."}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
         </div>
-    );
+
+        {/* Action Hub */}
+        <div className="p-10 pb-[max(2.5rem,env(safe-area-inset-bottom))] bg-[#050A18]/80 backdrop-blur-3xl border-t border-white/5 relative z-50">
+            <div className="flex gap-4">
+                <button 
+                    onClick={() => onNavigate(Screen.HEAD_TO_HEAD)}
+                    className="flex-1 py-5 rounded-[32px] bg-white/5 border border-white/10 text-slate-300 font-black text-[11px] uppercase tracking-widest hover:bg-white/10 transition-all active:scale-95"
+                >
+                    Leave Arena
+                </button>
+                <button 
+                    onClick={() => onNavigate(Screen.H2H_MATCHMAKING)}
+                    className="flex-[1.5] py-5 rounded-[32px] bg-white text-slate-950 font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3 group"
+                >
+                    <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
+                    New Conflict
+                </button>
+            </div>
+        </div>
+
+    </div>
+  );
 };
-
-
-
-
