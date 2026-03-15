@@ -8,20 +8,34 @@ interface ProfileScreenProps {
 }
 
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
-    const [userStats, setUserStats] = useState({ streak: 26, xp: 14500, league: 'Silver', finishes: 120, level: 12, nextLevelXp: 15000 });
-    const [profileName, setProfileName] = useState('Brick Master');
+    const [userStats, setUserStats] = useState({ streak: 0, xp: 0, league: 'Bronze', finishes: 0, level: 1, nextLevelXp: 1000 });
+    const [profileName, setProfileName] = useState('Builder');
 
     useEffect(() => {
         const loadUserData = async () => {
             try {
                 const userId = getUserId();
                 const xpData = await getUserXP(userId);
-                setUserStats(prev => ({
-                    ...prev,
-                    streak: xpData.streak_count || 26,
-                    xp: xpData.xp_total || 14500,
-                    level: xpData.level || 12,
-                }));
+                
+                // Calculate League based on XP
+                let league = 'Bronze';
+                if (xpData.xp_total > 50000) league = 'Diamond';
+                else if (xpData.xp_total > 25000) league = 'Platinum';
+                else if (xpData.xp_total > 10000) league = 'Gold';
+                else if (xpData.xp_total > 5000) league = 'Silver';
+
+                // Estimate Finishes (Combined metric for completions)
+                const storedCollection = localStorage.getItem('hellobrick_collection');
+                const bricksCount = storedCollection ? JSON.parse(storedCollection).bricks?.length || 0 : 0;
+                
+                setUserStats({
+                    streak: xpData.streak_count || 1,
+                    xp: xpData.xp_total || 0,
+                    level: Math.floor((xpData.xp_total || 0) / 1000) + 1,
+                    league: league,
+                    finishes: Math.floor(bricksCount / 5) + (xpData.level || 0),
+                    nextLevelXp: (Math.floor((xpData.xp_total || 0) / 1000) + 1) * 1000
+                });
 
                 const storedName = localStorage.getItem('hellobrick_profile_name');
                 if (storedName) setProfileName(storedName);
@@ -40,7 +54,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
     ];
 
     return (
-        <div className="flex flex-col min-h-screen bg-[#050A18] font-sans text-white relative overflow-hidden">
+        <div className="flex flex-col h-full bg-[#050A18] font-sans text-white relative overflow-y-auto no-scrollbar overscroll-contain">
             {/* Header / Avatar Section */}
             <div className="px-6 pt-[max(env(safe-area-inset-top),3.5rem)] pb-8 flex flex-col items-center">
                 <div className="relative mb-6">
@@ -92,17 +106,67 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
                 <section className="space-y-4">
                     <div className="flex items-center justify-between px-1">
                         <h2 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">Next Up</h2>
-                        <span className="text-[11px] font-black text-orange-500 uppercase tracking-widest">500 XP to Level 13</span>
+                        <span className="text-[11px] font-black text-orange-500 uppercase tracking-widest">{Math.max(0, userStats.nextLevelXp - userStats.xp)} XP to Level {userStats.level + 1}</span>
                     </div>
                     <div className="bg-white/5 p-6 rounded-[32px] border border-white/5">
                         <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden">
-                            <div className="h-full bg-gradient-to-r from-orange-500 to-orange-400 w-3/4 rounded-full shadow-[0_0_15px_rgba(249,115,22,0.4)]" />
+                            <div 
+                                className="h-full bg-gradient-to-r from-orange-500 to-orange-400 rounded-full shadow-[0_0_15px_rgba(249,115,22,0.4)] transition-all duration-1000" 
+                                style={{ width: `${Math.min(100, (userStats.xp / userStats.nextLevelXp) * 100)}%` }}
+                            />
                         </div>
                         <div className="flex justify-between mt-3 px-1">
-                            <span className="text-[10px] font-black text-slate-600 uppercase">Level 12</span>
-                            <span className="text-[10px] font-black text-slate-600 uppercase">Level 13</span>
+                            <span className="text-[10px] font-black text-slate-600 uppercase">Level {userStats.level}</span>
+                            <span className="text-[10px] font-black text-slate-600 uppercase">Level {userStats.level + 1}</span>
                         </div>
                     </div>
+                </section>
+
+                {/* How to earn XP Section */}
+                <section className="space-y-4">
+                    <div className="flex items-center justify-between px-1">
+                        <h2 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">How to earn XP</h2>
+                    </div>
+                    <div className="bg-white/5 p-6 rounded-[32px] border border-white/5 space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center text-blue-400">
+                                    <Star className="w-4 h-4 fill-current" />
+                                </div>
+                                <span className="text-sm font-bold">New Brick Scanned</span>
+                            </div>
+                            <span className="text-blue-400 font-black">+10 XP</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-orange-500/20 rounded-lg flex items-center justify-center text-orange-400">
+                                    <Check className="w-4 h-4" />
+                                </div>
+                                <span className="text-sm font-bold">Daily Puzzle</span>
+                            </div>
+                            <span className="text-orange-400 font-black">+50 XP</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center text-purple-400">
+                                    <Trophy className="w-4 h-4 fill-current" />
+                                </div>
+                                <span className="text-sm font-bold">Win Battle</span>
+                            </div>
+                            <span className="text-purple-400 font-black">+100 XP</span>
+                        </div>
+                    </div>
+                </section>
+
+                {/* Leaderboard Button */}
+                <section>
+                    <button
+                        onClick={() => onNavigate(Screen.LEADERBOARD)}
+                        className="w-full bg-white text-black h-16 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all shadow-xl"
+                    >
+                        <Trophy className="w-5 h-5" />
+                        View Leaderboard
+                    </button>
                 </section>
 
                 {/* Friend Streaks Section */}

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ScanLine, Lightbulb, Users, Puzzle, ArrowRight, Box, ChevronRight } from 'lucide-react';
+import { ScanLine, Lightbulb, Users, Puzzle, ArrowRight, Box, ChevronRight, Brain } from 'lucide-react';
 import { TopBar } from '../components/TopBar';
 import { Screen, GameModeId } from '../types';
 import { LobbyNotification } from '../components/LobbyNotification';
@@ -27,14 +27,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
     };
 
     return (
-        <div className="flex flex-col min-h-screen bg-[#050A18] font-sans overflow-hidden">
+        <div className="flex flex-col h-full bg-[#050A18] font-sans overflow-hidden">
             <TopBar currentScreen={Screen.HOME} onNavigate={onNavigate} />
 
             <div className="relative z-40">
                 <LobbyNotification onJoin={handleJoinGame} />
             </div>
 
-            <main className="flex-1 flex flex-col px-6 relative pb-28 overflow-y-auto no-scrollbar">
+            <main className="flex-1 min-h-0 px-6 relative pb-32 overflow-y-auto no-scrollbar overscroll-contain">
                 <div className="mt-10 text-center space-y-3 mb-12">
                     <h1 className="text-4xl font-black text-white tracking-tight">Let's sort your bricks</h1>
                     <p className="text-slate-400 max-w-[280px] mx-auto leading-tight font-medium text-base">
@@ -132,6 +132,26 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
                         </div>
                         <div className="flex items-center gap-1 text-emerald-400">
                             <span className="text-[10px] font-black uppercase tracking-wider">Start</span>
+                            <ChevronRight className="w-4 h-4" />
+                        </div>
+                    </button>
+
+                    {/* Train the AI Section */}
+                    <button
+                        onClick={() => onNavigate(Screen.TRAINING_INTRO)}
+                        className="col-span-2 bg-gradient-to-r from-orange-500/10 to-amber-500/5 p-6 rounded-[28px] border border-orange-500/20 flex items-center justify-between active:scale-[0.98] transition-all"
+                    >
+                        <div className="flex items-center gap-5">
+                            <div className="w-12 h-12 bg-orange-500/20 rounded-xl flex items-center justify-center text-orange-400">
+                                <Brain className="w-6 h-6" />
+                            </div>
+                            <div className="text-left">
+                                <h3 className="font-bold text-white text-lg leading-none">Train the AI</h3>
+                                <p className="text-xs text-orange-500/60 mt-1.5 font-bold">Help the model learn new bricks</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-1 text-orange-400">
+                            <span className="text-[10px] font-black uppercase tracking-wider">Help</span>
                             <ChevronRight className="w-4 h-4" />
                         </div>
                     </button>

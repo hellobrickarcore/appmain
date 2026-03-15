@@ -13,15 +13,18 @@ interface Message {
 interface IdeasGeneratorScreenProps {
   onNavigate: (screen: Screen, params?: any) => void;
   initialBrick?: Brick;
+  allBricks?: Brick[];
 }
 
-export const IdeasGeneratorScreen: React.FC<IdeasGeneratorScreenProps> = ({ onNavigate, initialBrick }) => {
+export const IdeasGeneratorScreen: React.FC<IdeasGeneratorScreenProps> = ({ onNavigate, initialBrick, allBricks }) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       role: 'assistant',
       content: initialBrick 
         ? `Hi! I see you have a **${initialBrick.name}** in ${initialBrick.color}. What would you like to build with it today? I can suggest some creative ideas!` 
+        : allBricks && allBricks.length > 0
+        ? `Hi! I see you have **${allBricks.length} unique parts** in your vault. I can help you build something amazing with your collection! What are you in the mood for? (e.g. "A spaceship", "Something tiny")`
         : "Hi! I'm your AI Building Assistant. Tell me what bricks you have, or just ask for an idea, and I'll help you build something amazing!"
     }
   ]);
@@ -44,7 +47,8 @@ export const IdeasGeneratorScreen: React.FC<IdeasGeneratorScreenProps> = ({ onNa
     setIsTyping(true);
 
     try {
-      const response = await generateBuildIdeas(input, initialBrick);
+      const contextBricks = initialBrick ? [initialBrick] : (allBricks || []);
+      const response = await generateBuildIdeas(input, contextBricks);
       const assistantMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',

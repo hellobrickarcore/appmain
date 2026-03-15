@@ -9,6 +9,16 @@ html, body {
   overflow: hidden;
   margin: 0;
   padding: 0;
+  background: #050A18;
+}
+
+/* Hide scrollbar but keep functionality */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 body {

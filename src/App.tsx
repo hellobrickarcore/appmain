@@ -98,6 +98,9 @@ const App: React.FC = () => {
   const handleNavigate = (screen: Screen, params?: any) => {
     console.log(`🚀 Navigating to: ${screen}`, params);
 
+    // Reset navigation bar visibility on every navigation unless specifically hidden
+    setShowNav(true);
+
     if (screen === Screen.HOME) {
       localStorage.setItem('hellobrick_authenticated', 'true');
     }
@@ -131,7 +134,7 @@ const App: React.FC = () => {
       case Screen.HOW_TO_SCAN:
         return <HowToScanScreen onNavigate={handleNavigate} />;
       case Screen.IDEAS:
-        return <IdeasGeneratorScreen onNavigate={handleNavigate} initialBrick={screenParams?.brick} />;
+        return <IdeasGeneratorScreen onNavigate={handleNavigate} initialBrick={screenParams?.brick} allBricks={screenParams?.allBricks} />;
       case Screen.BUILDING_INTRO:
         return <BuildingIntroScreen onNavigate={handleNavigate} />;
       case Screen.NOTIFICATIONS_INTRO:

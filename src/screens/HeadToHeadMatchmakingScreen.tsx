@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Wifi, Users, ShieldCheck, Zap, ChevronLeft, X, Sparkles } from 'lucide-react';
+import { Users, Handshake, Zap, ChevronLeft, Sparkles } from 'lucide-react';
 import { Screen, GameModeId } from '../types';
 import { multiplayerService, Lobby } from '../services/multiplayerService';
 import { getCurrentUser } from '../services/supabaseService';
@@ -78,7 +78,7 @@ export const HeadToHeadMatchmakingScreen: React.FC<HeadToHeadMatchmakingScreenPr
 
     const handleStart = async () => {
         if (lobby) {
-            await multiplayerService.startBattle(lobby.id);
+            await multiplayerService.startMatch(lobby.id);
             onNavigate(Screen.H2H_BATTLE);
         }
     };
@@ -116,7 +116,7 @@ export const HeadToHeadMatchmakingScreen: React.FC<HeadToHeadMatchmakingScreenPr
                     <ChevronLeft className="w-5 h-5 text-slate-300" />
                 </button>
                 <div className="flex flex-col items-center">
-                   <h1 className="text-sm font-black uppercase tracking-[0.2em] text-white">Matchmaking</h1>
+                   <h1 className="text-sm font-black uppercase tracking-[0.2em] text-white">Connecting</h1>
                    <div className="flex items-center gap-1.5 mt-0.5">
                       <Zap className="w-2.5 h-2.5 text-yellow-500" />
                       <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{getModeName()}</span>
@@ -130,14 +130,14 @@ export const HeadToHeadMatchmakingScreen: React.FC<HeadToHeadMatchmakingScreenPr
                 <div className="mb-16 text-center">
                     <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 px-6 py-2.5 rounded-full backdrop-blur-xl mb-4">
                         {status === 'SEARCHING' ? (
-                            <><div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.5)]" /> <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Searching Global Lobbies</span></>
+                            <><div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.5)]" /> <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Checking lobbies...</span></>
                         ) : (
-                            <><ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Opponent Secured</span></>
+                            <><Handshake className="w-3.5 h-3.5 text-emerald-500" /> <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Friend connected</span></>
                         )}
                     </div>
                 </div>
 
-                {/* Combatants Display */}
+                {/* Players Display */}
                 <div className="w-full flex items-center justify-center gap-4 mb-20">
                     {/* Me */}
                     <div className="flex flex-col items-center gap-4 group">
@@ -147,7 +147,7 @@ export const HeadToHeadMatchmakingScreen: React.FC<HeadToHeadMatchmakingScreenPr
                             </div>
                         </div>
                         <div className="text-center">
-                           <span className="block text-xs font-black uppercase tracking-widest text-white">Vanguard</span>
+                           <span className="block text-xs font-black uppercase tracking-widest text-white">Hero</span>
                            <span className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter">You</span>
                         </div>
                     </div>
@@ -167,13 +167,13 @@ export const HeadToHeadMatchmakingScreen: React.FC<HeadToHeadMatchmakingScreenPr
                                 {status === 'SEARCHING' ? (
                                     <Users className="w-10 h-10 text-slate-700 animate-pulse" />
                                 ) : (
-                                    <img src={opponent?.avatar} className="w-full h-full object-cover animate-in zoom-in-50 duration-500" alt="Enemy" />
+                                    <img src={opponent?.avatar} className="w-full h-full object-cover animate-in zoom-in-50 duration-500" alt="Opponent" />
                                 )}
                             </div>
                         </div>
                         <div className="text-center">
                            <span className={`block text-xs font-black uppercase tracking-widest ${status === 'SEARCHING' ? 'text-slate-800' : 'text-rose-500'}`}>
-                             {status === 'SEARCHING' ? 'Scanning...' : (opponent?.name || 'Challenger')}
+                             {status === 'SEARCHING' ? 'Searching...' : (opponent?.name || 'Friend')}
                            </span>
                            <span className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter">Rank {opponent?.level || '??'}</span>
                         </div>
@@ -206,7 +206,7 @@ export const HeadToHeadMatchmakingScreen: React.FC<HeadToHeadMatchmakingScreenPr
                     onClick={handleCancel}
                     className="w-full py-2 text-slate-600 hover:text-white font-black text-[10px] uppercase tracking-[0.3em] transition-colors"
                 >
-                    Abandon Lobby
+                    Exit Lobby
                 </button>
             </div>
         </div>

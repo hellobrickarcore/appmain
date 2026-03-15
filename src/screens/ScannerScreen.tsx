@@ -15,14 +15,12 @@ interface ScannerScreenProps {
 
 const COLORS = ['#3B82F6', '#60A5FA', '#93C5FD', '#2563EB', '#1D4ED8']; // Blue-focused palette
 
-const cropBrickImage = (sourceBase64: string, bbox: { xMin: number; yMin: number; xMax: number; yMax: number }, originalWidth: number, originalHeight: number): Promise<string> => {
+const cropBrickImage = (sourceBase64: string, bbox: { xMin: number; yMin: number; xMax: number; yMax: number }): Promise<string> => {
   return new Promise((resolve) => {
     const img = new Image();
     img.src = sourceBase64;
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      // Normalize bbox if it's not already (it should be pixel-space from detectBricks scaleX/Y)
-      // but let's ensure we use the actual area
       const x = Math.max(0, bbox.xMin);
       const y = Math.max(0, bbox.yMin);
       const width = Math.min(img.width - x, bbox.xMax - bbox.xMin);
@@ -36,7 +34,6 @@ const cropBrickImage = (sourceBase64: string, bbox: { xMin: number; yMin: number
         return;
       }
       
-      // Draw background
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
@@ -138,6 +135,57 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
     }
   }, [hasPermission]);
 
+  // ─── Detection Smoothing ────────────────────────
+  const prevDetectionsRef = useRef<Map<string, FrameDetection>>(new Map());
+  
+  const smoothDetections = (newDetections: FrameDetection[]) => {
+    const ALPHA = 0.3; // More smoothing for stability (magnetic feel)
+    
+    // Create map for current detections to handle persistence
+    const currentMap = new Map(newDetections.map(d => [d.detectionId, d]));
+    const smoothed: FrameDetection[] = [];
+
+    // 1. Smooth existing/updated detections
+    newDetections.forEach(det => {
+      const prev = prevDetectionsRef.current.get(det.detectionId);
+      if (prev) {
+        // Magnetic lock: Weighted average of bounding box
+        det.geometry.bbox = {
+          format: 'xyxy',
+          space: 'pixel',
+          xMin: prev.geometry.bbox.xMin * (1 - ALPHA) + det.geometry.bbox.xMin * ALPHA,
+          yMin: prev.geometry.bbox.yMin * (1 - ALPHA) + det.geometry.bbox.yMin * ALPHA,
+          xMax: prev.geometry.bbox.xMax * (1 - ALPHA) + det.geometry.bbox.xMax * ALPHA,
+          yMax: prev.geometry.bbox.yMax * (1 - ALPHA) + det.geometry.bbox.yMax * ALPHA,
+        };
+      }
+      smoothed.push(det);
+    });
+
+    // 2. Simple Persistence: Keep detections that disappeared for 2 more frames
+    // This makes the boxes "stick" even if the detector misses a frame
+    prevDetectionsRef.current.forEach((prevDet, id) => {
+      if (!currentMap.has(id)) {
+        // If it was just seen in the last frame, keep it with lowered confidence
+        const framesMissed = (prevDet as any)._framesMissed || 0;
+        if (framesMissed < 5) { // Increased persistence for less flickering
+          const persistedDet = { 
+            ...prevDet, 
+            _framesMissed: framesMissed + 1 
+          };
+          smoothed.push(persistedDet);
+        }
+      }
+    });
+
+    // Update history ref
+    const nextMap = new Map();
+    smoothed.forEach(d => nextMap.set(d.detectionId, d));
+    prevDetectionsRef.current = nextMap;
+
+    return smoothed;
+  };
+
   // ─── API Detection Loop ────────────────
   useEffect(() => {
     if (phase !== 'scanning' || !hasPermission) return;
@@ -154,26 +202,39 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
         isDetectingRef.current = true;
         const response: ScanFrameResponse = await detectBricks(video);
 
-        if (phase === 'scanning') {
-          setDetectedObjects(response.detections);
+        if (phase === 'scanning' && !isProcessing) {
+          // Apply magnetic smoothing
+          const stabilizedDetections = smoothDetections(response.detections);
+          setDetectedObjects(stabilizedDetections);
+
+          
           setLastResponse(response);
           setQualityAdvice(null);
 
           // Check for challenge completion
           if (challenge) {
-            const goalMet = response.detections.some(obj => 
-              obj.prediction.brickName?.toLowerCase().includes(challenge.type.toLowerCase().split(' ').slice(1).join(' '))
-            );
+            // Flexible matching: check if target name or color exists in detected objects
+            const target = challenge.target?.toLowerCase() || '';
+            const goalMet = response.detections.some(obj => {
+              const name = obj.prediction.brickName?.toLowerCase() || '';
+              const color = obj.prediction.brickColorName?.toLowerCase() || '';
+              return name.includes(target) || color.includes(target) || (target === 'red' && color === 'red');
+            });
+
             if (goalMet && !saveSuccess) {
-               // Goal met!
+               console.log('🎯 CHALLENGE GOAL MET!');
                confetti({
-                 particleCount: 100,
-                 spread: 60,
-                 origin: { y: 0.6 }
+                 particleCount: 150,
+                 spread: 70,
+                 origin: { y: 0.6 },
+                 colors: ['#F97316', '#FB923C', '#FFFFFF']
                });
-               // Show success briefly then go to results
                setSaveSuccess(true);
-               setTimeout(() => setPhase('results'), 1500);
+               // Trigger XP event
+               import('../services/xpService').then(({ xpHelpers }) => {
+                 xpHelpers.challengeCompleted(challenge.id, 'daily');
+               });
+               setTimeout(() => setPhase('results'), 2000);
             }
           }
         }
@@ -208,8 +269,8 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
   }, []);
 
   const handleCapture = useCallback(async () => {
-    setPhase('scanning'); // Ensure we stay in scanning visual state
     setIsProcessing(true);
+
 
     const image = captureImage();
     if (image) {
@@ -217,9 +278,16 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
     }
 
     try {
-      const capturedBricks = [...detectedObjects];
+      const threshold = 0.4;
+      const capturedBricks = detectedObjects.filter(b => (b.prediction.identityConfidence || 0) >= threshold);
       setDetectedObjects(capturedBricks);
-      setSelectedBricks(new Set(capturedBricks.map(b => b.detectionId)));
+      
+      const initialSelection = new Set<string>();
+      capturedBricks.forEach(b => {
+        initialSelection.add(b.detectionId);
+      });
+      setSelectedBricks(initialSelection);
+
       setPhase('results');
       analytics.track('scan_captured', { brick_count: capturedBricks.length });
     } catch (err) {
@@ -250,9 +318,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
           try {
             brickImage = await cropBrickImage(
               capturedImage, 
-              bbox, 
-              lastResponse?.frameWidth || 1280, 
-              lastResponse?.frameHeight || 720
+              bbox
             );
           } catch (e) {
             console.warn('Crop failed:', e);
@@ -571,7 +637,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
                   {detectedObjects.map((obj, i) => {
                     const isSelected = selectedBricks.has(obj.detectionId);
                     const pred = obj.prediction;
-                    const partNum = pred.brickPartNum;
+                    const partNum = pred.brickPartNum && pred.brickPartNum !== 'Unknown' ? pred.brickPartNum : '3001';
                     const drawingImageUrl = `https://cdn.rebrickable.com/media/parts/elements/${partNum}.jpg`;
 
                     return (

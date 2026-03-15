@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Filter, Layers, Box, X, Palette, Lightbulb, Brain, ChevronRight, Sparkles } from 'lucide-react';
+import { Search, Filter, Layers, Box, X, Palette, Lightbulb, Brain, ChevronRight, Sparkles, Trash2, Trophy } from 'lucide-react';
 import { TopBar } from '../components/TopBar';
 import { ZoomableImageViewer } from '../components/ZoomableImageViewer';
 import { Screen, Brick } from '../types';
@@ -92,13 +92,37 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                        </div>
                     </div>
 
+                    {/* Global Ideas Generator */}
+                    <button
+                        onClick={() => onNavigate(Screen.IDEAS, { allBricks: realCollection })}
+                        className="w-full bg-orange-500 overflow-hidden rounded-[32px] mb-8 group active:scale-[0.98] transition-all shadow-xl shadow-orange-500/20"
+                    >
+                        <div className="relative p-6 flex items-center justify-between">
+                            {/* Decorative background lights */}
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 blur-3xl rounded-full -mr-16 -mt-16" />
+                            
+                            <div className="flex items-center gap-4 relative z-10">
+                                <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-white border border-white/30 shadow-lg">
+                                    <Sparkles className="w-6 h-6 animate-pulse" />
+                                </div>
+                                <div className="text-left">
+                                    <h3 className="font-black text-white text-lg leading-tight uppercase tracking-tight">AI Idea Generator</h3>
+                                    <p className="text-[10px] font-black text-white/70 uppercase tracking-widest mt-1">Based on your {realCollection.length} unique parts</p>
+                                </div>
+                            </div>
+                            <div className="bg-white text-orange-500 w-10 h-10 rounded-full flex items-center justify-center shadow-lg transform group-hover:translate-x-1 transition-transform">
+                                <ChevronRight className="w-6 h-6" />
+                            </div>
+                        </div>
+                    </button>
+
                     {/* Uncertain Bricks Alert */}
                     {uncertainBricks.length > 0 && (
                         <button
                             onClick={() => onNavigate(Screen.TRAINING)}
                             className="w-full bg-purple-500/10 border border-purple-500/20 rounded-[32px] p-6 mb-8 flex items-center justify-between group active:scale-[0.98] transition-all shadow-xl"
                         >
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-4 relative z-10">
                                 <div className="w-14 h-14 bg-purple-500/10 rounded-2xl flex items-center justify-center text-purple-400 border border-purple-500/20">
                                     <Brain className="w-6 h-6" />
                                 </div>
@@ -110,6 +134,22 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                             <ChevronRight className="w-6 h-6 text-purple-800 group-hover:translate-x-1 transition-transform" />
                         </button>
                     )}
+
+                    {/* Rewards - Coming Soon */}
+                    <div className="w-full bg-blue-500/5 border border-white/5 rounded-[32px] p-6 mb-8 flex items-center justify-between opacity-60">
+                        <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-400 border border-white/5">
+                                <Trophy className="w-6 h-6" />
+                            </div>
+                            <div className="text-left">
+                                <h3 className="font-black text-white/50 text-lg leading-tight italic">Vault Rewards</h3>
+                                <div className="mt-1 bg-white/5 px-2 py-0.5 rounded flex items-center gap-1.5 w-fit">
+                                    <div className="w-1 h-1 rounded-full bg-blue-400 animate-pulse" />
+                                    <span className="text-[8px] font-black text-blue-400 uppercase tracking-[0.2em]">Coming Soon</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     {/* Search & Tabs */}
                     <div className="relative mb-8">
@@ -186,6 +226,12 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                                 <img
                                     src={brick.image}
                                     alt={brick.name}
+                                    onError={(e) => {
+                                        const partNum = brick.partNumber || '3001';
+                                        e.currentTarget.src = `https://cdn.rebrickable.com/media/parts/ldraw/14/${partNum}.png`;
+                                        // If both fail, use a placeholder
+                                        e.currentTarget.onerror = null; // Prevent infinite loop
+                                    }}
                                     className="w-24 h-24 object-contain drop-shadow-[0_20px_20px_rgba(0,0,0,0.5)] group-hover:scale-110 transition-transform duration-500 relative z-10"
                                 />
                                 <div className="absolute top-0 right-0 bg-white text-slate-950 px-2.5 py-1 rounded-2xl shadow-lg text-[10px] font-black z-20 border-2 border-[#050A18]">
@@ -226,7 +272,16 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
 
                         <div className="flex flex-col items-center mb-10">
                             <div className="w-56 h-56 bg-white/[0.03] rounded-[48px] flex items-center justify-center mb-8 relative border border-white/5">
-                                <img src={selectedBrick.image} className="w-40 h-40 object-contain drop-shadow-[0_40px_40px_rgba(0,0,0,0.6)]" alt={selectedBrick.name} />
+                                <img 
+                                    src={selectedBrick.image} 
+                                    className="w-40 h-40 object-contain drop-shadow-[0_40px_40px_rgba(0,0,0,0.6)]" 
+                                    alt={selectedBrick.name} 
+                                    onError={(e) => {
+                                        const partNum = selectedBrick.partNumber || '3001';
+                                        e.currentTarget.src = `https://cdn.rebrickable.com/media/parts/ldraw/14/${partNum}.png`;
+                                        e.currentTarget.onerror = null;
+                                    }}
+                                />
                                 <div className="absolute -top-4 -right-4 bg-orange-500 w-12 h-12 rounded-full border-4 border-[#0A0F1E] flex items-center justify-center shadow-2xl">
                                    <Sparkles className="w-5 h-5 text-white" />
                                 </div>
@@ -251,13 +306,26 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
 
                         <div className="space-y-4">
                             <button 
-                                onClick={() => onNavigate(Screen.IDEAS, { brick: selectedBrick })}
+                                onClick={() => onNavigate(Screen.SCANNER)}
                                 className="w-full bg-white text-slate-950 font-black py-6 rounded-[32px] shadow-2xl active:scale-95 transition-all text-sm uppercase tracking-[0.2em] flex items-center justify-center gap-3"
                             >
-                                <Lightbulb className="w-6 h-6" />
-                                Generate Ideas
+                                <Box className="w-6 h-6" />
+                                Find More Like This
                             </button>
-                            <button className="w-full py-2 text-[10px] font-black text-slate-700 hover:text-slate-400 uppercase tracking-widest transition-colors mb-4">
+                            <button 
+                                onClick={() => {
+                                    const updated = realCollection.filter(b => b.id !== selectedBrick.id);
+                                    localStorage.setItem('hellobrick_collection', JSON.stringify({
+                                        bricks: updated,
+                                        lastUpdated: Date.now()
+                                    }));
+                                    setRealCollection(updated);
+                                    setSelectedBrick(null);
+                                    window.dispatchEvent(new CustomEvent('hellobrick:collection-updated'));
+                                }}
+                                className="w-full py-2 text-[10px] font-black text-red-500/70 hover:text-red-400 uppercase tracking-widest transition-colors mb-4 flex items-center justify-center gap-2"
+                            >
+                                <Trash2 className="w-3 h-3" />
                                 Remove from Vault
                             </button>
                         </div>

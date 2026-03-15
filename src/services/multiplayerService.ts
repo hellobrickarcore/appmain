@@ -103,18 +103,19 @@ class MultiplayerService {
     }
 
     /**
-     * Start the battle (host only)
+     * Start the match (host only)
      */
-    async startBattle(lobbyId: string): Promise<void> {
-        if (!supabase) return;
+    async startMatch(lobbyId: string) {
+        if (!supabase) throw new Error('Supabase not configured');
 
-        await supabase
+        const { error } = await supabase
             .from('game_lobby')
             .update({ status: 'started' })
             .eq('id', lobbyId);
-    }
 
-    /**
+        if (error) throw error;
+    }
+   /**
      * Cancel or leave a lobby
      */
     async leaveLobby(lobbyId: string, userId: string): Promise<void> {

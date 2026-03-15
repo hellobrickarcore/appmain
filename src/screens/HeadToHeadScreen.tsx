@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, QrCode, Scan, Swords, UserPlus, X, Sparkles, ShieldCheck } from 'lucide-react';
+import { ChevronLeft, QrCode, Scan, Handshake, UserPlus, X, Sparkles, ShieldCheck } from 'lucide-react';
 import { Screen } from '../types';
 
 interface HeadToHeadScreenProps {
@@ -57,7 +57,7 @@ export const HeadToHeadScreen: React.FC<HeadToHeadScreenProps> = ({ onNavigate }
                     <ChevronLeft className="w-5 h-5 text-slate-300" />
                 </button>
                 <div className="flex flex-col items-center">
-                   <h1 className="text-sm font-black uppercase tracking-[0.2em] text-white">Battle Mode</h1>
+                   <h1 className="text-sm font-black uppercase tracking-[0.2em] text-white">Challenge Mode</h1>
                    <div className="flex items-center gap-1.5 mt-0.5">
                       <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
                       <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Active League</span>
@@ -74,8 +74,8 @@ export const HeadToHeadScreen: React.FC<HeadToHeadScreenProps> = ({ onNavigate }
                             <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16" />
                             <ShieldCheck className="absolute -bottom-10 -right-10 w-48 h-48 text-white/5" />
 
-                            <h2 className="text-2xl font-black mb-2 tracking-tight">Arena Identity</h2>
-                            <p className="text-indigo-200 text-xs mb-8 font-bold uppercase tracking-widest opacity-80 italic">Scanning your opponent...</p>
+                            <h2 className="text-2xl font-black mb-2 tracking-tight">Match Profile</h2>
+                            <p className="text-indigo-200 text-xs mb-8 font-bold uppercase tracking-widest opacity-80 italic">Ready for a match...</p>
 
                             <div className="bg-white p-5 rounded-[40px] shadow-2xl mb-8 relative group">
                                 <div className="absolute inset-0 bg-blue-600/20 rounded-[40px] animate-pulse pointer-events-none" />
@@ -96,7 +96,7 @@ export const HeadToHeadScreen: React.FC<HeadToHeadScreenProps> = ({ onNavigate }
                             <div className="bg-white/5 border border-white/10 px-6 py-2.5 rounded-2xl flex items-center gap-3 backdrop-blur-xl">
                                <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest leading-none">ID:</p>
                                <span className="text-sm font-black text-white tracking-[0.1em]">
-                                 {localStorage.getItem('hellobrick_userId')?.substring(0, 8).toUpperCase() || 'GUEST-ARENA'}
+                                 {localStorage.getItem('hellobrick_userId')?.substring(0, 8).toUpperCase() || 'GUEST-USER'}
                                </span>
                             </div>
                         </div>
@@ -111,7 +111,7 @@ export const HeadToHeadScreen: React.FC<HeadToHeadScreenProps> = ({ onNavigate }
                             <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-slate-400 group-hover:text-white transition-colors">
                                <Scan className="w-6 h-6" />
                             </div>
-                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-white">Scan Enemy</span>
+                             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-white">Scan Opponent</span>
                         </button>
                         <button
                             onClick={() => setShowIdInput(true)}
@@ -127,7 +127,7 @@ export const HeadToHeadScreen: React.FC<HeadToHeadScreenProps> = ({ onNavigate }
                     {/* Battle History */}
                     <div className="w-full">
                         <div className="flex items-center justify-between mb-6 px-2">
-                           <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Recent Conflicts</h3>
+                            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Recent Matches</h3>
                            <Sparkles className="w-4 h-4 text-orange-500/50" />
                         </div>
                         
@@ -135,9 +135,9 @@ export const HeadToHeadScreen: React.FC<HeadToHeadScreenProps> = ({ onNavigate }
                             <div className="py-20 flex justify-center"><div className="w-6 h-6 border-2 border-white/5 border-t-indigo-500 rounded-full animate-spin" /></div>
                         ) : recentBattles.length === 0 ? (
                             <div className="text-center py-12 bg-white/5 rounded-[40px] border border-white/5">
-                                <Swords className="w-10 h-10 text-slate-800 mx-auto mb-4" />
-                                <p className="text-slate-500 text-sm font-black uppercase tracking-widest">No Battles Logged</p>
-                                <p className="text-[10px] text-slate-600 font-bold mt-2">Challenge someone in person to start!</p>
+                                <Handshake className="w-10 h-10 text-slate-800 mx-auto mb-4" />
+                                <p className="text-slate-500 text-sm font-black uppercase tracking-widest">No Matches Logged</p>
+                                <p className="text-[10px] text-slate-600 font-bold mt-2">Connect with a friend to start!</p>
                             </div>
                         ) : (
                             <div className="space-y-3 w-full">
@@ -170,13 +170,13 @@ export const HeadToHeadScreen: React.FC<HeadToHeadScreenProps> = ({ onNavigate }
                     <div className="absolute inset-0 bg-black/80 backdrop-blur-md pointer-events-auto" onClick={() => setShowIdInput(false)} />
                     <div className="bg-[#0A0F1E] border border-white/10 w-full max-w-md rounded-[48px] p-10 relative z-10 pointer-events-auto animate-in slide-in-from-bottom-10 shadow-3xl">
                         <div className="flex justify-between items-center mb-10">
-                            <h3 className="text-2xl font-black text-white tracking-tight">Direct Challenge</h3>
+                            <h3 className="text-2xl font-black text-white tracking-tight">Direct Match</h3>
                             <button onClick={() => setShowIdInput(false)} className="bg-white/5 p-3 rounded-full text-slate-500 hover:text-white transition-colors">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
 
-                        <p className="text-slate-500 font-medium text-sm mb-8 leading-relaxed">Enter an opponent's Arena ID to request an instant multiplayer match.</p>
+                        <p className="text-slate-500 font-medium text-sm mb-8 leading-relaxed">Enter an opponent's Arena ID to request a friendly multiplayer match.</p>
 
                         <div className="bg-black/40 border border-white/10 rounded-3xl p-1 mb-10 focus-within:border-indigo-500/50 transition-colors">
                            <input
@@ -192,7 +192,7 @@ export const HeadToHeadScreen: React.FC<HeadToHeadScreenProps> = ({ onNavigate }
                             onClick={handleConnect}
                             className="w-full bg-white text-slate-950 font-black py-6 rounded-[32px] shadow-2xl active:scale-95 transition-all text-sm uppercase tracking-[0.2em]"
                         >
-                            Connect Arena
+                            Connect Now
                         </button>
                     </div>
                 </div>

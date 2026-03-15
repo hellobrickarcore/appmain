@@ -8,9 +8,7 @@
  */
 
 import { FrameDetection, ScanFrameResponse, DETECTION_THRESHOLDS, DetectionOverlay, TrackedObject } from '../types/detection';
-import { Capacitor } from '@capacitor/core';
 import { CONFIG } from './configService';
-import { subscriptionService } from './subscriptionService';
 
 /**
  * Send a frame to the detection server and return canonical ScanFrameResponse.
@@ -39,7 +37,7 @@ export const detectBricks = async (
   } = options;
 
   const stage = mode === 'mass_capture' ? 'holistic_capture' : 'live_detection';
-  const targetDimension = mode === 'mass_capture' ? 960 : 416;
+  const targetDimension = mode === 'mass_capture' ? 1024 : 640; // Increased from 960/416 for better precision
 
   let responseText = '';
   let status = 0;

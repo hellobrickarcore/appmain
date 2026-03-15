@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Clock, CheckCircle2, Zap, Target, Shield, Sparkles, Swords, ChevronLeft } from 'lucide-react';
+import { Clock, CheckCircle2, Target, Shield, Sparkles, Handshake } from 'lucide-react';
 import { Screen, GameModeId, BattleResult } from '../types';
 import { xpHelpers } from '../services/xpService';
 import { detectFrame, OnnxDetection } from '../services/onnxDetectionService';
@@ -245,7 +245,7 @@ export const HeadToHeadBattleScreen: React.FC<HeadToHeadBattleScreenProps> = ({ 
                <div className="bg-[#050A18]/80 backdrop-blur-3xl px-8 py-5 rounded-[40px] border border-white/10 shadow-3xl flex flex-col items-center">
                    <div className="flex items-center gap-2 mb-2">
                        <Target className="w-3.5 h-3.5 text-rose-500" />
-                       <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Arena Objective</span>
+                       <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Match Goal</span>
                    </div>
                    <div className="flex items-center gap-6">
                        {modeId === 'TARGET' && <img src={MOCK_TARGETS['TARGET'].image} className="w-14 h-14 rounded-2xl border border-white/10 shadow-2xl" />}
@@ -269,7 +269,7 @@ export const HeadToHeadBattleScreen: React.FC<HeadToHeadBattleScreenProps> = ({ 
                            <h1 className="text-[100px] font-black text-white tracking-widest leading-none drop-shadow-3xl">{countdown}</h1>
                         </div>
                         <div className="flex flex-col items-center gap-4">
-                           <p className="text-slate-500 font-black uppercase tracking-[0.4em] text-sm">Initializing Arena</p>
+                           <p className="text-slate-500 font-black uppercase tracking-[0.4em] text-sm">Connecting...</p>
                            <div className="flex gap-2">
                               {[1, 2, 3].map(i => (
                                  <div key={i} className={`w-2 h-2 rounded-full ${i <= (3-countdown) ? 'bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]' : 'bg-white/10'}`} />
@@ -286,8 +286,8 @@ export const HeadToHeadBattleScreen: React.FC<HeadToHeadBattleScreenProps> = ({ 
                     
                     <div className="relative z-20 text-center max-w-sm px-10">
                         <div className="flex items-center justify-center gap-3 mb-10">
-                           <Swords className="w-6 h-6 text-rose-500" />
-                           <h2 className="text-sm font-black text-rose-500 uppercase tracking-[0.4em]">Mission Target</h2>
+                           <Handshake className="w-6 h-6 text-rose-500" />
+                           <h2 className="text-sm font-black text-rose-500 uppercase tracking-[0.4em]">Match Target</h2>
                         </div>
                         
                         <div className="w-72 h-72 bg-white rounded-[64px] flex items-center justify-center mb-10 shadow-[0_40px_100px_rgba(0,0,0,0.5)] border-[12px] border-white/5 overflow-hidden transition-all relative">

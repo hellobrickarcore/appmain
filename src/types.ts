@@ -60,6 +60,7 @@ export interface Brick {
   category: string;
   color?: string;
   dimensions?: string;
+  partNumber?: string;
   isUncertain?: boolean;
   labelDisplayStatus?: 'hidden' | 'tentative' | 'confirmed';
 }

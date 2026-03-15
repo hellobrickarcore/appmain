@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Trophy, RefreshCw, Meh, Frown, ChevronDown, ChevronUp, Clock, Target, Lightbulb, Sparkles, Swords, ChevronLeft } from 'lucide-react';
+import { Trophy, RefreshCw, Meh, Frown, ChevronDown, ChevronUp, Clock, Target, Lightbulb, Sparkles, Handshake, ShieldCheck } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Screen, BattleResult } from '../types';
 
@@ -65,7 +65,7 @@ export const HeadToHeadResultScreen: React.FC<HeadToHeadResultScreenProps> = ({ 
                         <Trophy className="w-16 h-16 text-slate-950" />
                     ) : (
                         <div className="relative">
-                           <Swords className="w-16 h-16 text-slate-700" />
+                           <Handshake className="w-16 h-16 text-slate-700" />
                            <div className="absolute inset-0 flex items-center justify-center opacity-30">
                               {result.playerScore === result.opponentScore ? <Meh className="w-10 h-10" /> : <Frown className="w-10 h-10" />}
                            </div>
@@ -80,10 +80,10 @@ export const HeadToHeadResultScreen: React.FC<HeadToHeadResultScreenProps> = ({ 
             </div>
 
             <h1 className="text-5xl font-black mb-3 tracking-tighter text-center uppercase">
-                {result.won ? 'Conquered' : result.playerScore === result.opponentScore ? 'Stalemate' : 'Neutralized'}
+                {result.won ? 'Victory' : result.playerScore === result.opponentScore ? 'Stalemate' : 'Defeat'}
             </h1>
             <p className="text-slate-500 font-black uppercase tracking-[0.3em] text-[10px] mb-12">
-                {result.won ? 'Dominance established in the Arena' : 'Regroup and re-initialize systems'}
+                {result.won ? 'Great job in the Arena!' : 'Good effort! Ready for another?'}
             </p>
 
             {/* Match Stats Table */}
@@ -111,11 +111,11 @@ export const HeadToHeadResultScreen: React.FC<HeadToHeadResultScreenProps> = ({ 
                     <div className="flex flex-col items-center gap-3">
                         <div className="w-16 h-16 rounded-2xl border-2 border-white/5 p-1 opacity-60">
                              <div className="w-full h-full rounded-xl overflow-hidden bg-slate-900 border border-white/10">
-                                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=enemy`} className="w-full h-full object-cover" />
+                                 <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=opponent`} className="w-full h-full object-cover" />
                              </div>
                         </div>
                         <div className="text-center">
-                           <span className="block text-[10px] font-black text-slate-500 uppercase tracking-widest">Enemy</span>
+                            <span className="block text-[10px] font-black text-slate-500 uppercase tracking-widest">Opponent</span>
                            <span className="block font-black text-3xl text-slate-400">{result.opponentScore}</span>
                         </div>
                     </div>
@@ -143,8 +143,8 @@ export const HeadToHeadResultScreen: React.FC<HeadToHeadResultScreenProps> = ({ 
             {showSummary && (
                 <div className="w-full max-w-sm bg-[#0A0F1E] rounded-[40px] p-8 mb-10 border border-white/10 animate-in slide-in-from-top-4 duration-500">
                     <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-8 flex items-center gap-2">
-                       <Shield className="w-3 h-3" />
-                       Battle Analytics
+                       <ShieldCheck className="w-3 h-3" />
+                       Match Analytics
                     </h3>
 
                     <div className="space-y-6">
@@ -177,7 +177,7 @@ export const HeadToHeadResultScreen: React.FC<HeadToHeadResultScreenProps> = ({ 
                                <Lightbulb className="w-5 h-5 text-yellow-500" />
                             </div>
                             <div>
-                                <p className="text-[9px] font-black text-yellow-500 uppercase tracking-widest mb-1">Combat Tip</p>
+                                <p className="text-[9px] font-black text-yellow-500 uppercase tracking-widest mb-1">Battle Tip</p>
                                 <p className="text-xs text-slate-400 font-medium leading-relaxed italic">
                                     {result.won 
                                         ? "Perfect focus maintained. Your detection latency is in the 98th percentile." 
@@ -205,7 +205,7 @@ export const HeadToHeadResultScreen: React.FC<HeadToHeadResultScreenProps> = ({ 
                     className="flex-[1.5] py-5 rounded-[32px] bg-white text-slate-950 font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3 group"
                 >
                     <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
-                    New Conflict
+                    New Match
                 </button>
             </div>
         </div>

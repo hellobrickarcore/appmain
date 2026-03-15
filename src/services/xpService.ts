@@ -80,6 +80,15 @@ export const getUserXP = async (userId: string): Promise<UserXP & { today_xp?: n
     const response = await fetch(`${CONFIG.XP_ME}?user_id=${userId}`);
 
     if (!response.ok) {
+      if (response.status === 404) {
+        console.warn('⚠️ XP endpoint not found (404), returning default stats');
+        return {
+          xp_total: 0,
+          level: 1,
+          streak_count: 0,
+          streak_last_date: null
+        };
+      }
       const errorText = await response.text();
       console.error('❌ Failed to get user XP:', {
         status: response.status,

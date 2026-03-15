@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Flame, ScanLine, Hammer, BrainCircuit, ChevronRight, Trophy, Gift, Search, Swords, CheckCircle2, ChevronLeft, Sparkles } from 'lucide-react';
+import { Flame, ScanLine, Hammer, BrainCircuit, ChevronRight, Trophy, Gift, Search, Handshake, CheckCircle2, ChevronLeft, Sparkles } from 'lucide-react';
 import { Screen, Quest } from '../types';
 import { getUserXP, getUserId } from '../services/xpService';
 import { getAvailableQuests } from '../services/gamificationService';
@@ -77,9 +77,9 @@ export const QuestsScreen: React.FC<QuestsScreenProps> = ({ onNavigate }) => {
             className="flex-1 bg-gradient-to-br from-indigo-600 to-blue-700 p-5 rounded-[32px] flex flex-col items-center gap-3 active:scale-95 transition-all shadow-xl shadow-indigo-500/20"
           >
             <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-white">
-               <Swords className="w-6 h-6" />
+               <Handshake className="w-6 h-6" />
             </div>
-            <span className="text-[10px] font-black text-white uppercase tracking-widest">Battle</span>
+            <span className="text-[10px] font-black text-white uppercase tracking-widest">Connect</span>
           </button>
         </div>
 
