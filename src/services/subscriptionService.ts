@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
-import { Purchases, LOG_LEVEL, CustomerInfo, PurchasesOffering, PurchasesPackage } from '@revenuecat/purchases-capacitor';
+import { Purchases, CustomerInfo, PurchasesOffering, PurchasesPackage } from '@revenuecat/purchases-capacitor';
+
 import { upsertSubscription } from './supabaseService';
 
 // RevenueCat API Keys from environment variables
@@ -54,14 +55,16 @@ class SubscriptionService {
       }
 
       this.isInitialized = true;
-      console.log('✅ RevenueCat initialized successfully');
+      console.log('✅ RevenueCat initialized successfully on', platform);
 
       // Load customer info
       await this.refreshCustomerInfo();
     } catch (error) {
       console.error('❌ Failed to initialize RevenueCat:', error);
+      this.isInitialized = false;
       throw error;
     }
+
   }
 
   /**
@@ -114,13 +117,19 @@ class SubscriptionService {
         await this.initialize(this.currentUserId || undefined);
       }
 
-      console.log('Fetching offerings with log level:', LOG_LEVEL.DEBUG);
+      console.log('Fetching offerings...');
       const offerings = await Purchases.getOfferings();
+      if (!offerings.current) {
+        console.warn('⚠️ No current offering found in RevenueCat dashboard.');
+      } else {
+        console.log('✅ Offerings fetched successfully:', offerings.current.availablePackages.length, 'packages found');
+      }
       return offerings.current;
     } catch (error) {
       console.error('❌ Failed to get offerings:', error);
       return null;
     }
+
   }
 
   /**

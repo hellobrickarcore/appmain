@@ -22,19 +22,18 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
         await subscriptionService.purchasePackage(pkg);
         onNavigate(Screen.HOME);
       } else {
-        await new Promise(r => setTimeout(r, 1500));
-        localStorage.setItem('hellobrick_pro_status', 'true');
-        localStorage.setItem('hellobrick_onboarding_finished', 'true');
-        onNavigate(Screen.HOME);
+        alert('No subscription packages found. If you are on a simulator, check your internet connection and RevenueCat configuration.');
       }
     } catch (err: any) {
+      console.error('Subscription error:', err);
       if (err.message !== 'Purchase cancelled by user') {
-        alert('Subscription failed. Please try again.');
+        alert(`Subscription failed: ${err.message || 'Unknown error'}`);
       }
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="fixed inset-0 bg-white text-[#1A1A1A] z-50 flex flex-col font-sans overflow-hidden">

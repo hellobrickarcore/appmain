@@ -1,7 +1,8 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.hellobrick.app.mobile',
+  appId: 'com.hellobrick.app',
+
   appName: 'HelloBrick',
   webDir: 'dist',
   server: {
