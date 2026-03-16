@@ -26,7 +26,7 @@ export const getUserProgress = async (): Promise<UserProgress> => {
           xp: serverXP.xp_total,
           level: serverXP.level,
           dailyStreak: serverXP.streak_count,
-          challengesCompleted: 0, // TODO: Track separately
+          challengesCompleted: 0, 
           brickTypesFound: new Set(),
           badges: [],
           dailyGoals: getDefaultDailyGoals()

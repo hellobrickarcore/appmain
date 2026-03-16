@@ -22,9 +22,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
         await subscriptionService.purchasePackage(pkg);
         onNavigate(true);
       } else {
-        // Simulator/Mock fallback for layout testing
-        console.warn('RevenueCat failed to fetch packages. Using mock/bypass for simulator test.');
-        onNavigate(true);
+        alert('Subscription packages are currently unavailable. Please try again later.');
       }
     } catch (err: any) {
       console.error('Subscription error:', err);

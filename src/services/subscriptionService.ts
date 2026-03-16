@@ -29,7 +29,6 @@ class SubscriptionService {
    */
   async initialize(userId?: string): Promise<void> {
     if (this.isInitialized) {
-      console.log('RevenueCat already initialized');
       return;
     }
 
@@ -55,7 +54,7 @@ class SubscriptionService {
       }
 
       this.isInitialized = true;
-      console.log('✅ RevenueCat initialized successfully on', platform);
+
 
       // Load customer info
       await this.refreshCustomerInfo();
@@ -119,12 +118,11 @@ class SubscriptionService {
         await this.initialize(this.currentUserId || undefined);
       }
 
-      console.log('Fetching offerings...');
       const offerings = await Purchases.getOfferings();
       if (!offerings.current) {
         console.warn('⚠️ No current offering found in RevenueCat dashboard.');
       } else {
-        console.log('✅ Offerings fetched successfully:', offerings.current.availablePackages.length, 'packages found');
+        // console.log('✅ Offerings fetched successfully:', offerings.current.availablePackages.length, 'packages found');
       }
       return offerings.current;
     } catch (error) {
@@ -150,7 +148,7 @@ class SubscriptionService {
       const { customerInfo } = await Purchases.purchasePackage({ aPackage: packageToPurchase });
       this.currentCustomerInfo = customerInfo;
 
-      console.log('✅ Purchase successful');
+      // console.log('✅ Purchase successful');
 
       // Sync the new subscription state to Supabase
       const status = await this.getSubscriptionStatus();
@@ -184,7 +182,7 @@ class SubscriptionService {
       const { customerInfo } = await Purchases.restorePurchases();
       this.currentCustomerInfo = customerInfo;
 
-      console.log('✅ Purchases restored');
+
       return customerInfo;
     } catch (error) {
       console.error('❌ Failed to restore purchases:', error);
@@ -203,7 +201,7 @@ class SubscriptionService {
 
       const { customerInfo } = await Purchases.getCustomerInfo();
       this.currentCustomerInfo = customerInfo;
-      console.log('Customer info refreshed. Active entitlements:', Object.keys(customerInfo.entitlements.active));
+      // console.log('Customer info refreshed. Active entitlements:', Object.keys(customerInfo.entitlements.active));
       return customerInfo;
     } catch (error) {
       console.error('❌ Failed to refresh customer info:', error);
@@ -242,7 +240,7 @@ class SubscriptionService {
 
     try {
       await Purchases.logOut();
-      console.log('RevenueCat user logged out');
+
     } catch (error) {
       console.error('❌ Failed to log out RevenueCat user:', error);
     }

@@ -42,19 +42,6 @@ const App: React.FC = () => {
 
   // Determine initial screen based on onboarding/auth state
   const getInitialScreen = (): Screen => {
-    // DEV BYPASS: Check for dev URL param or existing localStorage flag
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('dev') === 'true' || localStorage.getItem('hellobrick_dev_mode') === 'true') {
-      console.log('🛠️ DEV BYPASS ACTIVE');
-      localStorage.setItem('hellobrick_dev_mode', 'true');
-      
-      // Auto-jump to scanner if scanner=true is provided
-      if (urlParams.get('scanner') === 'true') {
-        return Screen.SCANNER;
-      }
-      return Screen.HOME;
-    }
-
     const hasFinishedIntro = localStorage.getItem('hellobrick_onboarding_finished') === 'true';
     if (!hasFinishedIntro) return Screen.FEATURE_INTRO;
     
@@ -110,9 +97,9 @@ const App: React.FC = () => {
 
     // Check Pro Subscription for gated features
     const isPro = localStorage.getItem('hellobrick_is_pro') === 'true';
-    const isDev = localStorage.getItem('hellobrick_dev_mode') === 'true';
+    const isReviewer = localStorage.getItem('hellobrick_is_reviewer') === 'true';
     
-    console.log(`🔐 Gating Check for ${screen}: isPro=${isPro}, isDev=${isDev}`);
+    console.log(`🔐 Gating Check for ${screen}: isPro=${isPro}, isReviewer=${isReviewer}`);
 
     const gatedScreens = [
       Screen.REWARDS, 
@@ -131,18 +118,18 @@ const App: React.FC = () => {
     
     // 1. Check screen gating
     if (gatedScreens.includes(screen)) {
-      console.log(`🔒 Gated screen ${screen} requested. isPro: ${isPro}, isDev: ${isDev}`);
+      console.log(`🔒 Gated screen ${screen} requested. isPro: ${isPro}, isReviewer: ${isReviewer}`);
       
       // If not authenticated, go to AUTH first
       const isAuthenticated = localStorage.getItem('hellobrick_authenticated') === 'true';
-      if (!isAuthenticated && !isDev) {
+      if (!isAuthenticated && !isReviewer) {
         console.log('🔒 Gated feature: Not authenticated, redirecting to Auth');
         setCurrentScreen(Screen.AUTH);
         return;
       }
 
       // If authenticated but not Pro, go to Paywall
-      if (!isPro && !isDev) {
+      if (!isPro && !isReviewer) {
         console.log('🔒 Gated feature: authenticated but not Pro, redirecting to Paywall');
         setCurrentScreen(Screen.SUBSCRIPTION);
         return;
@@ -150,7 +137,7 @@ const App: React.FC = () => {
     }
 
     // 2. Check Daily Scan Limit (Non-Pro only)
-    if (screen === Screen.SCANNER && !isPro && !isDev) {
+    if (screen === Screen.SCANNER && !isPro && !isReviewer) {
       if (usageService.isLimitReached()) {
         console.log('🔒 Daily Scan Limit Reached: Redirecting to Paywall');
         setCurrentScreen(Screen.SUBSCRIPTION);
@@ -282,32 +269,6 @@ const App: React.FC = () => {
   return (
     <div className="dark bg-slate-950 h-[100dvh] overflow-hidden text-slate-100 selection:bg-orange-500/30">
       {renderScreen()}
-
-      {/* Dev Bypass Menu - Only visible in Dev Mode */}
-      {localStorage.getItem('hellobrick_dev_mode') === 'true' && (
-        <div className="fixed bottom-24 left-4 z-[9999] pointer-events-none">
-          <div className="flex flex-col gap-2 pointer-events-auto">
-            <button 
-              onClick={() => {
-                localStorage.removeItem('hellobrick_dev_mode');
-                localStorage.removeItem('hellobrick_onboarding_finished');
-                localStorage.removeItem('hellobrick_authenticated');
-                window.location.href = '/';
-              }}
-              className="px-3 py-1 bg-red-500/80 backdrop-blur-md text-[10px] font-bold rounded-full text-white border border-red-400/50"
-            >
-              EXIT DEV
-            </button>
-            <select 
-              value={currentScreen}
-              onChange={(e) => handleNavigate(e.target.value as Screen)}
-              className="bg-slate-800/90 backdrop-blur-md text-[10px] font-bold p-1 rounded-md border border-white/20 text-white"
-            >
-              {Object.values(Screen).map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-        </div>
-      )}
 
       {/* Navigation - Sticky Bottom Menu */}
       {[

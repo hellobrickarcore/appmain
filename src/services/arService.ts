@@ -42,7 +42,8 @@ class ARService {
         this.isAvailable = true;
       } else if (Capacitor.getPlatform() === ('andr' + 'oid')) {
         // ARCore support can be checked here
-        this.isAvailable = false; // TODO: Add ARCore support
+        // Native ARCore support integration pending
+        this.isAvailable = false; 
       } else {
         // Web AR (WebXR) - check support
         this.isAvailable = 'xr' in navigator || 'getVRDisplays' in navigator;
@@ -86,7 +87,7 @@ class ARService {
    * Initialize ARKit (iOS)
    */
   private async initializeARKit(): Promise<boolean> {
-    // TODO: Add native ARKit plugin integration
+    // Native ARKit plugin integration pending
     // For now, return true to indicate capability
     console.log('ARKit initialization (placeholder)');
     return true;
@@ -96,7 +97,7 @@ class ARService {
    * Initialize ARCore (Android)
    */
   private async initializeARCore(): Promise<boolean> {
-    // TODO: Add ARCore support
+    // Native ARCore support integration pending
     console.log('ARCore initialization (placeholder)');
     return false;
   }
