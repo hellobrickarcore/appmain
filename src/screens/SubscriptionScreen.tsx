@@ -77,6 +77,8 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
       setShowSheet(false);
     }
   };
+  
+  const handleRestore = async () => {
     setLoading(true);
     try {
       await subscriptionService.restorePurchases();
