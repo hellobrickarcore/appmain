@@ -1,82 +1,44 @@
-# Dependencies
+# HelloBrick Master Production Gitignore
+
+# 1. Broad Ignores (Dependencies & Bloat)
 node_modules/
+**/node_modules/
 .pnp
 .pnp.js
+.DS_Store
+Thumbs.db
+*.log
+.env*
+.capacitor/
+*.zip
+*.tar
+*.gz
 
-# Testing
-coverage/
+# 2. Large Binary Models & Data (Too big for GitHub)
+server/models/
+server/data/
+server/runs/
+**/*.pt
+**/*.onnx
+**/*.pth
+**/*.weights
+**/*.h5
 
-# Production
-dist/
-build/
-.next/
+# 3. Native Build Artifacts (Reproducible)
+ios/Pods/
+ios/build/
+ios/DerivedData/
+android/.gradle/
+android/app/build/
+android/build/
+*.xcresult
+
+# 4. Web Build Artifacts (Reproducible/Generated)
+# We might want to keep 'dist' if the user specifically wants the 'build'
+# But usually .next is too large.
 web/.next/
 **/.next/
 out/
 
-# Large Models and Datasets
-server/models/
-server/data/
-server/**/*.pt
-server/**/*.onnx
-models/
-onnxtest/
-public/models/*.onnx
-public/models/*.pt
-public/models/*.pth
-!public/models/.gitkeep
-
-# Bulky Binaries & Media
-*.zip
-*.ttf
-*.png
-*.jpg
-*.jpeg
-*.webp
-*.zip
-*.tar
-*.gz
-icon-source-1024.png
-
-# Environment Variables - NEVER COMMIT THESE!
-.env
-.env.local
-.env*.local
-.env.development.local
-.env.test.local
-.env.production.local
-*.env
-*.env.local
-**/.env
-**/.env.local
-
-# Logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-auth.log
-dataset.log
-detection.log
-xp.log
-ts_errors*.log
-vite_*.log
-
-# Editor
-.vscode/
-.idea/
-.cursor/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Capacitor
-ios/
-android/
-.capacitor/
+# 5. Whitelist everything else
+# (Git includes by default unless ignored above)
