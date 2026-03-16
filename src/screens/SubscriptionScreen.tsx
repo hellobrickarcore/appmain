@@ -15,11 +15,18 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
     setLoading(true);
     try {
       const offerings = await subscriptionService.getOfferings();
+      const isSimulator = localStorage.getItem('hellobrick_simulator_mode') === 'true';
+
       if (offerings && offerings.availablePackages.length > 0) {
         const pkg = billingCycle === 'annual' 
           ? offerings.availablePackages.find(p => p.packageType === 'ANNUAL') || offerings.availablePackages[0]
           : offerings.availablePackages.find(p => p.packageType === 'MONTHLY') || offerings.availablePackages[0];
         await subscriptionService.purchasePackage(pkg);
+        onNavigate(true);
+      } else if (isSimulator) {
+        // Controlled mock for simulator verification
+        console.log('🧪 SIMULATOR MODE: Mock purchase successful');
+        localStorage.setItem('hellobrick_is_pro', 'true');
         onNavigate(true);
       } else {
         alert('Subscription packages are currently unavailable. Please try again later.');

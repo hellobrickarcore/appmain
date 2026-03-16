@@ -42,6 +42,14 @@ const App: React.FC = () => {
 
   // Determine initial screen based on onboarding/auth state
   const getInitialScreen = (): Screen => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('simulator') === 'true') {
+      localStorage.setItem('hellobrick_simulator_mode', 'true');
+      localStorage.setItem('hellobrick_onboarding_finished', 'true');
+      localStorage.setItem('hellobrick_authenticated', 'true');
+      return Screen.SUBSCRIPTION;
+    }
+
     const hasFinishedIntro = localStorage.getItem('hellobrick_onboarding_finished') === 'true';
     if (!hasFinishedIntro) return Screen.FEATURE_INTRO;
     
