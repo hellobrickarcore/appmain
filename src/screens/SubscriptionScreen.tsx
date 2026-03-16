@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Lock, Star, Bell, Loader2 } from 'lucide-react';
 import { subscriptionService } from '../services/subscriptionService';
 import { Logo } from '../components/Logo';
+import confetti from 'canvas-confetti';
 
 interface SubscriptionScreenProps {
   onNavigate: (success?: boolean) => void;
@@ -18,10 +19,28 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
                          new URLSearchParams(window.location.search).get('simulator') === 'true';
 
       if (isSimulator) {
-        // High-priority bypass for testing
-        console.log('🧪 SIMULATOR MODE: Mock purchase successful');
+        // High-fidelity simulation for testing
+        console.log('🧪 SIMULATOR MODE: Processing mock purchase...');
+        
+        // Wait 1.5s to simulate "Contacting Store..."
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        console.log('✅ SIMULATOR MODE: Mock purchase successful');
+        
+        // Trigger celebration
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#FFD600', '#2563EB', '#FFFFFF']
+        });
+
         localStorage.setItem('hellobrick_simulator_mode', 'true');
         localStorage.setItem('hellobrick_is_pro', 'true');
+        
+        // Brief delay to enjoy the success
+        await new Promise(resolve => setTimeout(resolve, 1200));
+        
         onNavigate(true);
         return;
       }
