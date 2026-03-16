@@ -24,6 +24,7 @@ export const EmailAuthScreen: React.FC<EmailAuthScreenProps> = ({ onNavigate, mo
       if (mode === 'signup') {
         if (password !== confirmPassword) {
           alert("Passwords don't match");
+          setLoading(false);
           return;
         }
         await signUpWithEmail(email, password);
@@ -45,25 +46,25 @@ export const EmailAuthScreen: React.FC<EmailAuthScreenProps> = ({ onNavigate, mo
   };
 
   return (
-    <div className="fixed inset-0 bg-[#0A1229] flex flex-col font-sans">
+    <div className="flex flex-col h-full bg-[#0A1229] font-sans overflow-hidden">
       {/* Top Banner - Yellow */}
-      <div className="h-[40vh] bg-[#FFD600] flex flex-col items-center justify-center relative overflow-hidden">
+      <div className="h-[40vh] bg-[#FFD600] flex flex-col items-center justify-center relative overflow-hidden shrink-0">
         <button 
           onClick={() => onNavigate(Screen.AUTH)}
-          className="absolute top-12 left-6 w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white"
+          className="absolute top-[max(env(safe-area-inset-top),1.5rem)] left-6 w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white active:scale-90 transition-transform z-20"
         >
           <ChevronLeft className="w-6 h-6" />
         </button>
 
         {/* Mascot Rect */}
-        <div className="w-40 h-40 bg-[#FF7A30] rounded-[32px] flex items-center justify-center shadow-2xl relative z-10 p-1 border-4 border-white/20">
+        <div className="w-32 h-32 bg-[#FF7A30] rounded-[32px] flex items-center justify-center shadow-2xl relative z-10 p-1 border-4 border-white/20">
             <div className="flex gap-2">
                 <div className="w-2.5 h-2.5 bg-black rounded-full" />
                 <div className="w-2.5 h-2.5 bg-black rounded-full" />
             </div>
         </div>
 
-        <div className="mt-4 text-center z-10">
+        <div className="mt-4 text-center z-10 px-6">
           <h1 className="text-3xl font-black text-slate-900 leading-tight">
             {mode === 'signup' ? 'Create Account' : 'Welcome Back'}
           </h1>
@@ -75,11 +76,10 @@ export const EmailAuthScreen: React.FC<EmailAuthScreenProps> = ({ onNavigate, mo
         {/* Floating clouds/stars */}
         <div className="absolute top-[20%] right-[-10px] w-12 h-12 bg-white/40 blur-lg rounded-full" />
         <div className="absolute top-[30%] left-[-20px] w-16 h-16 bg-white/20 blur-md rounded-full" />
-        <div className="absolute bottom-[10%] right-[10%] text-white text-3xl opacity-30">★</div>
       </div>
 
-      {/* Form Section */}
-      <div className="flex-1 px-8 pt-10 flex flex-col">
+      {/* Form Section - Scrollable */}
+      <div className="flex-1 px-8 pt-10 pb-[max(env(safe-area-inset-bottom),2rem)] overflow-y-auto no-scrollbar overscroll-contain">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="relative">
             <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />

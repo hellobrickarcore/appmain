@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Flame, ScanLine, Hammer, BrainCircuit, ChevronRight, Trophy, Gift, Search, Handshake, CheckCircle2, ChevronLeft, Sparkles } from 'lucide-react';
+import { Flame, ScanLine, BrainCircuit, Trophy, Gift, Handshake, ChevronLeft, Sparkles } from 'lucide-react';
 import { Screen, Quest } from '../types';
 import { getUserXP, getUserId } from '../services/xpService';
 import { getAvailableQuests } from '../services/gamificationService';
@@ -31,27 +31,27 @@ export const QuestsScreen: React.FC<QuestsScreenProps> = ({ onNavigate }) => {
   }, []);
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#050A18] text-white font-sans overflow-hidden">
+    <div className="flex flex-col h-full bg-[#050A18] text-white font-sans overflow-hidden">
       <div className="absolute top-0 left-0 right-0 h-[600px] bg-gradient-to-b from-purple-600/10 via-transparent to-transparent pointer-events-none" />
 
-      {/* Header */}
-      <div className="relative z-50 px-6 pt-[max(env(safe-area-inset-top),3.5rem)] pb-4 flex items-center justify-between sticky top-0 bg-[#050A18]/80 backdrop-blur-xl border-b border-white/5">
+      {/* Header - standardized safe area */}
+      <div className="relative z-50 px-6 pt-[max(env(safe-area-inset-top),1.5rem)] pb-4 flex items-center justify-between sticky top-0 bg-[#050A18]/80 backdrop-blur-xl border-b border-white/5">
         <button
           onClick={() => onNavigate(Screen.HOME)}
-          className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10"
+          className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10 active:scale-95 transition-transform"
         >
           <ChevronLeft className="w-5 h-5 text-slate-300" />
         </button>
-        <h1 className="text-sm font-black uppercase tracking-[0.2em] text-white">Quests</h1>
-        <div className="flex items-center gap-2">
-           <div className="bg-orange-500/10 border border-orange-500/20 px-3 py-1.5 rounded-2xl flex items-center gap-2">
-              <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />
-              <span className="text-[10px] font-black text-orange-500">{streak}</span>
-           </div>
-        </div>
+         <h1 className="text-sm font-black text-white">QUESTS</h1>
+         <div className="flex items-center gap-2">
+            <div className="bg-orange-500/10 border border-orange-500/20 px-3 py-1.5 rounded-2xl flex items-center gap-2">
+               <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />
+               <span className="text-[11px] font-black text-orange-500">{streak}</span>
+            </div>
+         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar pb-32 pt-8">
+      <div className="flex-1 overflow-y-auto no-scrollbar pb-[max(env(safe-area-inset-bottom),120px)] pt-8 overscroll-contain">
         {/* Quick Nav Hub */}
         <div className="px-6 flex gap-3 mb-10">
           <button

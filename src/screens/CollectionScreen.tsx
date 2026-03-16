@@ -1,9 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Filter, Layers, Box, X, Palette, Lightbulb, Brain, ChevronRight, Sparkles, Trash2, Trophy } from 'lucide-react';
+import { Search, Filter, Box, X, Palette, Brain, ChevronRight, Sparkles, Trash2, Trophy } from 'lucide-react';
 import { TopBar } from '../components/TopBar';
 import { ZoomableImageViewer } from '../components/ZoomableImageViewer';
 import { Screen, Brick } from '../types';
-import { CATEGORIES } from '../constants';
 
 interface CollectionScreenProps {
     onNavigate: (screen: Screen, params?: any) => void;
@@ -12,7 +11,7 @@ interface CollectionScreenProps {
 type SortOption = 'name' | 'count' | 'category';
 
 export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }) => {
-    const [activeCategory, setActiveCategory] = useState('All');
+    const [activeCategory] = useState('All');
     const [search, setSearch] = useState('');
     const [showFilters, setShowFilters] = useState(false);
     const [sortBy, setSortBy] = useState<SortOption>('count');
@@ -72,12 +71,12 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
     }, [realCollection]);
 
     return (
-        <div className="flex flex-col min-h-screen bg-[#050A18] font-sans relative text-white overflow-hidden">
+        <div className="flex flex-col min-h-screen bg-[#050A18] font-sans text-white relative">
             <div className="fixed top-0 left-0 right-0 h-96 bg-gradient-to-b from-blue-600/5 via-transparent to-transparent pointer-events-none z-0" />
 
-            <main className="relative z-10 flex flex-col h-full overflow-y-auto no-scrollbar pb-32">
-                <TopBar currentScreen={Screen.COLLECTION} onNavigate={onNavigate} />
+            <TopBar currentScreen={Screen.COLLECTION} onNavigate={onNavigate} />
 
+            <main className="flex-1 px-6 pt-8 pb-40 relative z-10">
                 <div className="px-6 pt-8 pb-2">
                     <div className="flex items-center justify-between mb-8">
                        <h1 className="text-4xl font-black text-white tracking-tight">Vault</h1>
@@ -106,7 +105,7 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                                     <Sparkles className="w-6 h-6 animate-pulse" />
                                 </div>
                                 <div className="text-left">
-                                    <h3 className="font-black text-white text-lg leading-tight uppercase tracking-tight">AI Idea Generator</h3>
+                                    <h3 className="font-black text-white text-lg leading-tight uppercase tracking-tight">Idea Generator</h3>
                                     <p className="text-[10px] font-black text-white/70 uppercase tracking-widest mt-1">Based on your {realCollection.length} unique parts</p>
                                 </div>
                             </div>
@@ -135,18 +134,17 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                         </button>
                     )}
 
-                    {/* Rewards - Coming Soon */}
-                    <div className="w-full bg-blue-500/5 border border-white/5 rounded-[32px] p-6 mb-8 flex items-center justify-between opacity-60">
+                    {/* Collection Stats (Alternative to Coming Soon block) */}
+                    <div className="w-full bg-orange-500/5 border border-orange-500/10 rounded-[32px] p-6 mb-8 flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-400 border border-white/5">
+                            <div className="w-14 h-14 bg-orange-500/10 rounded-2xl flex items-center justify-center text-orange-400 border border-orange-500/20">
                                 <Trophy className="w-6 h-6" />
                             </div>
                             <div className="text-left">
-                                <h3 className="font-black text-white/50 text-lg leading-tight italic">Vault Rewards</h3>
-                                <div className="mt-1 bg-white/5 px-2 py-0.5 rounded flex items-center gap-1.5 w-fit">
-                                    <div className="w-1 h-1 rounded-full bg-blue-400 animate-pulse" />
-                                    <span className="text-[8px] font-black text-blue-400 uppercase tracking-[0.2em]">Coming Soon</span>
-                                </div>
+                                <h3 className="font-black text-white text-lg leading-tight">Master Builder</h3>
+                                <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest mt-1">
+                                    {realCollection.length} Bricks in your Vault
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -286,17 +284,63 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                                    <Sparkles className="w-5 h-5 text-white" />
                                 </div>
                             </div>
-                            <h2 className="text-3xl font-black text-white text-center leading-tight mb-3">{selectedBrick.name}</h2>
-                            <div className="flex gap-2">
-                                <span className="px-4 py-1.5 bg-white/5 rounded-full text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] border border-white/5">{selectedBrick.category}</span>
-                                <span className="px-4 py-1.5 bg-white/5 rounded-full text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] border border-white/5">{selectedBrick.dimensions}</span>
+                            <div className="w-full text-center px-4">
+                                <input 
+                                    type="text"
+                                    value={selectedBrick.name}
+                                    onChange={(e) => {
+                                        const newName = e.target.value;
+                                        const updated = realCollection.map(b => 
+                                            b.id === selectedBrick.id ? { ...b, name: newName } : b
+                                        );
+                                        setRealCollection(updated);
+                                        setSelectedBrick({ ...selectedBrick, name: newName });
+                                        localStorage.setItem('hellobrick_collection', JSON.stringify({ bricks: updated, lastUpdated: Date.now() }));
+                                    }}
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-center text-2xl font-black text-white focus:border-orange-500 transition-all outline-none mb-2"
+                                />
+                                <div className="flex justify-center gap-2">
+                                    <span className="px-4 py-1.5 bg-white/5 rounded-full text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] border border-white/5">{selectedBrick.category}</span>
+                                    <span className="px-4 py-1.5 bg-white/5 rounded-full text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] border border-white/5">{selectedBrick.dimensions}</span>
+                                </div>
                             </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 mb-10">
-                            <div className="bg-orange-500 text-white p-6 rounded-[32px] text-center shadow-xl shadow-orange-500/20">
-                                <p className="text-3xl font-black leading-none mb-1">{selectedBrick.count}</p>
-                                <p className="text-[10px] font-black uppercase tracking-widest opacity-80">Owned</p>
+                            <div className="bg-orange-500 text-white p-6 rounded-[32px] text-center shadow-xl shadow-orange-500/20 relative group overflow-hidden">
+                                <div className="absolute inset-y-0 right-0 w-12 flex flex-col items-center justify-center gap-2 bg-black/10">
+                                    <button 
+                                        onClick={() => {
+                                            const updated = realCollection.map(b => 
+                                                b.id === selectedBrick.id ? { ...b, count: b.count + 1 } : b
+                                            );
+                                            setRealCollection(updated);
+                                            setSelectedBrick({ ...selectedBrick, count: selectedBrick.count + 1 });
+                                            localStorage.setItem('hellobrick_collection', JSON.stringify({ bricks: updated, lastUpdated: Date.now() }));
+                                        }}
+                                        className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-bold"
+                                    >
+                                        +
+                                    </button>
+                                    <button 
+                                        onClick={() => {
+                                            if (selectedBrick.count <= 1) return;
+                                            const updated = realCollection.map(b => 
+                                                b.id === selectedBrick.id ? { ...b, count: b.count - 1 } : b
+                                            );
+                                            setRealCollection(updated);
+                                            setSelectedBrick({ ...selectedBrick, count: selectedBrick.count - 1 });
+                                            localStorage.setItem('hellobrick_collection', JSON.stringify({ bricks: updated, lastUpdated: Date.now() }));
+                                        }}
+                                        className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-bold"
+                                    >
+                                        -
+                                    </button>
+                                </div>
+                                <div className="pr-8">
+                                    <p className="text-3xl font-black leading-none mb-1">{selectedBrick.count}</p>
+                                    <p className="text-[10px] font-black uppercase tracking-widest opacity-80">Quantity</p>
+                                </div>
                             </div>
                             <div className="bg-white/5 border border-white/10 p-6 rounded-[32px] text-center flex flex-col items-center justify-center">
                                 <Palette className="w-6 h-6 text-slate-500 mb-2" />

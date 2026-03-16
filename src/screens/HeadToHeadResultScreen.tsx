@@ -178,7 +178,7 @@ export const HeadToHeadResultScreen: React.FC<HeadToHeadResultScreenProps> = ({ 
                             </div>
                             <div>
                                 <p className="text-[9px] font-black text-yellow-500 uppercase tracking-widest mb-1">Battle Tip</p>
-                                <p className="text-xs text-slate-400 font-medium leading-relaxed italic">
+                                <p className="text-xs text-slate-400 font-medium leading-relaxed">
                                     {result.won 
                                         ? "Perfect focus maintained. Your detection latency is in the 98th percentile." 
                                         : "Enhance environment luminance to prioritize faster object confirmation."}

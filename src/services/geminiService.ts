@@ -1,18 +1,4 @@
-import { GoogleGenAI } from '@google/genai';
-import { CustomPart } from '../types';
-
-// Get API key from environment - Vite exposes VITE_ prefixed vars
-const getApiKey = () => {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-  if (typeof window !== 'undefined' && !apiKey) {
-    console.warn('❌ Gemini API Key NOT found in environment! Check VITE_GEMINI_API_KEY');
-  }
-  return apiKey;
-};
-
-const apiKey = getApiKey();
-// Only create AI instance if we have a key
-const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export interface DetectedObject {
   label: string;
@@ -32,7 +18,14 @@ export interface ScanResult {
   };
 }
 
-// NITRO MODE: 256px is the absolute minimum for brick shapes but extremely fast
+// Use current version of GoogleGenerativeAI
+const getAIInstance = () => {
+    const key = import.meta.env.VITE_GEMINI_API_KEY || '';
+    if (!key) return null;
+    return new GoogleGenerativeAI(key);
+};
+
+// NITRO MODE: 512px for better quality than 256px but still fast
 const optimizeImageForSpeed = (base64Str: string): Promise<string> => {
   return new Promise((resolve) => {
     const img = new Image();
@@ -63,17 +56,16 @@ const optimizeImageForSpeed = (base64Str: string): Promise<string> => {
         return;
       }
       ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/jpeg', 0.3));
+      resolve(canvas.toDataURL('image/jpeg', 0.5));
     };
     img.onerror = () => resolve(base64Str);
   });
 };
 
-export const identifyBricks = async (base64Image: string, customParts: CustomPart[] = []): Promise<ScanResult> => {
+export const identifyBricks = async (base64Image: string): Promise<ScanResult> => {
   try {
-    if (!ai) {
-      throw new Error('Gemini API key not configured.');
-    }
+    const ai = getAIInstance();
+    if (!ai) throw new Error('Gemini API key not configured.');
 
     const optimizedBase64 = await optimizeImageForSpeed(base64Image);
     const base64Data = optimizedBase64.replace(/^data:image\/(png|jpeg|jpg);base64,/, '');
@@ -82,90 +74,34 @@ export const identifyBricks = async (base64Image: string, customParts: CustomPar
       throw new Error('Invalid image data');
     }
 
-    // Use the BEST free model for vision/image detection
-    const modelsToTry = [
-      'gemini-1.5-flash',
-      'gemini-1.5-pro',
-      'gemini-pro',
-    ];
-
-    let lastError: any = null;
-
-    for (const modelName of modelsToTry) {
-      try {
-        console.log(`🚀 Trying vision model: ${modelName}`);
-        const model = ai.getGenerativeModel({ model: modelName });
-        
-        const apiResponse = await model.generateContent({
-          contents: [
+    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    
+    const apiResponse = await model.generateContent({
+      contents: [
+        {
+          role: 'user',
+          parts: [
             {
-              role: 'user',
-              parts: [
-                {
-                  inlineData: {
-                    data: base64Data,
-                    mimeType: 'image/jpeg',
-                  },
-                },
-                {
-                  text: `You are an expert building brick detection AI. Your task is to detect EVERY visible building brick in this image with high accuracy.
-
-CRITICAL: You MUST detect ALL bricks across the FULL IMAGE. This image contains many bricks. Be extremely thorough and detect each one individually with a precise bounding box.
-
-Return ONLY valid JSON (no markdown, no code blocks, no explanation):
-
-{
-  "items": [
-    {
-      "label": "2x4 Brick",
-      "color": "Blue",
-      "partNumber": "3001",
-      "box_2d": [0.2, 0.3, 0.6, 0.5],
-      "confidence": 0.85
-    }
-  ],
-  "quality": {
-    "advice": "Good",
-    "sharpness_score": 1,
-    "lighting_condition": "Good"
-  }
-}
-
-DETECTION REQUIREMENTS:
-1. box_2d: [ymin, xmin, ymax, xmax] normalized 0.0-1.0
-2. label: "[width]x[length] Brick" or "[width]x[length] Plate"
-3. partNumber: ID (3001, etc) or "Unknown"`
-                }
-              ]
+              inlineData: {
+                data: base64Data,
+                mimeType: 'image/jpeg',
+              },
+            },
+            {
+              text: `Detect building bricks in this image. Return ONLY JSON: {"items": [{"label": "2x4 Brick", "color": "Red", "partNumber": "3001", "box_2d": [y, x, y, x], "confidence": 0.9}], "quality": {"advice": "Good", "sharpness_score": 1, "lighting_condition": "Good"}}`
             }
-          ],
-          generationConfig: {
-            temperature: 0.1,
-            maxOutputTokens: 2048,
-            responseMimeType: "application/json",
-          },
-        });
-
-        const result = await apiResponse.response;
-        const text = result.text();
-        if (text) {
-          try {
-            return JSON.parse(text);
-          } catch (pe) {
-            console.warn("Failed to parse JSON, cleaning up...");
-            const cleaned = text.replace(/```json|```/g, '').trim();
-            return JSON.parse(cleaned);
-          }
+          ]
         }
-      } catch (modelError: any) {
-        lastError = modelError;
-        console.warn(`⚠️ ${modelName} failed:`, modelError?.message);
-        if (modelError?.status === 404 || modelError?.message?.includes('404')) continue;
-        throw modelError;
-      }
-    }
+      ],
+      generationConfig: {
+        temperature: 0.1,
+        responseMimeType: "application/json",
+      },
+    });
 
-    throw lastError || new Error('All models failed to detect bricks');
+    const result = await apiResponse.response;
+    const text = result.text();
+    return JSON.parse(text);
   } catch (error: any) {
     console.error('identifyBricks failed:', error);
     return {
@@ -179,61 +115,41 @@ DETECTION REQUIREMENTS:
   }
 };
 
-/**
- * Generate building ideas based on user message and vault context.
- */
 export const getConversationalIdeas = async (message: string, bricks: any[] = []): Promise<{ builds: any[] }> => {
+  const ai = getAIInstance();
   if (!ai) throw new Error('Gemini API key not configured');
 
   try {
     const brickContext = bricks.length > 0 
-      ? `The user has the following bricks: ${bricks.slice(0, 50).map(b => `${b.count || 1}x ${b.color || ''} ${b.name || 'Brick'}`).join(', ')}.`
+      ? `Bricks: ${bricks.slice(0, 50).map(b => `${b.count || 1}x ${b.color || ''} ${b.name || 'Brick'}`).join(', ')}.`
       : "The user is looking for building ideas.";
 
     const prompt = `${brickContext}
          User asks: "${message}"
-         Provide 3 creative building ideas. Return ONLY valid JSON:
+         Provide 3 ideas. Even if the user has few bricks or many duplicates, be EXTREMELY creative. 
+         Suggest abstract sculptures, micro-scale dioramas, or mosaic patterns. 
+         LEGO is about imagination - NEVER say you can't find ideas or that there are "no ideas". 
+         Be poetic and visionary.
+         Return ONLY JSON:
          {
            "builds": [
              {
-               "title": "Mini Spaceship",
-               "description": "A sleek explorer using your blue and white bricks.",
+               "title": "Cosmic Fragment",
+               "description": "An abstract sculpture representing space using your specific part shapes.",
                "difficulty": "Ready"
              }
            ]
-         }
-         Difficulty levels: "Ready" (owned all), "Almost" (missing few), "Expert" (complex).
-         Return ONLY the JSON object.`;
+         }`;
 
-    const modelsToTry = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro'];
-    let lastError: any = null;
+    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const apiResponse = await model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: { responseMimeType: "application/json" }
+    });
 
-    for (const modelId of modelsToTry) {
-      try {
-        console.log(`🚀 Generating ideas with: ${modelId}`);
-        const model = ai.getGenerativeModel({ model: modelId });
-        const apiResponse = await model.generateContent({
-            contents: [{ role: 'user', parts: [{ text: prompt }] }],
-            generationConfig: { responseMimeType: "application/json" }
-        });
-
-        const result = await apiResponse.response;
-        const text = result?.text();
-        if (text) {
-            try {
-                return JSON.parse(text);
-            } catch (e) {
-                return JSON.parse(text.replace(/```json|```/g, '').trim());
-            }
-        }
-      } catch (err: any) {
-        lastError = err;
-        console.warn(`⚠️ Ideas generation failed with ${modelId}:`, err?.message);
-        if (err?.status === 404 || err?.message?.includes('404')) continue;
-        throw err;
-      }
-    }
-    throw lastError || new Error('All models failed');
+    const result = await apiResponse.response;
+    const text = result.text();
+    return JSON.parse(text);
   } catch (error) {
     console.error('Ideas generation failed:', error);
     return { builds: [] };
@@ -242,5 +158,8 @@ export const getConversationalIdeas = async (message: string, bricks: any[] = []
 
 export const generateBuildIdeas = async (message: string, bricks: any[] = []): Promise<string> => {
   const result = await getConversationalIdeas(message, bricks);
+  if (!result.builds || result.builds.length === 0) {
+    return "**The Infinite Totem**\nAn abstract tower that grows with every brick you find. Start with a stable base and stack your colors in a spiral pattern to create a DNA-like structure of your creativity.\n(Difficulty: Beginner)";
+  }
   return result.builds.map(b => `**${b.title}**\n${b.description}\n(Difficulty: ${b.difficulty})`).join('\n\n');
 };

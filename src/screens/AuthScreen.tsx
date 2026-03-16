@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Check } from 'lucide-react';
 import { signInWithGoogle, signInWithApple } from '../services/supabaseService';
 import { Screen } from '../types';
+import { Logo } from '../components/Logo';
 
 interface AuthScreenProps {
   onAuthenticate: () => void;
@@ -24,32 +25,24 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onNavigate }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-[#0A1229] flex flex-col font-sans">
-      {/* Top Section - Yellow */}
-      <div className="h-[45vh] bg-[#FFD600] flex flex-col items-center justify-center relative overflow-hidden">
-        {/* Mascot Large */}
-        <div className="w-56 h-56 bg-[#FF7A30] rounded-[48px] flex items-center justify-center shadow-2xl relative z-10 border-[12px] border-white/20">
-            <div className="flex gap-4">
-                <div className="w-4 h-4 bg-black rounded-full" />
-                <div className="w-4 h-4 bg-black rounded-full" />
-            </div>
-            {/* Small floating stars from design */}
-            <div className="absolute top-[-20px] right-[-20px] text-white text-4xl">★</div>
-            <div className="absolute bottom-[20px] left-[-40px] text-white text-3xl opacity-50">★</div>
-        </div>
-        {/* Background elements */}
-        <div className="absolute top-[10%] left-[-20px] w-12 h-12 bg-white/40 rounded-xl rotate-12" />
-        <div className="absolute bottom-[15%] right-[-10px] w-20 h-20 border-8 border-white/30 rounded-full" />
-      </div>
+    <div className="flex flex-col h-full bg-[#0A1229] font-sans overflow-hidden">
+      {/* Top Section - Thin Yellow Bar */}
+      <div className="h-4 bg-[#FFD600] w-full relative z-20" />
 
-      {/* Bottom Section - Dark */}
-      <div className="flex-1 flex flex-col px-10 pt-12">
-        <h1 className="text-white text-[32px] font-black text-center leading-tight mb-2">
-            Welcome to <span className="text-[#FF7A30]">Hello</span>Brick
-        </h1>
-        <p className="text-slate-400 text-center text-[15px] font-bold leading-snug mb-10">
-            Detect and Organise Bricks, compete against others, and more on the #1 App for Brick Owners.
-        </p>
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col pt-[max(env(safe-area-inset-top),2rem)] overflow-y-auto no-scrollbar overscroll-contain pb-[max(env(safe-area-inset-bottom),2rem)]">
+        <div className="px-10 flex flex-col items-center">
+            {/* Mascot Centered */}
+            <Logo size="xl" showText={false} className="mb-10" />
+
+            <h1 className="text-[32px] font-black text-white leading-tight tracking-tight mb-6 whitespace-nowrap">
+                Welcome to <span className="text-[#FF7A30]">Hello</span>Brick
+            </h1>
+
+            <p className="text-slate-400 text-center text-[15px] font-bold leading-snug mb-10">
+                Detect and Organise Bricks, compete against others, and more on the #1 App for Brick Owners.
+            </p>
+        </div>
 
         <div className="space-y-4">
             <button

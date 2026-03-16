@@ -1,94 +1,50 @@
-// @ts-nocheck
-
+// Definitive HelloBrick Logo Component
 import * as React from 'react';
 
 export const Logo: React.FC<{
   size?: 'sm' | 'md' | 'lg' | 'xl',
   showText?: boolean,
-  inverted?: boolean,
+  light?: boolean,
   className?: string
-}> = ({ size = 'md', showText = false, inverted = false, className = '' }) => {
-  // Size configurations for mark only
-  const markSizeClasses = {
-    sm: 'w-6 h-6',
-    md: 'w-10 h-10',
-    lg: 'w-16 h-16',
-    xl: 'w-24 h-24'
+}> = ({ size = 'md', showText = true, light = false, className = '' }) => {
+  const markSize = {
+    sm: 'w-6 h-6 rounded-lg',
+    md: 'w-10 h-10 rounded-[12px]',
+    lg: 'w-20 h-20 rounded-[22px]',
+    xl: 'w-32 h-32 rounded-[32px]'
   };
 
-  // Size configurations for text
-  const textSizeClasses = {
-    sm: 'text-xl',
-    md: 'text-2xl',
-    lg: 'text-4xl',
-    xl: 'text-6xl'
+  const eyeSize = {
+    sm: 'w-1 h-1',
+    md: 'w-1.5 h-1.5',
+    lg: 'w-2.5 h-2.5',
+    xl: 'w-3 h-3'
   };
 
-  // Inner square size relative to mark
-  const innerSizeClasses = {
-    sm: 'w-3 h-3 rounded-[3px]',
-    md: 'w-5 h-5 rounded-[6px]',
-    lg: 'w-8 h-8 rounded-[12px]',
-    xl: 'w-12 h-12 rounded-[12px]'
+  const textSize = {
+    sm: 'text-sm font-black',
+    md: 'text-xl font-black',
+    lg: 'text-3xl font-black',
+    xl: 'text-5xl font-black'
   };
 
-  // Small squares size
-  const squareSizeClasses = {
-    sm: 'w-0.5 h-0.5 rounded-[0.5px]',
-    md: 'w-1 h-1 rounded-[1px]',
-    lg: 'w-1.5 h-1.5 rounded-[1px]',
-    xl: 'w-1.5 h-1.5 rounded-[1px]'
-  };
-
-  // Mark component
-  const Mark = () => (
-    <div
-      className={`${markSizeClasses[size]} bg-[#FFD600] rounded-[26px] flex items-center justify-center shadow-[0_10px_30px_-10px_rgba(255,214,0,0.5)]`}
-      style={{ borderRadius: size === 'xl' ? '40px' : size === 'lg' ? '32px' : size === 'md' ? '20px' : '12px' }}
-    >
-      <div className={`${innerSizeClasses[size]} bg-[#FF7A30] flex items-center justify-center shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)]`}
-           style={{ borderRadius: size === 'xl' ? '20px' : size === 'lg' ? '16px' : size === 'md' ? '10px' : '6px' }}>
-        <div className="flex gap-1 xl:gap-2">
-          <div className={`${squareSizeClasses[size]} bg-black rounded-full shadow-sm`}></div>
-          <div className={`${squareSizeClasses[size]} bg-black rounded-full shadow-sm`}></div>
-        </div>
-      </div>
-    </div>
-  );
-
-  // If only mark is needed (no text)
-  if (!showText) {
-    return (
-      <div className={`relative flex items-center justify-center cursor-pointer ${className}`}>
-        <Mark />
-      </div>
-    );
-  }
-
-  // Full logo with text
   return (
-    <div className={`flex items-center gap-3 cursor-pointer ${className}`}>
-      <Mark />
-      <div className="flex items-baseline leading-none">
-        <span
-          className={`${textSizeClasses[size]} font-bold text-slate-900 tracking-tight`}
-          style={{
-            fontFamily: "'Outfit', sans-serif",
-            letterSpacing: '-0.03em'
-          }}
-        >
-          Hello
-        </span>
-        <span
-          className={`${textSizeClasses[size]} font-bold text-[#F97316] ml-[1px]`}
-          style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            letterSpacing: '-0.08em'
-          }}
-        >
-          Brick
-        </span>
+    <div className={`flex items-center gap-3 ${className}`}>
+      {/* The Mascot Mark */}
+      <div className={`${markSize[size]} bg-[#FF7A30] flex items-center justify-center shadow-lg relative overflow-hidden border-2 border-white/10`}>
+         <div className="flex gap-[25%] relative z-10">
+            <div className={`${eyeSize[size]} bg-black rounded-full`} />
+            <div className={`${eyeSize[size]} bg-black rounded-full`} />
+         </div>
+         {/* Subtle Gloss */}
+         <div className="absolute top-0 left-0 w-full h-1/2 bg-white/10" />
       </div>
+
+      {showText && (
+        <span className={`${textSize[size]} tracking-tight uppercase ${light ? 'text-white' : 'text-slate-900'}`}>
+          Hello<span className="text-[#FF7A30]">Brick</span>
+        </span>
+      )}
     </div>
   );
 };

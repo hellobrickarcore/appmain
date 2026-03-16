@@ -80,3 +80,24 @@ export function mapPolygonToPreview(
         y: (p.y * scale - cropY)
     }));
 }
+export function calculateIOU(
+    boxA: { xMin: number; yMin: number; xMax: number; yMax: number },
+    boxB: { xMin: number; yMin: number; xMax: number; yMax: number }
+): number {
+    const xA = Math.max(boxA.xMin, boxB.xMin);
+    const yA = Math.max(boxA.yMin, boxB.yMin);
+    const xB = Math.min(boxA.xMax, boxB.xMax);
+    const yB = Math.min(boxA.yMax, boxB.yMax);
+
+    const interWidth = Math.max(0, xB - xA);
+    const interHeight = Math.max(0, yB - yA);
+    const interArea = interWidth * interHeight;
+
+    const boxAArea = (boxA.xMax - boxA.xMin) * (boxA.yMax - boxA.yMin);
+    const boxBArea = (boxB.xMax - boxB.xMin) * (boxB.yMax - boxB.yMin);
+
+    if (boxAArea + boxBArea - interArea === 0) return 0;
+
+    const iou = interArea / (boxAArea + boxBArea - interArea);
+    return iou;
+}

@@ -33,9 +33,9 @@ export const CameraPermissionScreen: React.FC<CameraPermissionScreenProps> = ({ 
         </div>
 
         <div className="max-w-xs">
-          <h1 className="text-4xl font-black mb-6 tracking-tighter leading-none italic uppercase">
+          <h1 className="text-4xl font-black mb-6 tracking-tighter leading-none uppercase">
             Visual.<br />
-            Neural.<br />
+            Scanner.<br />
             <span className="text-orange-500">Live.</span>
           </h1>
           

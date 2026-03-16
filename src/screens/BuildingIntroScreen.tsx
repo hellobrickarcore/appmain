@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Layout, CheckCircle2, ChevronRight, Database, Zap, Sparkles } from 'lucide-react';
+import { Box, Layout, CheckCircle2, ChevronRight, Database } from 'lucide-react';
+
 import { Screen } from '../types';
 
 interface BuildingIntroScreenProps {
@@ -34,9 +35,9 @@ export const BuildingIntroScreen: React.FC<BuildingIntroScreenProps> = ({ onNavi
         </div>
 
         <div className="max-w-xs">
-          <h1 className="text-4xl font-black mb-6 tracking-tighter leading-none italic uppercase">
-            We compute.<br />
-            You <span className="text-indigo-500">manifest.</span>
+          <h1 className="text-4xl font-black mb-6 tracking-tight leading-none text-white">
+            Ready to <br />
+            start building?
           </h1>
           
           <p className="text-slate-500 text-lg font-bold leading-relaxed mb-10">

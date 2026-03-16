@@ -37,7 +37,7 @@ export const detectBricks = async (
   } = options;
 
   const stage = mode === 'mass_capture' ? 'holistic_capture' : 'live_detection';
-  const targetDimension = mode === 'mass_capture' ? 1024 : 640; // Increased from 960/416 for better precision
+  const targetDimension = mode === 'mass_capture' ? 1024 : 416; // Reverted to 416 for "Heat Seeker" speed
 
   let responseText = '';
   let status = 0;

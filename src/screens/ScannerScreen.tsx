@@ -6,6 +6,7 @@ import { Screen } from '../types';
 import { FrameDetection, ScanFrameResponse, bboxToRenderBox } from '../types/detection';
 import { saveCollectionToSupabase } from '../services/trainingDataService';
 import { analytics } from '../services/analyticsService';
+import { usageService } from '../services/usageService';
 
 interface ScannerScreenProps {
   onNavigate: (screen: Screen, params?: any) => void;
@@ -136,54 +137,47 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
   }, [hasPermission]);
 
   // ─── Detection Smoothing ────────────────────────
-  const prevDetectionsRef = useRef<Map<string, FrameDetection>>(new Map());
   
+  const prevDetectionsRef = useRef<FrameDetection[]>([]);
+  const persistenceWindowMs = 800; // Reduced for responsiveness
+
   const smoothDetections = (newDetections: FrameDetection[]) => {
-    const ALPHA = 0.3; // More smoothing for stability (magnetic feel)
-    
-    // Create map for current detections to handle persistence
-    const currentMap = new Map(newDetections.map(d => [d.detectionId, d]));
-    const smoothed: FrameDetection[] = [];
+    const now = Date.now();
+    const result = [...newDetections];
 
-    // 1. Smooth existing/updated detections
-    newDetections.forEach(det => {
-      const prev = prevDetectionsRef.current.get(det.detectionId);
-      if (prev) {
-        // Magnetic lock: Weighted average of bounding box
-        det.geometry.bbox = {
-          format: 'xyxy',
-          space: 'pixel',
-          xMin: prev.geometry.bbox.xMin * (1 - ALPHA) + det.geometry.bbox.xMin * ALPHA,
-          yMin: prev.geometry.bbox.yMin * (1 - ALPHA) + det.geometry.bbox.yMin * ALPHA,
-          xMax: prev.geometry.bbox.xMax * (1 - ALPHA) + det.geometry.bbox.xMax * ALPHA,
-          yMax: prev.geometry.bbox.yMax * (1 - ALPHA) + det.geometry.bbox.yMax * ALPHA,
-        };
-      }
-      smoothed.push(det);
-    });
+    // Magnetic "locking": If a detection in prevDetectionsRef isn't in newDetections, 
+    // keep it for a short window if it was confident.
+    prevDetectionsRef.current.forEach(prev => {
+      const exists = newDetections.some(curr => {
+        // More robust overlap check
+        const prevBox = prev.geometry.bbox;
+        const currBox = curr.geometry.bbox;
+        
+        const centerX1 = (prevBox.xMin + prevBox.xMax) / 2;
+        const centerY1 = (prevBox.yMin + prevBox.yMax) / 2;
+        const centerX2 = (currBox.xMin + currBox.xMax) / 2;
+        const centerY2 = (currBox.yMin + currBox.yMax) / 2;
+        
+        const distance = Math.sqrt(Math.pow(centerX1 - centerX2, 2) + Math.pow(centerY1 - centerY2, 2));
+        return distance < 50; // Allow slight movement
+      });
 
-    // 2. Simple Persistence: Keep detections that disappeared for 2 more frames
-    // This makes the boxes "stick" even if the detector misses a frame
-    prevDetectionsRef.current.forEach((prevDet, id) => {
-      if (!currentMap.has(id)) {
-        // If it was just seen in the last frame, keep it with lowered confidence
-        const framesMissed = (prevDet as any)._framesMissed || 0;
-        if (framesMissed < 5) { // Increased persistence for less flickering
-          const persistedDet = { 
-            ...prevDet, 
-            _framesMissed: framesMissed + 1 
-          };
-          smoothed.push(persistedDet);
+      if (!exists && (prev.prediction.identityConfidence > 0.5 || prev.labelDisplayStatus === 'confirmed')) {
+        // Check if it's within the persistence window
+        const age = now - ((prev as any)._timestamp || now);
+        if (age < persistenceWindowMs) {
+          result.push(prev);
         }
       }
     });
 
-    // Update history ref
-    const nextMap = new Map();
-    smoothed.forEach(d => nextMap.set(d.detectionId, d));
-    prevDetectionsRef.current = nextMap;
+    // Tag new detections with timestamp
+    result.forEach(d => {
+      if (!(d as any)._timestamp) (d as any)._timestamp = now;
+    });
 
-    return smoothed;
+    prevDetectionsRef.current = result;
+    return result;
   };
 
   // ─── API Detection Loop ────────────────
@@ -245,8 +239,8 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
       }
     };
 
-    // Detection every 250ms for stability on mobile
-    intervalId = setInterval(detectLoop, 250);
+    // Heat Seeker mode: Detection every 150ms
+    intervalId = setInterval(detectLoop, 150);
 
     return () => clearInterval(intervalId);
   }, [phase, hasPermission]);
@@ -371,6 +365,9 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
         lastUpdated: Date.now()
       }));
 
+      // Increment daily scan count
+      usageService.incrementScanCount();
+
       window.dispatchEvent(new CustomEvent('hellobrick:collection-updated'));
       saveCollectionToSupabase(userId, bricksWithMetaData).catch(() => { });
 
@@ -402,8 +399,20 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
 
       {/* Top Controls */}
       <div className="absolute top-[max(env(safe-area-inset-top),16px)] left-0 right-0 px-6 flex justify-between items-center z-50">
-        <button onClick={handleClose} className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 text-white shadow-lg">
-          <X className="w-5 h-5" />
+        <div className="flex gap-4">
+          <button onClick={handleClose} className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 text-white shadow-lg active:scale-95 transition-all">
+            <X className="w-5 h-5" />
+          </button>
+          <button 
+            onClick={() => onNavigate(Screen.HOW_TO_SCAN)} 
+            className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 text-white shadow-lg active:scale-95 transition-all"
+          >
+            <span className="text-xl font-black">?</span>
+          </button>
+        </div>
+        
+        <button className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/10 shadow-lg active:scale-95 transition-all">
+          <Zap className="w-5 h-5" />
         </button>
       </div>
 
@@ -434,8 +443,8 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
               className="absolute inset-0 w-full h-full object-cover opacity-90"
             />
 
-            {/* Minimal controls overlays */}
-            <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-start z-30">
+            {/* Minimal controls overlays (deprecated - using Top Controls above) */}
+            <div className="hidden absolute top-0 left-0 right-0 p-6 flex justify-between items-start z-30">
               <button
                 onClick={() => onNavigate(Screen.HOME)}
                 className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/10 shadow-lg"
@@ -493,7 +502,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
                     <div className="absolute -top-7 left-0 bg-[#3B82F6] px-2 py-1 rounded-md flex items-center gap-1.5 shadow-lg whitespace-nowrap">
                       <div className="w-1.5 h-1.5 bg-white rounded-full" />
                       <span className="text-[10px] font-black text-white uppercase tracking-wider">
-                        {obj.prediction.brickName}
+                        {obj.prediction.brickName} • {Math.round(obj.prediction.identityConfidence * 100)}%
                       </span>
                     </div>
                   </div>

@@ -34,7 +34,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
                 <LobbyNotification onJoin={handleJoinGame} />
             </div>
 
-            <main className="flex-1 min-h-0 px-6 relative pb-32 overflow-y-auto no-scrollbar overscroll-contain">
+            <main className="flex-1 min-h-0 px-6 relative pb-[max(env(safe-area-inset-bottom),120px)] overflow-y-auto no-scrollbar overscroll-contain">
                 <div className="mt-10 text-center space-y-3 mb-12">
                     <h1 className="text-4xl font-black text-white tracking-tight">Let's sort your bricks</h1>
                     <p className="text-slate-400 max-w-[280px] mx-auto leading-tight font-medium text-base">
@@ -126,8 +126,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
                                 <ScanLine className="w-6 h-6" />
                             </div>
                             <div className="text-left">
-                                <h3 className="font-bold text-white text-lg leading-none">How to Scan</h3>
-                                <p className="text-xs text-emerald-500/60 mt-1.5 font-bold">Master the art of brick detection</p>
+                                <h3 className="font-bold text-white text-lg leading-none">Pro Tips</h3>
+                                <p className="text-xs text-emerald-500/60 mt-1.5 font-bold">Master the art of the perfect scan</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-1 text-emerald-400">
@@ -146,8 +146,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
                                 <Brain className="w-6 h-6" />
                             </div>
                             <div className="text-left">
-                                <h3 className="font-bold text-white text-lg leading-none">Train the AI</h3>
-                                <p className="text-xs text-orange-500/60 mt-1.5 font-bold">Help the model learn new bricks</p>
+                            <h3 className="font-bold text-white text-lg leading-none">Rewards Hub</h3>
+                            <p className="text-xs text-orange-500/60 mt-1.5 font-bold">Earn prizes every 2 weeks for building</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-1 text-orange-400">

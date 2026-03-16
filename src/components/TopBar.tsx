@@ -1,6 +1,6 @@
-import React from 'react';
 import { HelpCircle } from 'lucide-react';
 import { Screen } from '../types';
+import { Logo } from './Logo';
 
 interface TopBarProps {
   currentScreen: Screen;
@@ -40,15 +40,12 @@ export const TopBar: React.FC<TopBarProps> = ({ currentScreen, onNavigate }) => 
         </button>
       </div>
 
-      {/* Right Profile Icon - Yellow Squircle */}
+      {/* Right Profile Icon - Mascot Style */}
       <button
         onClick={() => onNavigate(Screen.PROFILE)}
-        className="w-10 h-10 bg-yellow-400 rounded-xl flex items-center justify-center shadow-md active:scale-95 transition-transform"
+        className="active:scale-95 transition-transform"
       >
-        <div className="flex gap-1">
-          <div className="w-1.5 h-1.5 bg-black rounded-full" />
-          <div className="w-1.5 h-1.5 bg-black rounded-full" />
-        </div>
+        <Logo size="md" showText={false} />
       </button>
     </div>
   );

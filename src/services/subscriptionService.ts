@@ -88,6 +88,8 @@ class SubscriptionService {
       this.currentCustomerInfo = customerInfo;
 
       const isPro = customerInfo.entitlements.active['pro'] !== undefined;
+      localStorage.setItem('hellobrick_is_pro', isPro.toString());
+      
       const proEntitlement = customerInfo.entitlements.active['pro'];
 
       const status: SubscriptionStatus = {

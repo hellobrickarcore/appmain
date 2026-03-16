@@ -27,7 +27,7 @@ export const HeadToHeadModesScreen: React.FC<HeadToHeadModesScreenProps> = ({ on
               <ChevronLeft className="w-5 h-5 text-slate-300" />
           </button>
           <div className="flex flex-col items-center">
-             <h1 className="text-sm font-black uppercase tracking-[0.2em] text-white">Select Mission</h1>
+             <h1 className="text-sm font-black text-white">MISSION SELECT</h1>
              <div className="flex items-center gap-1.5 mt-0.5">
                 <Sparkles className="w-2.5 h-2.5 text-yellow-500" />
                 <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Multiplayer Arena</span>

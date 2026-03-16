@@ -100,7 +100,7 @@ export const CreatePostScreen: React.FC<CreatePostScreenProps> = ({ onNavigate, 
                     <ChevronLeft className="w-5 h-5 text-slate-300" />
                 </button>
                 <div className="flex flex-col items-center">
-                    <h1 className="text-sm font-black uppercase tracking-[0.2em] text-white">Broadcast</h1>
+                    <h1 className="text-sm font-black text-white">BROADCAST</h1>
                     <div className="flex items-center gap-1.5 mt-0.5">
                        <Shield className="w-2.5 h-2.5 text-indigo-500" />
                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Public Feed</span>
@@ -126,7 +126,7 @@ export const CreatePostScreen: React.FC<CreatePostScreenProps> = ({ onNavigate, 
                             <div className="w-20 h-20 bg-[#0A0F1E] rounded-[28px] flex items-center justify-center mb-6 border border-white/5 shadow-3xl group-active:scale-90 transition-transform">
                                 <Plus className="w-10 h-10 text-slate-500" />
                             </div>
-                            <h3 className="text-xl font-black text-white italic">Upload Specimen</h3>
+                            <h3 className="text-xl font-black text-white">Upload Specimen</h3>
                             <p className="text-[10px] text-slate-500 mt-2 font-black uppercase tracking-widest">Digitalize Physical Build</p>
                         </button>
                     ) : (
@@ -189,7 +189,7 @@ export const CreatePostScreen: React.FC<CreatePostScreenProps> = ({ onNavigate, 
                     <div className="bg-white/5 rounded-[40px] p-8 border border-white/5 shadow-2xl">
                         <div className="flex items-center gap-4 mb-6 px-2">
                             <Sparkles className="w-5 h-5 text-orange-500" />
-                            <h3 className="text-xs font-black uppercase tracking-[0.3em] text-slate-500">Neural Caption</h3>
+                            <h3 className="text-xs font-black uppercase tracking-[0.3em] text-slate-500">Auto Caption</h3>
                         </div>
                         <textarea
                             value={caption}
@@ -232,7 +232,7 @@ export const CreatePostScreen: React.FC<CreatePostScreenProps> = ({ onNavigate, 
                 <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex items-center justify-center p-10 text-center">
                     <div className="bg-[#0A0F1E] border border-white/10 p-12 rounded-[56px] flex flex-col items-center shadow-[0_50px_100px_rgba(0,0,0,0.5)]">
                         <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mb-8" />
-                        <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-2">Neural Synthesis</h2>
+                        <h2 className="text-2xl font-black text-white uppercase tracking-tighter mb-2">Scanner Synthesis</h2>
                         <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.3em]">Extracting Specimen IDs via ONNX</p>
                     </div>
                 </div>

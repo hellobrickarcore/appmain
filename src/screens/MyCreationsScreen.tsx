@@ -83,7 +83,7 @@ export const MyCreationsScreen: React.FC<MyCreationsScreenProps> = ({ onNavigate
                         <div className="w-20 h-20 bg-white/5 rounded-[28px] flex items-center justify-center mb-6 border border-white/5 shadow-2xl">
                            <Star className="w-8 h-8 text-slate-700" />
                         </div>
-                        <h3 className="text-xl font-black text-white mb-2 italic">Vault Empty</h3>
+                        <h3 className="text-xl font-black text-white mb-2">Vault Empty</h3>
                         <p className="text-slate-500 text-sm font-bold max-w-[200px]">Start building and archive your manifests here.</p>
                     </div>
                 ) : creations.map((creation) => (
@@ -97,7 +97,7 @@ export const MyCreationsScreen: React.FC<MyCreationsScreenProps> = ({ onNavigate
                             <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors" />
                         </div>
                         <div className="px-3 pb-3">
-                            <h3 className="font-black text-white text-sm uppercase tracking-tight italic line-clamp-1">{creation.title}</h3>
+                            <h3 className="font-black text-white text-sm uppercase tracking-tight line-clamp-1">{creation.title}</h3>
                             <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.1em] mt-1">{creation.date}</p>
                         </div>
                     </div>
@@ -115,7 +115,7 @@ export const MyCreationsScreen: React.FC<MyCreationsScreenProps> = ({ onNavigate
 
                         <div className="flex items-start justify-between mb-8">
                             <div>
-                                <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter leading-tight mb-2">{selectedCreation.title}</h2>
+                                <h2 className="text-3xl font-black text-white uppercase tracking-tighter leading-tight mb-2">{selectedCreation.title}</h2>
                                 <p className="text-slate-500 font-black text-xs uppercase tracking-widest">{selectedCreation.date}</p>
                             </div>
                             <div className="bg-orange-500/10 px-4 py-2 rounded-2xl border border-orange-500/20 whitespace-nowrap">

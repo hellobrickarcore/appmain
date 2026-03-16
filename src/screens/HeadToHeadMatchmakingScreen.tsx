@@ -13,7 +13,9 @@ export const HeadToHeadMatchmakingScreen: React.FC<HeadToHeadMatchmakingScreenPr
     const [status, setStatus] = useState<'SEARCHING' | 'CONNECTED'>('SEARCHING');
     const [opponent, setOpponent] = useState<any>(null);
     const [lobby, setLobby] = useState<Lobby | null>(null);
+    const [timeLeft, setTimeLeft] = useState(180); // 3 minutes
     const userIdRef = useRef<string | null>(null);
+    const profileName = localStorage.getItem('hellobrick_profile_name') || 'Hero';
 
     useEffect(() => {
         let unsubscribe: (() => void) | null = null;
@@ -22,13 +24,13 @@ export const HeadToHeadMatchmakingScreen: React.FC<HeadToHeadMatchmakingScreenPr
             try {
                 const user = await getCurrentUser();
                 if (!user) {
-                    console.error('User not authenticated');
-                    onNavigate(Screen.AUTH);
-                    return;
+                    console.warn('Matchmaking: User not authenticated in Supabase. Proceeding with local ID if available.');
+                    // Don't force redirect to AUTH here, let the app gating or local session handle it.
+                } else {
+                    userIdRef.current = user.id;
                 }
-                userIdRef.current = user.id;
 
-                const activeLobby = await multiplayerService.findOrJoinLobby(user.id, modeId);
+                const activeLobby = await multiplayerService.findOrJoinLobby(user?.id || userIdRef.current || 'anonymous', modeId);
                 setLobby(activeLobby);
 
                 if (activeLobby.opponent_id && activeLobby.status === 'matched') {
@@ -71,10 +73,21 @@ export const HeadToHeadMatchmakingScreen: React.FC<HeadToHeadMatchmakingScreenPr
 
         initMatchmaking();
 
+        const timer = setInterval(() => {
+            setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+        }, 1000);
+
         return () => {
             if (unsubscribe) unsubscribe();
+            clearInterval(timer);
         };
     }, [modeId]);
+
+    const formatTime = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
 
     const handleStart = async () => {
         if (lobby) {
@@ -130,9 +143,9 @@ export const HeadToHeadMatchmakingScreen: React.FC<HeadToHeadMatchmakingScreenPr
                 <div className="mb-16 text-center">
                     <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 px-6 py-2.5 rounded-full backdrop-blur-xl mb-4">
                         {status === 'SEARCHING' ? (
-                            <><div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.5)]" /> <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Checking lobbies...</span></>
+                            <><div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.5)]" /> <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">Searching for builders... {formatTime(timeLeft)}</span></>
                         ) : (
-                            <><Handshake className="w-3.5 h-3.5 text-emerald-500" /> <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Friend connected</span></>
+                            <><Handshake className="w-3.5 h-3.5 text-emerald-500" /> <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Opponent Found!</span></>
                         )}
                     </div>
                 </div>
@@ -147,7 +160,7 @@ export const HeadToHeadMatchmakingScreen: React.FC<HeadToHeadMatchmakingScreenPr
                             </div>
                         </div>
                         <div className="text-center">
-                           <span className="block text-xs font-black uppercase tracking-widest text-white">Hero</span>
+                           <span className="block text-xs font-black uppercase tracking-widest text-white">{profileName}</span>
                            <span className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter">You</span>
                         </div>
                     </div>
@@ -155,7 +168,7 @@ export const HeadToHeadMatchmakingScreen: React.FC<HeadToHeadMatchmakingScreenPr
                     {/* VS Badge */}
                     <div className="relative">
                        <div className="w-16 h-16 bg-white text-slate-950 rounded-3xl rotate-45 flex items-center justify-center shadow-[0_0_40px_rgba(255,255,255,0.2)] z-20 border-4 border-[#050A18]">
-                           <span className="-rotate-45 font-black text-2xl italic tracking-tighter">VS</span>
+                           <span className="-rotate-45 font-black text-2xl tracking-tighter">VS</span>
                        </div>
                        <Sparkles className="absolute -top-8 -left-8 w-6 h-6 text-yellow-500/20 animate-pulse" />
                     </div>

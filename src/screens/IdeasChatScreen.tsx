@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, ArrowLeft, Bot, User, Trash2, Sparkles } from 'lucide-react';
 import { Screen } from '../types';
+import { generateBuildIdeas } from '../services/geminiService';
 
 interface Message {
   id: string;
@@ -46,17 +47,24 @@ export const IdeasChatScreen: React.FC<IdeasChatScreenProps> = ({ onNavigate }) 
     setInput('');
     setIsTyping(true);
 
-    // Simulate response
-    setTimeout(() => {
+    // Real AI response
+    try {
+      const stored = localStorage.getItem('hellobrick_collection');
+      const bricks = stored ? JSON.parse(stored).bricks || [] : [];
+      const content = await generateBuildIdeas(input, bricks);
+      
       const assistantMsg: Message = {
-        id: (Date.now() + 1).toString(),
+        id: Date.now().toString(),
         role: 'assistant',
-        content: `That sounds like a great project! Based on your collection of ${localStorage.getItem('hellobrick_collection') ? 'scanned bricks' : 'parts'}, you could try building a mini space station or a small robotic bird. Shall I find the instructions for one of those?`,
+        content: content,
         timestamp: Date.now(),
       };
       setMessages(prev => [...prev, assistantMsg]);
+    } catch (err) {
+      console.error('Chat failed:', err);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   const clearChat = () => {
@@ -85,7 +93,7 @@ export const IdeasChatScreen: React.FC<IdeasChatScreenProps> = ({ onNavigate }) 
             <h1 className="text-lg font-black tracking-tight">Brick Butler</h1>
             <div className="flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Always Online</span>
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Online</span>
             </div>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import { FrameDetection, ScanFrameResponse, TrackedObject } from '../../types/detection';
+import { calculateIOU } from '../../utils/coordinateMapping';
 import { ScannerError } from './detectorTypes';
 import { fetchDetectorBackend, LoaderDiagnostic } from './detectorLoader';
 
@@ -158,7 +159,7 @@ export const detectBricks = async (
         const bbox = geo.bbox || {};
         const pred = det.prediction || {};
         return {
-          detectionId: det.detectionId || `det_${idx}_${Date.now()}`,
+          detectionId: det.detectionId || `det_${idx}`,
           detectionIndex: det.detectionIndex ?? idx,
           trackId: det.trackId || '',
           geometry: {
@@ -185,6 +186,8 @@ export const detectBricks = async (
             identityConfidence: pred.identityConfidence ?? 0,
             colorConfidence: pred.colorConfidence ?? 0,
             dimensionConfidence: pred.dimensionConfidence ?? 0,
+            brandConfidence: pred.brandConfidence ?? 0,
+            detectorConfidence: pred.detectorConfidence ?? (pred.rawModelConfidence ?? 0),
             rawModelClass: pred.rawModelClass,
             rawModelConfidence: pred.rawModelConfidence ?? 0
           },
@@ -195,6 +198,23 @@ export const detectBricks = async (
           labelDisplayStatus: det.labelDisplayStatus || 'tentative'
         } satisfies FrameDetection;
       });
+
+    // ─── NON-MAXIMUM SUPPRESSION (NMS) ───────────────────────────
+    // Essential for physical devices where the backend might return overlapping detections
+    const nmsDetections: FrameDetection[] = [];
+    const sorted = [...detections].sort((a, b) => (b.prediction.rawModelConfidence ?? 0) - (a.prediction.rawModelConfidence ?? 0));
+
+    for (const det of sorted) {
+      let keep = true;
+      for (const kept of nmsDetections) {
+        const iou = calculateIOU(det.geometry.bbox, kept.geometry.bbox);
+        if (iou > 0.30) { // Tightened from 0.45 to 0.30 for aggressive suppression
+          keep = false;
+          break;
+        }
+      }
+      if (keep) nmsDetections.push(det);
+    }
 
     const trackedObjects: TrackedObject[] = (data.trackedObjects || []).map((to: any) => {
       const geo = to.stableGeometry || {};
@@ -238,7 +258,7 @@ export const detectBricks = async (
       frameWidth: originalWidth,
       frameHeight: originalHeight,
       modelVersion: data.modelVersion,
-      detections,
+      detections: nmsDetections,
       trackedObjects
     };
     

@@ -5,6 +5,7 @@ import { Screen } from '../types';
 import { notificationService } from '../services/notificationService';
 import { userSettingsService } from '../services/userSettingsService';
 import { CONFIG } from '../services/configService';
+import { Logo } from '../components/Logo';
 
 interface ProfileSettingsScreenProps {
   onNavigate: (screen: Screen) => void;
@@ -24,6 +25,10 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({ on
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [profileName, setProfileName] = useState(
+    localStorage.getItem('hellobrick_profile_name') || 'Builder'
+  );
+
   useEffect(() => {
     const settings = userSettingsService.getSettings(userId);
     setIsPrivate(settings.isPrivate);
@@ -32,6 +37,28 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({ on
     const notifSettings = notificationService.getSettings();
     setNotificationsEnabled(notifSettings.enabled);
   }, [userId]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('hellobrick_userId');
+    localStorage.removeItem('hellobrick_onboarding_finished');
+    localStorage.removeItem('hellobrick_authenticated');
+    localStorage.removeItem('hellobrick_is_pro');
+    localStorage.removeItem('hellobrick_onboarding_complete');
+    window.location.reload();
+  };
+
+  const handleDeleteAccount = async () => {
+    // 1. Wipe all local data
+    localStorage.clear();
+    // 2. Clear Supabase session if needed? 
+    // For now, programmatic localStorage wipe is the minimum requirement
+    window.location.href = '/';
+  };
+
+  const updateProfileName = (newName: string) => {
+    setProfileName(newName);
+    localStorage.setItem('hellobrick_profile_name', newName);
+  };
 
   const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -60,7 +87,7 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({ on
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#050A18] font-sans text-white relative overflow-hidden">
+    <div className="flex flex-col min-h-screen bg-[#050A18] font-sans text-white relative">
       <div className="fixed top-0 left-0 right-0 h-64 bg-gradient-to-b from-blue-600/5 via-blue-500/0 to-transparent pointer-events-none z-0" />
 
       {/* Header */}
@@ -71,11 +98,11 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({ on
         >
           <ChevronLeft className="w-5 h-5 text-slate-300" />
         </button>
-        <h1 className="text-sm font-black text-white uppercase tracking-widest">Settings</h1>
+        <h1 className="text-sm font-black text-white">SETTINGS</h1>
         <div className="w-10" />
       </div>
 
-      <div className="relative z-10 flex-1 overflow-y-auto no-scrollbar pb-32">
+      <div className="relative z-10 flex-1 px-6 pb-40">
         {/* Profile Card */}
         <div className="px-6 py-10 flex flex-col items-center">
           <input
@@ -89,13 +116,9 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({ on
             onClick={() => fileInputRef.current?.click()}
             className="relative"
           >
-            <div className="w-24 h-24 rounded-[40px] bg-white/5 flex items-center justify-center p-1 border border-white/10 shadow-2xl relative overflow-hidden group">
-              {profileImage ? (
-                <img src={profileImage} className="w-full h-full rounded-[38px] object-cover" alt="Profile" />
-              ) : (
-                <span className="text-3xl font-black text-slate-500">{userId.charAt(0).toUpperCase()}</span>
-              )}
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <div className="w-24 h-24 relative group">
+              <Logo size="lg" showText={false} className="w-full h-full" />
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-[22px]">
                 <Camera className="w-6 h-6 text-white" />
               </div>
             </div>
@@ -103,8 +126,17 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({ on
               <Camera className="w-3.5 h-3.5 text-white" />
             </div>
           </button>
-          <h2 className="mt-4 font-black text-white text-lg">@{userId}</h2>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Your Private Account</p>
+          
+          <div className="mt-6 w-full max-w-[200px]">
+            <input 
+              type="text"
+              value={profileName}
+              onChange={(e) => updateProfileName(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-center font-black text-white focus:border-orange-500 transition-all outline-none"
+              placeholder="Your Name"
+            />
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2 text-center">Tap to edit name</p>
+          </div>
         </div>
 
         {/* Settings Groups */}
@@ -149,6 +181,22 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({ on
                     <div className={`w-5 h-5 bg-white rounded-full absolute top-0.75 transition-all ${notificationsEnabled ? 'left-[23px]' : 'left-[5px]'}`} />
                   </div>
                 </button>
+
+                <button 
+                  onClick={() => setShowDeleteModal(true)}
+                  className="w-full h-16 px-4 flex items-center justify-between hover:bg-white/5 transition-colors rounded-2xl"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-red-500/10 rounded-xl flex items-center justify-center text-red-500">
+                      <Trash2 className="w-5 h-5" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-bold text-white">Delete Account</p>
+                      <p className="text-[10px] text-slate-400 font-medium">Permanently remove all data</p>
+                    </div>
+                  </div>
+                  <ChevronLeft className="w-4 h-4 text-slate-600 rotate-180" />
+                </button>
               </div>
             </div>
           </div>
@@ -159,10 +207,15 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({ on
             <div className="bg-white/5 rounded-[32px] border border-white/5 overflow-hidden">
               <div className="p-2 space-y-1">
                 {[
-                  { label: 'Privacy Policy', icon: <Shield className="w-5 h-5" />, color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
-                  { label: 'Terms of Service', icon: <FileText className="w-5 h-5" />, color: 'text-slate-400', bg: 'bg-white/5' },
+                  { label: 'Privacy Policy', icon: <Shield className="w-5 h-5" />, color: 'text-indigo-400', bg: 'bg-indigo-500/10', url: 'https://hellobrick.app/privacy' },
+                  { label: 'Terms of Service', icon: <FileText className="w-5 h-5" />, color: 'text-slate-400', bg: 'bg-white/5', url: 'https://hellobrick.app/terms' },
+                  { label: 'Contact Support', icon: <Globe className="w-5 h-5" />, color: 'text-emerald-400', bg: 'bg-emerald-500/10', url: 'mailto:support@hellobrick.app' },
                 ].map((item, i) => (
-                  <button key={i} className="w-full h-16 px-4 flex items-center justify-between hover:bg-white/5 transition-colors rounded-2xl">
+                  <button 
+                    key={i} 
+                    onClick={() => window.open(item.url, '_blank')}
+                    className="w-full h-16 px-4 flex items-center justify-between hover:bg-white/5 transition-colors rounded-2xl"
+                  >
                     <div className="flex items-center gap-4">
                       <div className={`w-10 h-10 ${item.bg} rounded-xl flex items-center justify-center ${item.color}`}>
                         {item.icon}
@@ -176,21 +229,21 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({ on
             </div>
           </div>
 
-          {/* GROUP: Danger Zone */}
+          {/* Logout Group */}
           <div className="space-y-4">
-            <h3 className="text-[10px] font-black text-red-500/50 uppercase tracking-widest px-2">Important</h3>
-            <div className="bg-red-500/5 rounded-[32px] border border-red-500/10 overflow-hidden">
+            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">Session</h3>
+            <div className="bg-white/5 rounded-[32px] border border-white/5 overflow-hidden">
               <div className="p-2">
                 <button 
-                  onClick={() => setShowDeleteModal(true)}
-                  className="w-full h-16 px-4 flex items-center gap-4 hover:bg-red-500/10 transition-colors rounded-2xl text-red-500"
+                  onClick={handleLogout}
+                  className="w-full h-16 px-4 flex items-center gap-4 hover:bg-white/10 transition-colors rounded-2xl text-slate-300"
                 >
-                  <div className="w-10 h-10 bg-red-500/10 rounded-xl flex items-center justify-center">
+                  <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
                     <Trash2 className="w-5 h-5" />
                   </div>
                   <div className="text-left">
-                    <p className="text-sm font-bold">Delete Account</p>
-                    <p className="text-[10px] text-red-500/50 font-medium">This cannot be undone</p>
+                    <p className="text-sm font-bold">Log Out</p>
+                    <p className="text-[10px] text-slate-500 font-medium">Clear local session data</p>
                   </div>
                 </button>
               </div>
@@ -198,7 +251,7 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({ on
           </div>
         </div>
 
-        <div className="mt-12 text-center">
+        <div className="mt-12 text-center pb-20">
           <p className="text-[10px] font-black text-slate-700 uppercase tracking-[0.2em]">HelloBrick v4.0.2</p>
         </div>
       </div>
@@ -226,6 +279,7 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({ on
                       Wait, cancel
                     </button>
                     <button 
+                      onClick={handleDeleteAccount}
                       className="w-full py-5 bg-red-600 text-white font-black rounded-3xl shadow-xl active:scale-95 transition-all text-sm uppercase tracking-widest"
                     >
                       Delete everything

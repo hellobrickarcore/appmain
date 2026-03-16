@@ -18,6 +18,7 @@ interface BattleRecord {
 export const HeadToHeadScreen: React.FC<HeadToHeadScreenProps> = ({ onNavigate }) => {
     const [showIdInput, setShowIdInput] = useState(false);
     const [connectId, setConnectId] = useState('');
+    const [idError, setIdError] = useState('');
     const [recentBattles, setRecentBattles] = useState<BattleRecord[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -41,6 +42,19 @@ export const HeadToHeadScreen: React.FC<HeadToHeadScreenProps> = ({ onNavigate }
     }, []);
 
     const handleConnect = () => {
+        if (!connectId || connectId.trim().length < 3) {
+            setIdError('Please enter a valid Arena ID');
+            return;
+        }
+
+        // Simulating user search - only "BRICK-PRO" or "FRIEND" work for now
+        const validIds = ['BRICK-PRO', 'FRIEND'];
+        if (!validIds.includes(connectId.toUpperCase())) {
+            setIdError('User not found, please try again');
+            return;
+        }
+
+        setIdError('');
         onNavigate(Screen.H2H_MODES);
     };
 
@@ -75,7 +89,7 @@ export const HeadToHeadScreen: React.FC<HeadToHeadScreenProps> = ({ onNavigate }
                             <ShieldCheck className="absolute -bottom-10 -right-10 w-48 h-48 text-white/5" />
 
                             <h2 className="text-2xl font-black mb-2 tracking-tight">Match Profile</h2>
-                            <p className="text-indigo-200 text-xs mb-8 font-bold uppercase tracking-widest opacity-80 italic">Ready for a match...</p>
+                            <p className="text-indigo-200 text-xs mb-8 font-bold uppercase tracking-widest opacity-80">Ready for a match...</p>
 
                             <div className="bg-white p-5 rounded-[40px] shadow-2xl mb-8 relative group">
                                 <div className="absolute inset-0 bg-blue-600/20 rounded-[40px] animate-pulse pointer-events-none" />
@@ -96,7 +110,7 @@ export const HeadToHeadScreen: React.FC<HeadToHeadScreenProps> = ({ onNavigate }
                             <div className="bg-white/5 border border-white/10 px-6 py-2.5 rounded-2xl flex items-center gap-3 backdrop-blur-xl">
                                <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest leading-none">ID:</p>
                                <span className="text-sm font-black text-white tracking-[0.1em]">
-                                 {localStorage.getItem('hellobrick_userId')?.substring(0, 8).toUpperCase() || 'GUEST-USER'}
+                                 {localStorage.getItem('hellobrick_profile_name') || 'BUILDER'}
                                </span>
                             </div>
                         </div>
@@ -178,15 +192,24 @@ export const HeadToHeadScreen: React.FC<HeadToHeadScreenProps> = ({ onNavigate }
 
                         <p className="text-slate-500 font-medium text-sm mb-8 leading-relaxed">Enter an opponent's Arena ID to request a friendly multiplayer match.</p>
 
-                        <div className="bg-black/40 border border-white/10 rounded-3xl p-1 mb-10 focus-within:border-indigo-500/50 transition-colors">
+                        <div className={`bg-black/40 border rounded-3xl p-1 mb-4 focus-within:border-indigo-500/50 transition-colors ${idError ? 'border-red-500/50' : 'border-white/10'}`}>
                            <input
                                type="text"
                                placeholder="e.g. BRICK-123"
                                className="w-full bg-transparent px-6 py-5 text-white font-black text-lg outline-none placeholder:text-slate-800"
                                value={connectId}
-                               onChange={(e) => setConnectId(e.target.value.toUpperCase())}
+                               onChange={(e) => {
+                                   setConnectId(e.target.value.toUpperCase());
+                                   setIdError('');
+                               }}
                            />
                         </div>
+
+                        {idError && (
+                            <p className="text-red-500 text-xs font-black uppercase tracking-widest mb-6 px-4 animate-bounce">
+                                {idError}
+                            </p>
+                        )}
 
                         <button
                             onClick={handleConnect}

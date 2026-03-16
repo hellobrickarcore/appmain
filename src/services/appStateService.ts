@@ -36,7 +36,6 @@ export interface AppStateSnapshot {
 // PRO-only screens
 const PRO_SCREENS: Screen[] = [
   Screen.IDEAS,
-  Screen.IDEAS_CHAT,
   Screen.HEAD_TO_HEAD,
   Screen.H2H_MODES,
   Screen.H2H_MATCHMAKING,
@@ -54,7 +53,7 @@ function getScreenForState(state: AppState, params?: any): Screen {
     case 'booting':            return Screen.AUTH;
     case 'onboarding':         
       if (params?.screen) return params.screen;
-      return Screen.ONBOARDING;
+      return Screen.FEATURE_INTRO;
     case 'auth':               return Screen.AUTH;
     case 'home':               return params?.screen || Screen.HOME;
     case 'scanner':            return Screen.SCANNER;
@@ -123,7 +122,6 @@ class AppStateService {
 
     // ── RULE 1: Onboarding must be complete ──
     const onboardingScreens = [
-      Screen.ONBOARDING, 
       Screen.FEATURE_INTRO, 
       Screen.NOTIFICATIONS_INTRO, 
       Screen.BUILDING_INTRO
@@ -152,8 +150,8 @@ class AppStateService {
 
     // ── RULE 3: PRO features require subscription ──
     if (PRO_SCREENS.includes(screen)) {
-      const isPro = localStorage.getItem('hellobrick_test_pro') === 'true' ||
-                    localStorage.getItem('hellobrick_isPro') === 'true';
+      const isPro = localStorage.getItem('hellobrick_is_pro') === 'true' ||
+                    localStorage.getItem('hellobrick_dev_mode') === 'true';
       if (!isPro) {
         console.log(`[AppState] PRO required for ${screen}. Opening paywall.`);
         this.returnScreen = screen;
@@ -192,7 +190,7 @@ class AppStateService {
   // ── SUBSCRIPTION COMPLETE ─────────────────────────
   public onSubscriptionComplete() {
     console.log('[AppState] Subscription complete');
-    localStorage.setItem('hellobrick_isPro', 'true');
+    localStorage.setItem('hellobrick_is_pro', 'true');
     if (this.returnScreen) {
       const screen = this.returnScreen;
       this.returnScreen = null;
@@ -233,7 +231,7 @@ class AppStateService {
       params: this.currentParams,
       userId: localStorage.getItem('hellobrick_userId'),
       isAuthenticated: localStorage.getItem('hellobrick_authenticated') === 'true',
-      isPro: localStorage.getItem('hellobrick_test_pro') === 'true' || localStorage.getItem('hellobrick_isPro') === 'true',
+      isPro: localStorage.getItem('hellobrick_is_pro') === 'true' || localStorage.getItem('hellobrick_dev_mode') === 'true',
       onboardingFinished: localStorage.getItem('hellobrick_onboarding_finished') === 'true'
     };
   }

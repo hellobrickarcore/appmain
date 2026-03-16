@@ -25,7 +25,7 @@ export const IdeasGeneratorScreen: React.FC<IdeasGeneratorScreenProps> = ({ onNa
         ? `Hi! I see you have a **${initialBrick.name}** in ${initialBrick.color}. What would you like to build with it today? I can suggest some creative ideas!` 
         : allBricks && allBricks.length > 0
         ? `Hi! I see you have **${allBricks.length} unique parts** in your vault. I can help you build something amazing with your collection! What are you in the mood for? (e.g. "A spaceship", "Something tiny")`
-        : "Hi! I'm your AI Building Assistant. Tell me what bricks you have, or just ask for an idea, and I'll help you build something amazing!"
+        : "Hi! I'm your Building Assistant. Tell me what bricks you have, or just ask for an idea, and I'll help you build something amazing!"
     }
   ]);
   const [input, setInput] = useState('');
@@ -80,10 +80,10 @@ export const IdeasGeneratorScreen: React.FC<IdeasGeneratorScreenProps> = ({ onNa
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-xl font-black tracking-tight">AI Ideas</h1>
+            <h1 className="text-xl font-black tracking-tight">Idea Generator</h1>
             <div className="flex items-center gap-1.5 mt-0.5">
               <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">LLM Online</span>
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Online</span>
             </div>
           </div>
         </div>

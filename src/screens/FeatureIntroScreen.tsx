@@ -24,7 +24,7 @@ export const FeatureIntroScreen: React.FC<FeatureIntroScreenProps> = ({ onNaviga
         </div>
 
         <div className="max-w-xs">
-          <h1 className="text-5xl font-black mb-6 tracking-tighter leading-[0.9] italic">
+          <h1 className="text-5xl font-black mb-6 tracking-tighter leading-[0.9]">
             Scan your <br />
             <span className="text-orange-500 underline decoration-white/20 underline-offset-8">LOOSE BRICKS</span><br />
             & Build.

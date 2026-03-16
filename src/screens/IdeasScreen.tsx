@@ -154,7 +154,7 @@ export const IdeasScreen: React.FC<IdeasScreenProps> = () => {
             const errorMsg: Message = {
                 id: `err_${Date.now()}`,
                 role: 'assistant',
-                text: 'Sorry, I had trouble generating ideas. Please try again.',
+                text: "**The Cosmic Forge**\nYour creative signal is flickering, but the forge is never empty. Try building a tiny mosaic of a sunset while I warm up the generators.\n(Difficulty: Beginner)",
                 timestamp: Date.now()
             };
             setMessages(prev => [...prev, errorMsg]);

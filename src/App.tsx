@@ -22,18 +22,24 @@ import { MyCreationsScreen } from './screens/MyCreationsScreen';
 import { CreatePostScreen } from './screens/CreatePostScreen';
 import { AuthScreen } from './screens/AuthScreen';
 import { SubscriptionScreen } from './screens/SubscriptionScreen';
+import { HowItWorksScreen } from './screens/HowItWorksScreen';
 import { HowToScanScreen } from './screens/HowToScanScreen';
 import { IdeasGeneratorScreen } from './screens/IdeasGeneratorScreen';
 import { NotificationsIntroScreen } from './screens/NotificationsIntroScreen';
-import { BuildingIntroScreen } from './screens/BuildingIntroScreen';
 import { CameraPermissionScreen } from './screens/CameraPermissionScreen';
 import { EmailAuthScreen } from './screens/EmailAuthScreen';
 import { OnboardingScreen } from './screens/OnboardingScreen'; // New import for OnboardingScreen
 import { BottomNav } from './components/BottomNav';
 import { subscriptionService } from './services/subscriptionService';
 import { onAuthStateChange } from './services/supabaseService';
+import { usageService } from './services/usageService';
 
 const App: React.FC = () => {
+  useEffect(() => {
+    // Hide splash screen when app is ready
+    SplashScreen.hide().catch(() => {});
+  }, []);
+
   // Determine initial screen based on onboarding/auth state
   const getInitialScreen = (): Screen => {
     // DEV BYPASS: Check for dev URL param or existing localStorage flag
@@ -41,8 +47,6 @@ const App: React.FC = () => {
     if (urlParams.get('dev') === 'true' || localStorage.getItem('hellobrick_dev_mode') === 'true') {
       console.log('🛠️ DEV BYPASS ACTIVE');
       localStorage.setItem('hellobrick_dev_mode', 'true');
-      localStorage.setItem('hellobrick_onboarding_finished', 'true');
-      localStorage.setItem('hellobrick_authenticated', 'true');
       
       // Auto-jump to scanner if scanner=true is provided
       if (urlParams.get('scanner') === 'true') {
@@ -54,6 +58,10 @@ const App: React.FC = () => {
     const hasFinishedIntro = localStorage.getItem('hellobrick_onboarding_finished') === 'true';
     if (!hasFinishedIntro) return Screen.FEATURE_INTRO;
     
+    // If onboarding finished but not authenticated, go to AUTH
+    const isAuthenticated = localStorage.getItem('hellobrick_authenticated') === 'true';
+    if (!isAuthenticated) return Screen.AUTH;
+
     return Screen.HOME;
   };
 
@@ -61,7 +69,6 @@ const App: React.FC = () => {
   const [battleResult, setBattleResult] = useState<BattleResult | null>(null);
   const [selectedMode, setSelectedMode] = useState<GameModeId>('TARGET');
   const [activeChallenge, setActiveChallenge] = useState<any>(null);
-  const [screenParams, setScreenParams] = useState<any>(null);
   const [showNav, setShowNav] = useState(true);
 
   useEffect(() => {
@@ -72,7 +79,10 @@ const App: React.FC = () => {
 
     // 2. Initialize RevenueCat for anonymous or returning users
     const initialUserId = localStorage.getItem('hellobrick_userId') || undefined;
-    subscriptionService.initialize(initialUserId).catch(err => {
+    subscriptionService.initialize(initialUserId).then(() => {
+      // Sync subscription status immediately after init
+      return subscriptionService.getSubscriptionStatus();
+    }).catch(err => {
       console.error('RevenueCat initialization failed:', err);
     });
 
@@ -98,8 +108,63 @@ const App: React.FC = () => {
   const handleNavigate = (screen: Screen, params?: any) => {
     console.log(`🚀 Navigating to: ${screen}`, params);
 
+    // Check Pro Subscription for gated features
+    const isPro = localStorage.getItem('hellobrick_is_pro') === 'true';
+    const isDev = localStorage.getItem('hellobrick_dev_mode') === 'true';
+    
+    console.log(`🔐 Gating Check for ${screen}: isPro=${isPro}, isDev=${isDev}`);
+
+    const gatedScreens = [
+      Screen.REWARDS, 
+      Screen.HEAD_TO_HEAD, 
+      Screen.H2H_MODES,
+      Screen.H2H_MATCHMAKING,
+      Screen.H2H_BATTLE,
+      Screen.IDEAS, 
+      Screen.PUZZLES, 
+      Screen.TRAINING, 
+      Screen.TRAINING_INTRO, 
+      Screen.LEADERBOARD,
+      Screen.COLLECTION,
+      Screen.MY_CREATIONS
+    ];
+    
+    // 1. Check screen gating
+    if (gatedScreens.includes(screen)) {
+      console.log(`🔒 Gated screen ${screen} requested. isPro: ${isPro}, isDev: ${isDev}`);
+      
+      // If not authenticated, go to AUTH first
+      const isAuthenticated = localStorage.getItem('hellobrick_authenticated') === 'true';
+      if (!isAuthenticated && !isDev) {
+        console.log('🔒 Gated feature: Not authenticated, redirecting to Auth');
+        setCurrentScreen(Screen.AUTH);
+        return;
+      }
+
+      // If authenticated but not Pro, go to Paywall
+      if (!isPro && !isDev) {
+        console.log('🔒 Gated feature: authenticated but not Pro, redirecting to Paywall');
+        setCurrentScreen(Screen.SUBSCRIPTION);
+        return;
+      }
+    }
+
+    // 2. Check Daily Scan Limit (Non-Pro only)
+    if (screen === Screen.SCANNER && !isPro && !isDev) {
+      if (usageService.isLimitReached()) {
+        console.log('🔒 Daily Scan Limit Reached: Redirecting to Paywall');
+        setCurrentScreen(Screen.SUBSCRIPTION);
+        return;
+      }
+    }
+    
     // Reset navigation bar visibility on every navigation unless specifically hidden
     setShowNav(true);
+
+    // Save onboarding completion when reaching home or specific steps
+    if (screen === Screen.HOME || screen === Screen.NOTIFICATIONS_INTRO) {
+      localStorage.setItem('hellobrick_onboarding_finished', 'true');
+    }
 
     if (screen === Screen.HOME) {
       localStorage.setItem('hellobrick_authenticated', 'true');
@@ -112,13 +177,14 @@ const App: React.FC = () => {
 
     if (screen === Screen.SCANNER && params?.challenge) {
       setActiveChallenge(params.challenge);
+    } else if (screen === Screen.SCANNER) {
+      setActiveChallenge(null);
     }
 
     if (screen === Screen.H2H_RESULT && params) {
       setBattleResult(params);
     }
 
-    setScreenParams(params);
     setCurrentScreen(screen);
   };
 
@@ -127,18 +193,15 @@ const App: React.FC = () => {
   };
 
   const renderScreen = () => {
+    console.log('[App] Rendering screen:', currentScreen);
     switch (currentScreen) {
       // --- Onboarding ---
       case Screen.FEATURE_INTRO:
-        return <OnboardingScreen onNavigate={handleNavigate} />;
-      case Screen.HOW_TO_SCAN:
-        return <HowToScanScreen onNavigate={handleNavigate} />;
-      case Screen.IDEAS:
-        return <IdeasGeneratorScreen onNavigate={handleNavigate} initialBrick={screenParams?.brick} allBricks={screenParams?.allBricks} />;
-      case Screen.BUILDING_INTRO:
-        return <BuildingIntroScreen onNavigate={handleNavigate} />;
+        return <OnboardingScreen onNavigate={() => handleNavigate(Screen.HOW_IT_WORKS)} />;
+      case Screen.HOW_IT_WORKS:
+        return <HowItWorksScreen onNavigate={() => handleNavigate(Screen.AUTH)} />;
       case Screen.NOTIFICATIONS_INTRO:
-        return <NotificationsIntroScreen onNavigate={handleNavigate} />;
+        return <NotificationsIntroScreen onNavigate={() => handleNavigate(Screen.SUBSCRIPTION)} />;
       case Screen.CAMERA_PERMISSION:
         return <CameraPermissionScreen onNavigate={handleNavigate} />;
       
@@ -150,7 +213,13 @@ const App: React.FC = () => {
       case Screen.EMAIL_LOGIN:
         return <EmailAuthScreen onNavigate={handleNavigate} onAuthenticate={() => handleNavigate(Screen.NOTIFICATIONS_INTRO)} mode="login" />;
       case Screen.SUBSCRIPTION:
-        return <SubscriptionScreen onNavigate={handleNavigate} />;
+        return <SubscriptionScreen onNavigate={(success?: boolean) => {
+          localStorage.setItem('hellobrick_onboarding_finished', 'true');
+          if (success) {
+            localStorage.setItem('hellobrick_is_pro', 'true'); 
+          }
+          handleNavigate(Screen.HOME);
+        }} />;
 
       // --- Main App ---
       case Screen.HOME:
@@ -167,6 +236,8 @@ const App: React.FC = () => {
         return <QuestsScreen onNavigate={handleNavigate} />;
       case Screen.PUZZLES:
         return <PuzzlesScreen onNavigate={handleNavigate} />;
+      case Screen.IDEAS:
+        return <IdeasGeneratorScreen onNavigate={handleNavigate} />;
       case Screen.FEED:
         return <FeedScreen onNavigate={handleNavigate} />;
       case Screen.TRAINING:
@@ -179,6 +250,8 @@ const App: React.FC = () => {
         return <RewardsScreen onNavigate={handleNavigate} />;
       case Screen.MY_CREATIONS:
         return <MyCreationsScreen onNavigate={handleNavigate} />;
+      case Screen.HOW_TO_SCAN:
+        return <HowToScanScreen onNavigate={handleNavigate} />;
       case Screen.CREATE_POST:
         return <CreatePostScreen onNavigate={handleNavigate} />;
 

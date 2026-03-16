@@ -1,6 +1,5 @@
-// @ts-nocheck
 import * as React from 'react';
-import { ChevronLeft, Camera, Check, BrainCircuit, Trophy, Sparkles, Zap, Shield, ChevronRight } from 'lucide-react';
+import { ChevronLeft, Upload, Info } from 'lucide-react';
 import { Screen } from '../types';
 
 interface TrainingIntroScreenProps {
@@ -15,115 +14,90 @@ export const TrainingIntroScreen: React.FC<TrainingIntroScreenProps> = ({ onNavi
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-orange-600/5 rounded-full blur-[120px] -ml-32 -mb-32" />
       
       {/* Header */}
-      <div className="relative z-50 px-6 pt-[max(env(safe-area-inset-top),3.5rem)] pb-4 flex items-center justify-between sticky top-0 bg-[#050A18]/80 backdrop-blur-xl border-b border-white/5">
-         <button 
-           onClick={() => onNavigate(Screen.TRAINING)}
-           className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 hover:bg-white/10"
-         >
-             <ChevronLeft className="w-5 h-5" />
-         </button>
-         <div className="flex flex-col items-center">
-            <h1 className="text-sm font-black uppercase tracking-[0.2em] text-white">Neural Protocol</h1>
-            <div className="flex items-center gap-1.5 mt-0.5">
-               <Zap className="w-2.5 h-2.5 text-indigo-500" />
-               <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Knowledge Transfer</span>
-            </div>
-         </div>
+      <div className="relative z-50 px-6 pt-[max(env(safe-area-inset-top),1.5rem)] pb-4 flex items-center justify-between">
          <button 
            onClick={() => onNavigate(Screen.HOME)}
-           className="text-slate-600 font-black text-[10px] uppercase tracking-widest hover:text-white transition-colors"
+           className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 hover:bg-white/10"
          >
-           Exit
+             <ChevronLeft className="w-6 h-6" />
          </button>
+         <div className="flex flex-col items-center">
+            <h1 className="text-[10px] font-black text-orange-500 uppercase tracking-[0.2em]">Rewards Hub</h1>
+         </div>
+         <div className="w-10" /> {/* Spacer */}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-8 pb-32 pt-12 relative z-10 no-scrollbar">
-         <div className="max-w-md mx-auto">
-            <h2 className="text-4xl font-black text-white tracking-tight leading-none mb-4">How the Hive Leans</h2>
-            <p className="text-slate-500 font-bold text-base leading-relaxed mb-16">
-               Your verification data is hashed and synthesized into our global detection model in real-time.
+      <div className="flex-1 overflow-y-auto px-8 pb-32 pt-4 relative z-10 no-scrollbar">
+         <div className="max-w-md mx-auto flex flex-col items-center">
+            <h2 className="text-[42px] font-black text-white tracking-tight leading-none mb-4 text-center">XP = Rewards</h2>
+            <p className="text-slate-400 font-bold text-base leading-relaxed mb-12 text-center px-4">
+               Unlock real rewards every 2 weeks. Upload build videos to earn massive XP and claim your prizes.
             </p>
 
-            {/* The Flow Diagram */}
-            <div className="relative border-l-2 border-dashed border-white/5 ml-4 space-y-16 pb-10">
-               
-               {/* Step 1: Discovery */}
-               <div className="relative pl-12 group">
-                   <div className="absolute -left-[19px] top-0 w-9 h-9 rounded-xl bg-[#0F172A] border-2 border-indigo-500/30 flex items-center justify-center z-10 group-hover:scale-110 transition-all shadow-[0_0_15px_rgba(99,102,241,0.2)]">
-                       <Camera className="w-5 h-5 text-indigo-400" />
-                   </div>
-                   
-                   <div className="bg-white/5 rounded-[32px] p-8 border border-white/5 backdrop-blur-sm relative overflow-hidden">
-                       <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full blur-2xl -mr-12 -mt-12" />
-                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-500/50 mb-3 block">Level 1</span>
-                       <h3 className="text-xl font-black text-white mb-2 tracking-tight">Detection Ingest</h3>
-                       <p className="text-sm text-slate-500 font-medium leading-relaxed">
-                           A scanner identifies a specimen but generates a low baseline confidence score (under 85%).
-                       </p>
-                   </div>
+            {/* XP Progress Card */}
+            <div className="w-full bg-[#0F172A] rounded-[32px] p-8 border border-white/5 mb-8">
+               <div className="flex justify-between items-start mb-6">
+                  <div className="flex gap-4">
+                     <div className="w-14 h-14 bg-orange-500/10 rounded-full flex items-center justify-center border border-orange-500/20">
+                        <Sparkles className="w-6 h-6 text-orange-500" />
+                     </div>
+                     <div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Your Rewards XP</span>
+                        <div className="flex items-baseline gap-1">
+                           <span className="text-3xl font-black text-white">1,500</span>
+                           <span className="text-sm font-black text-slate-500">XP</span>
+                        </div>
+                     </div>
+                  </div>
+                  <div className="text-right">
+                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Next Reward</span>
+                     <div className="text-green-400 font-black text-lg">500 XP</div>
+                  </div>
                </div>
 
-               {/* Step 2: Verification */}
-               <div className="relative pl-12 group">
-                   <div className="absolute -left-[19px] top-0 w-9 h-9 rounded-xl bg-[#0F172A] border-2 border-orange-500/30 flex items-center justify-center z-10 group-hover:scale-110 transition-all shadow-[0_0_15px_rgba(249,115,22,0.2)]">
-                       <Shield className="w-5 h-5 text-orange-400" />
-                   </div>
-                   
-                   <div className="bg-white/5 rounded-[32px] p-8 border border-white/5 backdrop-blur-sm relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-orange-500/5 rounded-full blur-2xl -mr-12 -mt-12" />
-                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500/50 mb-3 block">Level 2</span>
-                       <h3 className="text-xl font-black text-white mb-2 tracking-tight">Builder Consensus</h3>
-                       <p className="text-sm text-slate-500 font-medium leading-relaxed">
-                           The specimen is sent to the <strong>Neural Workbench</strong>. Master Builders provide the final confirmation vote.
-                       </p>
-                   </div>
+               {/* Progress Bar */}
+               <div className="h-4 bg-slate-800/50 rounded-full overflow-hidden relative mb-4">
+                  <div className="h-full w-[30%] bg-gradient-to-r from-orange-400 to-orange-600 rounded-full shadow-[0_0_15px_rgba(249,115,22,0.4)]" />
                </div>
+                <p className="text-center text-[11px] font-black text-slate-500 uppercase tracking-widest">
+                   Resetting in 9 days • Next: $10 Gift Card
+                </p>
+            </div>
 
-               {/* Step 3: Learning */}
-               <div className="relative pl-12 group">
-                   <div className="absolute -left-[19px] top-0 w-9 h-9 rounded-xl bg-[#0F172A] border-2 border-emerald-500/30 flex items-center justify-center z-10 group-hover:scale-110 transition-all shadow-[0_0_15px_rgba(16,185,129,0.2)]">
-                       <BrainCircuit className="w-5 h-5 text-emerald-400" />
-                   </div>
-                   
-                   <div className="bg-white/5 rounded-[32px] p-8 border border-white/5 backdrop-blur-sm relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl -mr-12 -mt-12" />
-                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500/50 mb-3 block">Level 3</span>
-                       <h3 className="text-xl font-black text-white mb-2 tracking-tight">Synaptic Update</h3>
-                       <p className="text-sm text-slate-500 font-medium leading-relaxed">
-                           After 5 matching votes, the specimen's geometry is permanently baked into the global detection weights.
-                       </p>
-                   </div>
+            {/* Upload Area */}
+            <button className="w-full aspect-square max-h-[300px] border-2 border-dashed border-orange-500/30 rounded-[48px] flex flex-col items-center justify-center gap-4 bg-white/5 hover:bg-white/10 transition-all group mb-8">
+               <div className="w-20 h-20 bg-[#0F172A] rounded-full flex items-center justify-center border border-white/10 group-active:scale-95 transition-all">
+                  <Upload className="w-8 h-8 text-orange-500" />
                </div>
-
-               {/* Step 4: Reward */}
-               <div className="relative pl-12 group">
-                   <div className="absolute -left-[19px] top-0 w-9 h-9 rounded-xl bg-[#0F172A] border-2 border-yellow-500/30 flex items-center justify-center z-10 group-hover:scale-110 transition-all shadow-[0_0_15px_rgba(234,179,8,0.2)]">
-                       <Trophy className="w-5 h-5 text-yellow-400" />
-                   </div>
-                   
-                   <div className="bg-white/5 rounded-[32px] p-8 border border-white/5 backdrop-blur-sm relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-500/5 rounded-full blur-2xl -mr-12 -mt-12" />
-                       <span className="text-[10px] font-black uppercase tracking-[0.2em] text-yellow-500/50 mb-3 block">Elite</span>
-                       <h3 className="text-xl font-black text-white mb-2 tracking-tight">Status Upgrade</h3>
-                       <p className="text-sm text-slate-500 font-medium leading-relaxed">
-                           You earn high-yield XP for every confirmed vote. Top contributors receive the <strong>Neural Architect</strong> badge.
-                       </p>
-                   </div>
+               <div className="text-center">
+                  <h3 className="text-2xl font-black text-white">Upload Build Video</h3>
+                  <p className="text-slate-500 font-bold text-sm mt-1">Tap to select a video of you<br />putting bricks together.</p>
                </div>
+            </button>
 
+            {/* Why videos card */}
+            <div className="w-full bg-[#0F172A]/50 rounded-[24px] p-6 border border-white/5 flex gap-4">
+               <div className="w-10 h-10 bg-blue-500/10 rounded-full flex items-center justify-center flex-shrink-0 border border-blue-500/20">
+                  <Info className="w-5 h-5 text-blue-400" />
+               </div>
+               <div>
+                  <h4 className="text-xs font-black text-white uppercase tracking-widest mb-1.5">Why build videos?</h4>
+                  <p className="text-[13px] text-slate-500 font-medium leading-relaxed">
+                     Your uploads help the world's builders identify bricks faster and more accurately. Every contribution puts you closer to the next reward milestone.
+                  </p>
+               </div>
             </div>
          </div>
-      </div>
-      
-      <div className="p-8 bg-[#050A18]/80 backdrop-blur-3xl pb-[max(env(safe-area-inset-bottom),2rem)] border-t border-white/5 z-50">
-          <button 
-            onClick={() => onNavigate(Screen.TRAINING)}
-            className="w-full bg-white text-slate-950 py-6 rounded-[32px] font-black text-sm uppercase tracking-[0.2em] shadow-3xl active:scale-95 transition-all flex items-center justify-center gap-3"
-          >
-              Enter Workbench
-              <ChevronRight className="w-4 h-4" />
-          </button>
       </div>
     </div>
   );
 };
+
+const Sparkles = ({ className }: { className?: string }) => (
+   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707" />
+      <circle cx="12" cy="12" r="3" />
+      <circle cx="19" cy="5" r="1.5" />
+      <circle cx="5" cy="19" r="1.5" />
+   </svg>
+);

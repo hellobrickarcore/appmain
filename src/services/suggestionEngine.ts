@@ -97,9 +97,15 @@ export const suggestionEngine = {
 
             return [
                 {
-                    title: `Cyberpunk ${dominantColor} City`,
-                    description: `Using your ${colorCounts[dominantColor] || 0} ${dominantColor} pieces, you could build a futuristic skyscraper base.`,
+                    title: `The ${dominantColor} Monolith`,
+                    description: `A towering architectural achievement using your ${colorCounts[dominantColor] || 1} ${dominantColor} pieces. Focus on verticality and structural integrity.`,
                     difficulty: 'Master',
+                    xp: 500
+                },
+                {
+                    title: "Micro-Scale Galaxy",
+                    description: "Even with a handful of bricks, you can create a distant star system. Every stud is a planet.",
+                    difficulty: 'Ready',
                     xp: 250
                 }
             ];

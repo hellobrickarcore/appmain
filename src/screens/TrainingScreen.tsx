@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { UploadCloud, ChevronLeft, Award, Loader2, CheckCircle, XCircle, Eye, Sparkles, Shield, Info, Play, Brain, Database } from 'lucide-react';
+import { UploadCloud, ChevronLeft, Award, Loader2, CheckCircle, XCircle, Eye, Sparkles, Shield, Info, Play, Brain, Database, Clock } from 'lucide-react';
 import { Screen } from '../types';
 import { submitTrainingFeedback } from '../services/trainingFeedbackService';
 import { CONFIG } from '../services/configService';
@@ -135,7 +135,7 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ onNavigate }) =>
             setTimeout(() => { setUploadSuccess(false); setMode('menu'); }, 4000);
           } else { setError(data.error || 'Upload failed'); }
         })
-        .catch(err => { setUploading(false); setError('Network error during upload'); });
+        .catch(() => { setUploading(false); setError('Network error during upload'); });
       };
       video.src = URL.createObjectURL(file);
     }
@@ -154,10 +154,10 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ onNavigate }) =>
           <ChevronLeft className="w-5 h-5 text-slate-300" />
         </button>
         <div className="flex flex-col items-center">
-           <h1 className="text-sm font-black uppercase tracking-[0.2em] text-white">Neural Training</h1>
+           <h1 className="text-sm font-black text-white">TRAINING MODE</h1>
            <div className="flex items-center gap-1.5 mt-0.5">
-              <Brain className="w-2.5 h-2.5 text-orange-500" />
-              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Model v4.2 Internal</span>
+              <Sparkles className="w-2.5 h-2.5 text-orange-500" />
+              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Help the AI Grow</span>
            </div>
         </div>
         <div className="w-10" />
@@ -168,8 +168,8 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ onNavigate }) =>
         {mode === 'menu' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700">
             <div className="text-left mb-10">
-              <h2 className="text-4xl font-black text-white tracking-tight leading-none mb-3">AI Workbench</h2>
-              <p className="text-slate-500 font-bold text-base leading-relaxed">Contribute high-quality data to amplify our detection accuracy.</p>
+              <h2 className="text-4xl font-black text-white tracking-tight leading-none mb-3">Training Hub</h2>
+              <p className="text-slate-500 font-bold text-base leading-relaxed">Contribute high-quality data to help make the scanner smarter.</p>
             </div>
 
             <button
@@ -182,7 +182,7 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ onNavigate }) =>
                 </div>
                 <div className="flex-1">
                   <h3 className="font-black text-2xl text-white mb-1">Verify Bricks</h3>
-                  <p className="text-[13px] text-slate-500 font-medium">Earn XP by validating AI object labels</p>
+                  <p className="text-[13px] text-slate-500 font-medium">Earn XP by validating object labels</p>
                   <div className="mt-3 inline-flex items-center gap-2 bg-orange-500/10 px-3 py-1 rounded-xl">
                     <Sparkles className="w-3 h-3 text-orange-400" />
                     <span className="text-[10px] font-black text-orange-400 uppercase tracking-widest">+10 XP</span>
@@ -221,7 +221,7 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ onNavigate }) =>
               </div>
               <ul className="space-y-8">
                 {[
-                  { title: "5 Minute Minimum", desc: "Shorter streams do not provide enough spatial variety for neural mapping.", icon: <Clock className="w-5 h-5" /> },
+                  { title: "5 Minute Minimum", desc: "Shorter streams do not provide enough spatial variety for scanner mapping.", icon: <Clock className="w-5 h-5" /> },
                   { title: "Privacy Lockdown", desc: "Zero facial visibility. Focus exclusively on the components.", icon: <Shield className="w-5 h-5" /> },
                   { title: "360° Perspective", desc: "Rotate parts to allow for depth-map generation.", icon: <Eye className="w-5 h-5" /> },
                   { title: "Lumen Optimization", desc: "Maintain high-contrast lighting for edge-case detection.", icon: <Sparkles className="w-5 h-5" /> }
@@ -261,8 +261,8 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ onNavigate }) =>
                      <Loader2 className="w-16 h-16 text-indigo-500 animate-spin mb-6" />
                      <div className="absolute inset-0 bg-indigo-500/20 blur-xl animate-pulse" />
                   </div>
-                  <h3 className="text-2xl font-black text-white italic">Ingesting...</h3>
-                  <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-4">Transmitting Neural Packets</p>
+                  <h3 className="text-2xl font-black text-white">Ingesting...</h3>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-4">Transmitting Scanner Packets</p>
                 </div>
               ) : uploadSuccess ? (
                 <div className="flex flex-col items-center py-10">
@@ -278,7 +278,7 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ onNavigate }) =>
                     <UploadCloud className="w-10 h-10 text-indigo-400" />
                   </div>
                   <h3 className="text-2xl font-black text-white mb-3">Sync Visual Data</h3>
-                  <p className="text-sm text-slate-500 mb-10 px-6 font-medium leading-relaxed">Select build footage for server-side neural integration.</p>
+                  <p className="text-sm text-slate-500 mb-10 px-6 font-medium leading-relaxed">Select build footage for server-side integration.</p>
 
                   {error && (
                     <div className="bg-rose-500/10 border border-rose-500/20 text-rose-500 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest mb-6">
@@ -351,7 +351,7 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ onNavigate }) =>
                        <span className="w-8 h-[1px] bg-slate-800" />
                     </div>
                     
-                    <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest mb-2 italicOpacity: 0.8">Neural Prediction:</h3>
+                    <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest mb-2 opacity-80">System Prediction:</h3>
                     <h2 className="text-3xl font-black text-white tracking-tight mb-2 leading-tight">
                        {currentItem.color !== 'Unknown' ? `${currentItem.color} ` : ''}{currentItem.predictedLabel}
                     </h2>

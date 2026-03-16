@@ -40,7 +40,7 @@ export const PuzzlesScreen: React.FC<PuzzlesScreenProps> = ({ onNavigate }) => {
                         <ChevronLeft className="w-5 h-5 text-slate-300" />
                     </button>
                     <div className="flex flex-col items-center">
-                       <h1 className="text-sm font-black uppercase tracking-[0.2em] text-white">Challenges</h1>
+                       <h1 className="text-sm font-black text-white">CHALLENGES</h1>
                        <div className="flex items-center gap-1 mt-0.5">
                           <Trophy className="w-2.5 h-2.5 text-orange-500" />
                           <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">3,400 XP Total</span>

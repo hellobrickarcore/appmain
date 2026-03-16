@@ -73,7 +73,7 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ onNavigate
         >
           <ChevronLeft className="w-5 h-5 text-slate-300" />
         </button>
-        <h1 className="text-xl font-black uppercase tracking-[0.2em] text-white">Leaderboard</h1>
+        <h1 className="text-sm font-black text-white">LEADERBOARD</h1>
         <div className="w-10" />
       </div>
 
