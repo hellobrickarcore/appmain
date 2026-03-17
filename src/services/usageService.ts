@@ -20,7 +20,7 @@ export const usageService = {
     const isPro = localStorage.getItem('hellobrick_is_pro') === 'true' || localStorage.getItem('hellobrick_dev_mode') === 'true';
     if (isPro) return false;
 
-    return this.getDailyScanCount() >= 3;
+    return this.getDailyScanCount() >= 10;
   },
 
   cleanupOldLogs(currentDate: string): void {

@@ -53,7 +53,17 @@ export const RewardsScreen: React.FC<RewardsScreenProps> = ({ onNavigate }) => {
         <div className="max-w-2xl mx-auto space-y-12">
           <div className="text-left">
             <h2 className="text-4xl font-black text-white tracking-tight leading-none mb-4">Vault Rewards</h2>
-            <p className="text-slate-500 font-bold text-base leading-relaxed">Exchange your hard-earned experience for physical and digital assets.</p>
+            <p className="text-slate-500 font-bold text-base leading-relaxed mb-6">Exchange your hard-earned experience for physical and digital assets.</p>
+            
+            <div className="bg-orange-500/10 border border-orange-500/20 p-5 rounded-[28px] flex items-start gap-4">
+               <div className="bg-orange-500/20 p-2.5 rounded-xl text-orange-400">
+                  <Star className="w-5 h-5 fill-current" />
+               </div>
+               <div>
+                  <h4 className="text-sm font-black text-white uppercase tracking-wider mb-1">Seasonal Payouts</h4>
+                  <p className="text-xs text-orange-200/60 font-bold leading-relaxed">Only the **Top 3 builders** on the Global Leaderboard every 14 days receive guaranteed physical rewards. Keep scanning to climb!</p>
+               </div>
+            </div>
           </div>
 
           {rewards.length === 0 ? (

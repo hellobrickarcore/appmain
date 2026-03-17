@@ -1,12 +1,12 @@
-import { detectBricks } from '../services/brickDetectionService';
+import { detectBricks, DetectionStabilizer, brickDetectionService } from '../services/brickDetectionService';
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { X, Zap, AlertCircle, CheckCircle2, Trash2, RefreshCw } from 'lucide-react';
+import { X, AlertCircle, CheckCircle2, Trash2, RefreshCw, Zap } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Screen } from '../types';
 import { FrameDetection, ScanFrameResponse, bboxToRenderBox } from '../types/detection';
 import { saveCollectionToSupabase } from '../services/trainingDataService';
-import { analytics } from '../services/analyticsService';
 import { usageService } from '../services/usageService';
+import { analytics } from '../services/analyticsService';
 
 interface ScannerScreenProps {
   onNavigate: (screen: Screen, params?: any) => void;
@@ -128,6 +128,17 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
     };
   }, []);
 
+  // Ensure camera stream is attached on every render when scanning
+  useEffect(() => {
+    if (streamRef.current && videoRef.current && (phase === 'scanning' || phase === 'preview')) {
+      if (videoRef.current.srcObject !== streamRef.current) {
+        console.log('[Scanner] Re-attaching stream to video element');
+        videoRef.current.srcObject = streamRef.current;
+        videoRef.current.play().catch(e => console.warn('[Scanner] Play error:', e));
+      }
+    }
+  }, [phase, hasPermission]);
+
   // Auto-start scanning as soon as camera is ready
   useEffect(() => {
     if (hasPermission && phase === 'preview') {
@@ -136,113 +147,89 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
     }
   }, [hasPermission]);
 
-  // ─── Detection Smoothing ────────────────────────
-  
-  const prevDetectionsRef = useRef<FrameDetection[]>([]);
-  const persistenceWindowMs = 800; // Reduced for responsiveness
+  const stabilizerRef = useRef<DetectionStabilizer>(new DetectionStabilizer(2500, 0.2, 12));
 
-  const smoothDetections = (newDetections: FrameDetection[]) => {
-    const now = Date.now();
-    const result = [...newDetections];
-
-    // Magnetic "locking": If a detection in prevDetectionsRef isn't in newDetections, 
-    // keep it for a short window if it was confident.
-    prevDetectionsRef.current.forEach(prev => {
-      const exists = newDetections.some(curr => {
-        // More robust overlap check
-        const prevBox = prev.geometry.bbox;
-        const currBox = curr.geometry.bbox;
-        
-        const centerX1 = (prevBox.xMin + prevBox.xMax) / 2;
-        const centerY1 = (prevBox.yMin + prevBox.yMax) / 2;
-        const centerX2 = (currBox.xMin + currBox.xMax) / 2;
-        const centerY2 = (currBox.yMin + currBox.yMax) / 2;
-        
-        const distance = Math.sqrt(Math.pow(centerX1 - centerX2, 2) + Math.pow(centerY1 - centerY2, 2));
-        return distance < 50; // Allow slight movement
-      });
-
-      if (!exists && (prev.prediction.identityConfidence > 0.5 || prev.labelDisplayStatus === 'confirmed')) {
-        // Check if it's within the persistence window
-        const age = now - ((prev as any)._timestamp || now);
-        if (age < persistenceWindowMs) {
-          result.push(prev);
-        }
-      }
-    });
-
-    // Tag new detections with timestamp
-    result.forEach(d => {
-      if (!(d as any)._timestamp) (d as any)._timestamp = now;
-    });
-
-    prevDetectionsRef.current = result;
-    return result;
-  };
 
   // ─── API Detection Loop ────────────────
   useEffect(() => {
     if (phase !== 'scanning' || !hasPermission) return;
 
-    let intervalId: any;
+    let timeoutId: any;
+    let isActive = true;
 
     const detectLoop = async () => {
-      if (isDetectingRef.current || phase !== 'scanning' || !videoRef.current) return;
+      if (!isActive || phase !== 'scanning' || !videoRef.current || isDetectingRef.current) {
+        if (isActive) timeoutId = setTimeout(detectLoop, 200);
+        return;
+      }
 
       const video = videoRef.current;
-      if (video.readyState < 2) return;
+      if (video.readyState < 2) {
+        timeoutId = setTimeout(detectLoop, 200);
+        return;
+      }
 
       try {
         isDetectingRef.current = true;
         const response: ScanFrameResponse = await detectBricks(video);
 
-        if (phase === 'scanning' && !isProcessing) {
-          // Apply magnetic smoothing
-          const stabilizedDetections = smoothDetections(response.detections);
-          setDetectedObjects(stabilizedDetections);
-
+        if (phase === 'scanning' && !isProcessing && isActive) {
+          // Apply magnetic smoothing via unified stabilizer
+          const stabilizedDetections = stabilizerRef.current.stabilize(response.detections);
           
+          if (stabilizedDetections.length > 0) {
+            console.log(`[Scanner] 🎯 Detections Loop: ${stabilizedDetections.length} objects (RTT: ${response.rttMs}ms)`, stabilizedDetections.map(d => ({
+              id: d.detectionId,
+              name: d.prediction.brickName,
+              conf: d.prediction.identityConfidence,
+              bbox: d.geometry.bbox
+            })));
+          }
+
+          setDetectedObjects(stabilizedDetections);
           setLastResponse(response);
           setQualityAdvice(null);
 
-          // Check for challenge completion
+          // ... challenge logic remains same ...
           if (challenge) {
-            // Flexible matching: check if target name or color exists in detected objects
             const target = challenge.target?.toLowerCase() || '';
             const goalMet = response.detections.some(obj => {
               const name = obj.prediction.brickName?.toLowerCase() || '';
               const color = obj.prediction.brickColorName?.toLowerCase() || '';
-              return name.includes(target) || color.includes(target) || (target === 'red' && color === 'red');
+              const confidence = obj.prediction.identityConfidence || 0;
+              const isConfident = confidence >= 0.7;
+              if (!isConfident) return false;
+              return name === target || name.includes(target) || color === target || color.includes(target);
             });
 
             if (goalMet && !saveSuccess) {
                console.log('🎯 CHALLENGE GOAL MET!');
-               confetti({
-                 particleCount: 150,
-                 spread: 70,
-                 origin: { y: 0.6 },
-                 colors: ['#F97316', '#FB923C', '#FFFFFF']
-               });
+               confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#F97316', '#FB923C', '#FFFFFF'] });
                setSaveSuccess(true);
-               // Trigger XP event
-               import('../services/xpService').then(({ xpHelpers }) => {
-                 xpHelpers.challengeCompleted(challenge.id, 'daily');
-               });
+               import('../services/xpService').then(({ xpHelpers }) => { xpHelpers.challengeCompleted(challenge.id, 'daily'); });
                setTimeout(() => setPhase('results'), 2000);
             }
           }
         }
+
+        // Adaptive Interval: RTT + 50ms buffer, min 150ms, max 1000ms
+        const nextDelay = Math.max(150, Math.min(1000, (response.rttMs || 150) + 50));
+        if (isActive) timeoutId = setTimeout(detectLoop, nextDelay);
+
       } catch (err) {
         console.error('Detection error:', err);
+        if (isActive) timeoutId = setTimeout(detectLoop, 500); // Backoff on error
       } finally {
         isDetectingRef.current = false;
       }
     };
 
-    // Heat Seeker mode: Detection every 150ms
-    intervalId = setInterval(detectLoop, 150);
+    detectLoop();
 
-    return () => clearInterval(intervalId);
+    return () => {
+      isActive = false;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [phase, hasPermission]);
 
   // Removed old detection loop
@@ -264,6 +251,8 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
 
   const handleCapture = useCallback(async () => {
     setIsProcessing(true);
+    // Phase 18: Stop the loop immediately to freeze the "locked" states
+    isDetectingRef.current = true; 
 
 
     const image = captureImage();
@@ -272,8 +261,15 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
     }
 
     try {
-      const threshold = 0.4;
+      // Phase 24: Lower threshold from 0.5 to 0.3 to match distance detection
+      const threshold = 0.3;
       const capturedBricks = detectedObjects.filter(b => (b.prediction.identityConfidence || 0) >= threshold);
+      console.log('[Scanner] 📸 Capture Event:', {
+        totalDetected: detectedObjects.length,
+        passedThreshold: capturedBricks.length,
+        threshold,
+        bricks: capturedBricks.map(b => ({ id: b.detectionId, name: b.prediction.brickName }))
+      });
       setDetectedObjects(capturedBricks);
       
       const initialSelection = new Set<string>();
@@ -329,6 +325,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
           confidence: pred.identityConfidence,
           count: 1,
           image: brickImage,
+          addedAt: Date.now(),
           bbox: {
             x: bbox.xMin,
             y: bbox.yMin,
@@ -367,6 +364,11 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
 
       // Increment daily scan count
       usageService.incrementScanCount();
+
+      // AWARD XP
+      import('../services/xpService').then(({ xpHelpers }) => {
+        xpHelpers.scanDetection(bricksToSave.length, bricksToSave.length);
+      });
 
       window.dispatchEvent(new CustomEvent('hellobrick:collection-updated'));
       saveCollectionToSupabase(userId, bricksWithMetaData).catch(() => { });
@@ -443,6 +445,25 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
               className="absolute inset-0 w-full h-full object-cover opacity-90"
             />
 
+            {/* Scanning title or Challenge (Phase 20) */}
+            <div className="absolute top-0 left-0 right-0 p-6 pt-[max(env(safe-area-inset-top),2.5rem)] flex items-center justify-center z-50 pointer-events-none">
+                <div className="flex flex-col items-center gap-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
+                    <span className="text-[14px] font-black text-white/90 uppercase tracking-[0.2em] drop-shadow-md">
+                      {challenge ? 'CHALLENGE ACTIVE' : 'LIVE SCANNER'}
+                    </span>
+                  </div>
+                  {challenge && (
+                    <div className="bg-orange-500/20 backdrop-blur-md px-4 py-1.5 rounded-full border border-orange-500/30">
+                      <span className="text-[10px] font-black text-orange-400 uppercase tracking-widest">
+                        GOAL: {challenge.type}
+                      </span>
+                    </div>
+                  )}
+                </div>
+            </div>
+
             {/* Minimal controls overlays (deprecated - using Top Controls above) */}
             <div className="hidden absolute top-0 left-0 right-0 p-6 flex justify-between items-start z-30">
               <button
@@ -456,8 +477,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
               </button>
             </div>
 
-            {/* 🔒 LOCK: Live bounding box overlays — using canonical utility. 
-                Do not modify coordinate mapping or bbox logic without testing on mobile. */}
+            {/* 🔒 LOCK: Live bounding box overlays — using canonical utility. */}
             <div ref={overlayContainerRef} className="absolute inset-0 pointer-events-none overflow-hidden">
               {detectedObjects.map((obj, i) => {
                 const container = overlayContainerRef.current;
@@ -468,11 +488,6 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
                 const vh = video.videoHeight || 480;
                 const cw = container.clientWidth;
                 const ch = container.clientHeight;
-
-                // Log dimensions occasionally for debugging
-                if (i === 0 && Math.random() < 0.05) {
-                  console.log(`[Scanner] v:${vw}x${vh} c:${cw}x${ch}`);
-                }
 
                 const renderBox = bboxToRenderBox(
                   obj.geometry.bbox,
@@ -493,41 +508,51 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
                       width: `${renderBox.width}%`,
                       height: `${renderBox.height}%`,
                       transition: 'all 0.1s ease-out',
-                      border: '2px solid #3B82F6',
-                      borderRadius: '4px',
-                      backgroundColor: 'rgba(59, 130, 246, 0.1)'
+                      border: '1.5px solid #3B82F6',
+                      borderRadius: '6px',
+                      backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                      boxShadow: '0 0 10px rgba(59, 130, 246, 0.2)'
                     }}
                   >
-                    {/* Label pill — matched to screenshot */}
-                    <div className="absolute -top-7 left-0 bg-[#3B82F6] px-2 py-1 rounded-md flex items-center gap-1.5 shadow-lg whitespace-nowrap">
-                      <div className="w-1.5 h-1.5 bg-white rounded-full" />
-                      <span className="text-[10px] font-black text-white uppercase tracking-wider">
-                        {obj.prediction.brickName} • {Math.round(obj.prediction.identityConfidence * 100)}%
-                      </span>
-                    </div>
+                    {/* Label pill — Phase 22: Show more details and lower threshold for visibility */}
+                    {obj.prediction.identityConfidence > 0.3 && (
+                      <div 
+                        className={`absolute -top-7 left-0 backdrop-blur-sm px-2 py-1 rounded-md flex items-center gap-1.5 shadow-lg whitespace-nowrap border transition-opacity duration-300 ${
+                          obj.prediction.identityConfidence > 0.6 
+                            ? 'bg-[#3B82F6]/90 border-white/20' 
+                            : 'bg-slate-800/80 border-white/5 opacity-80'
+                        }`}
+                      >
+                        <div className={`w-1.5 h-1.5 rounded-full ${obj.prediction.identityConfidence > 0.6 ? 'bg-white' : 'bg-slate-400'}`} />
+                        <span className="text-[10px] font-black text-white uppercase tracking-wider">
+                          {brickDetectionService.generationFallbackLabel(obj)}
+                          <span className="ml-1.5 opacity-60 font-medium">
+                            {Math.round(obj.prediction.identityConfidence * 100)}%
+                          </span>
+                        </span>
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
 
-            {/* Scanning title or Challenge */}
-            <div className="absolute top-0 left-0 right-0 p-6 pt-[max(env(safe-area-inset-top),2.5rem)] flex items-center justify-center z-50 pointer-events-none">
-                <div className="flex flex-col items-center gap-1">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
-                    <span className="text-[14px] font-black text-white/90 uppercase tracking-[0.2em] drop-shadow-md">
-                      {challenge ? 'CHALLENGE ACTIVE' : 'LIVE SCANNER'}
-                    </span>
+            {/* 🔍 SEARCHING ANIMATION (Phase 22) */}
+            {detectedObjects.length === 0 && phase === 'scanning' && !isProcessing && (
+              <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
+                <div className="w-full h-1 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent absolute top-0 animate-scan-sweep shadow-[0_0_20px_rgba(59,130,246,0.3)]" />
+                <div className="bg-black/20 backdrop-blur-sm px-6 py-3 rounded-2xl border border-white/5 flex flex-col items-center gap-2">
+                  <div className="flex gap-1">
+                     {[0,1,2].map(i => (
+                       <div key={i} className="w-1.5 h-1.5 rounded-full bg-blue-500/50 animate-bounce" style={{ animationDelay: `${i * 0.2}s` }} />
+                     ))}
                   </div>
-                  {challenge && (
-                    <div className="bg-orange-500/20 backdrop-blur-md px-4 py-1.5 rounded-full border border-orange-500/30">
-                      <span className="text-[10px] font-black text-orange-400 uppercase tracking-widest">
-                        GOAL: {challenge.type}
-                      </span>
-                    </div>
-                  )}
+                  <span className="text-[10px] font-black text-blue-400/60 uppercase tracking-[0.3em]">
+                    Scanning for bricks...
+                  </span>
                 </div>
-            </div>
+              </div>
+            )}
 
             {/* Object count badge */}
             {detectedObjects.length > 0 && phase === 'scanning' && (
@@ -590,6 +615,16 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
                 const color = COLORS[i % COLORS.length];
                 const isSelected = selectedBricks.has(obj.detectionId);
 
+                // Log individual box data for review
+                if (i === 0) {
+                  console.log('[Scanner] 🔍 Results Phase Render:', { 
+                    total: detectedObjects.length, 
+                    selected: selectedBricks.size,
+                    frame: { w: frameW, h: frameH },
+                    container: { w: cw, h: ch }
+                  });
+                }
+
                 return (
                   <div key={obj.detectionId || i}>
                     <div
@@ -601,10 +636,16 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
                       }}
                     />
                     <div
-                      className="absolute bottom-full left-0 mb-1 bg-black/80 backdrop-blur-md text-white px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap border"
+                      className="absolute bottom-full left-0 mb-1 bg-black/80 backdrop-blur-md text-white px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap border flex flex-col gap-0.5"
                       style={{ borderColor: color }}
                     >
-                      {obj.prediction.brickName}
+                      <div className="flex items-center gap-1.5 px-1 uppercase">
+                        <span className="text-orange-400">{Math.round(obj.prediction.identityConfidence * 100)}%</span>
+                        <span className="opacity-50">•</span>
+                        <span>
+                          {brickDetectionService.generationFallbackLabel(obj)}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 );
@@ -684,15 +725,25 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
                           <div className="flex items-center gap-1.5">
                             <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                             <p className="font-bold text-sm text-white truncate">
-                              {pred.brickColorName && pred.brickColorName !== 'Unknown' ? `${pred.brickColorName} ` : ''}{pred.brickName}
+                               {brickDetectionService.generationFallbackLabel(obj)}
                             </p>
                           </div>
                           {partNum && partNum !== 'Unknown' && (
                             <p className="text-[11px] text-slate-400 ml-4">#{partNum}</p>
                           )}
-                          <p className="text-[10px] text-slate-500 ml-4">
+                          <p className="text-[10px] text-slate-500 ml-4 mb-2">
                             {pred.identityConfidence ? `${(pred.identityConfidence * 100).toFixed(0)}%` : '?'} confidence
                           </p>
+                          {/* Confidence Bar */}
+                          <div className="ml-4 w-24 h-1 bg-white/10 rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full transition-all duration-1000 ${
+                                (pred.identityConfidence || 0) > 0.8 ? 'bg-green-500' : 
+                                (pred.identityConfidence || 0) > 0.6 ? 'bg-yellow-500' : 'bg-red-500'
+                              }`} 
+                              style={{ width: `${(pred.identityConfidence || 0) * 100}%` }} 
+                            />
+                          </div>
                         </div>
 
                         {/* Delete */}

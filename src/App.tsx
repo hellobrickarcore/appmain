@@ -31,19 +31,21 @@ import { EmailAuthScreen } from './screens/EmailAuthScreen';
 import { OnboardingScreen } from './screens/OnboardingScreen'; // New import for OnboardingScreen
 import { BottomNav } from './components/BottomNav';
 import { subscriptionService } from './services/subscriptionService';
-import { onAuthStateChange } from './services/supabaseService';
+import { onAuthStateChange, supabase } from './services/supabaseService';
 import { usageService } from './services/usageService';
 
+console.log('🚀 BUILD_VERSION: 1.1.2 - GEMINI_IMAGEN_V3');
+console.log('--- APP V1.1.2 ACTIVE ---');
+
+
 const App: React.FC = () => {
-  useEffect(() => {
-    // Hide splash screen when app is ready
-    SplashScreen.hide().catch(() => {});
-  }, []);
 
   // Determine initial screen based on onboarding/auth state
   const getInitialScreen = (): Screen => {
+    console.log('[App] Determining initial screen...');
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('simulator') === 'true') {
+      console.log('[App] Simulator mode detected');
       localStorage.setItem('hellobrick_simulator_mode', 'true');
       localStorage.setItem('hellobrick_onboarding_finished', 'true');
       localStorage.setItem('hellobrick_authenticated', 'true');
@@ -51,47 +53,110 @@ const App: React.FC = () => {
     }
 
     const hasFinishedIntro = localStorage.getItem('hellobrick_onboarding_finished') === 'true';
+    console.log('[App] Onboarding finished:', hasFinishedIntro);
     if (!hasFinishedIntro) return Screen.FEATURE_INTRO;
     
     // If onboarding finished but not authenticated, go to AUTH
     const isAuthenticated = localStorage.getItem('hellobrick_authenticated') === 'true';
+    console.log('[App] Authenticated:', isAuthenticated);
     if (!isAuthenticated) return Screen.AUTH;
 
     return Screen.HOME;
   };
 
   const [currentScreen, setCurrentScreen] = useState<Screen>(getInitialScreen());
+  const [screenParams, setScreenParams] = useState<any>(null);
   const [battleResult, setBattleResult] = useState<BattleResult | null>(null);
   const [selectedMode, setSelectedMode] = useState<GameModeId>('TARGET');
   const [activeChallenge, setActiveChallenge] = useState<any>(null);
   const [showNav, setShowNav] = useState(true);
 
+  // Phase 17: Emergency Early Splash Hide
   useEffect(() => {
-    // 1. Hide splash screen
-    SplashScreen.hide().catch(err => {
-      console.warn('Splash screen hide failed (likely already hidden or non-native):', err);
-    });
+    const splashReset = async () => {
+      try {
+        const { SplashScreen } = await import('@capacitor/splash-screen');
+        await SplashScreen.hide();
+        console.log('[App] ⚡ Early Splash Hide Triggered');
+      } catch (e) {}
+    };
+    splashReset();
+  }, []);
 
-    // 2. Initialize RevenueCat for anonymous or returning users
-    const initialUserId = localStorage.getItem('hellobrick_userId') || undefined;
-    subscriptionService.initialize(initialUserId).then(() => {
-      // Sync subscription status immediately after init
-      return subscriptionService.getSubscriptionStatus();
-    }).catch(err => {
-      console.error('RevenueCat initialization failed:', err);
-    });
+  useEffect(() => {
+    const init = async () => {
+      try {
+        console.log('[App] 🚀 Initializing Native Bridge...');
+        
+        // 1. Hide splash screen
+        await SplashScreen.hide().catch(() => {});
+        console.log('[App] ✅ Splash screen hidden');
 
-    // 3. Global Auth State Listener — Ensure Supabase UUID matches RevenueCat appUserID
+        // 2. Initialize RevenueCat
+        const initialUserId = localStorage.getItem('hellobrick_userId') || undefined;
+        await subscriptionService.initialize(initialUserId).catch(err => {
+          console.warn('[App] RevenueCat init warning:', err);
+        });
+        
+        // Final screen logic
+        console.log('[App] ✅ Init Sequence Complete');
+      } catch (err) {
+        console.error('[App] 🛑 CRITICAL INIT ERROR:', err);
+      }
+    };
+
+    init();
+
+    // ─── Deep Link Handling for Supabase Auth ──────────────────
+    const setupDeepLinks = async () => {
+      try {
+        const { App: CapApp } = await import('@capacitor/app');
+        CapApp.addListener('appUrlOpen', async (data: any) => {
+          console.log('[App] 🔗 Deep link opened:', data.url);
+          
+          if (data.url.includes('auth/callback')) {
+            const url = new URL(data.url);
+            // Supabase returns tokens in the hash (#) for implicit flow (sign_in)
+            // or in search params for code flow. Supabase JS client handles both
+            // if we provide the URL or fragment.
+            const fragment = url.hash.substring(1);
+            const params = new URLSearchParams(fragment || url.search);
+            
+            const accessToken = params.get('access_token');
+            const refreshToken = params.get('refresh_token');
+            
+            if (accessToken && refreshToken && supabase) {
+              console.log('[App] 🔑 Found tokens in deep link, updating session...');
+              const { error } = await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken
+              });
+              
+              if (error) {
+                console.error('[App] ❌ Error setting session from deep link:', error);
+              } else {
+                console.log('[App] ✅ Session updated successfully');
+                handleNavigate(Screen.NOTIFICATIONS_INTRO);
+              }
+            } else if (data.url.includes('error_description') && data.url.includes('error=access_denied')) {
+               console.warn('[App] ⚠️ Auth denied or cancelled by user');
+            }
+          }
+        });
+      } catch (err) {
+        console.error('[App] Failed to setup deep links:', err);
+      }
+    };
+
+    setupDeepLinks();
+
     const unsubscribe = onAuthStateChange((event, session) => {
-      console.log(`🔐 Auth State Change: ${event}`, session?.user?.id);
-      
       if (session?.user) {
-        const userId = session.user.id;
-        localStorage.setItem('hellobrick_userId', userId);
-        subscriptionService.setUserId(userId).catch(console.error);
+        localStorage.setItem('hellobrick_userId', session.user.id);
+        subscriptionService.setUserId(session.user.id).catch(() => {});
       } else if (event === 'SIGNED_OUT') {
         localStorage.removeItem('hellobrick_userId');
-        subscriptionService.logout().catch(console.error);
+        subscriptionService.logout().catch(() => {});
       }
     });
 
@@ -120,7 +185,6 @@ const App: React.FC = () => {
       Screen.TRAINING, 
       Screen.TRAINING_INTRO, 
       Screen.LEADERBOARD,
-      Screen.COLLECTION,
       Screen.MY_CREATIONS
     ];
     
@@ -181,6 +245,7 @@ const App: React.FC = () => {
     }
 
     setCurrentScreen(screen);
+    setScreenParams(params || null);
   };
 
   const handlePhaseChange = (phase: string) => {
@@ -232,7 +297,11 @@ const App: React.FC = () => {
       case Screen.PUZZLES:
         return <PuzzlesScreen onNavigate={handleNavigate} />;
       case Screen.IDEAS:
-        return <IdeasGeneratorScreen onNavigate={handleNavigate} />;
+        return <IdeasGeneratorScreen 
+          onNavigate={handleNavigate} 
+          allBricks={screenParams?.allBricks}
+          initialBrick={screenParams?.initialBrick}
+        />;
       case Screen.FEED:
         return <FeedScreen onNavigate={handleNavigate} />;
       case Screen.TRAINING:

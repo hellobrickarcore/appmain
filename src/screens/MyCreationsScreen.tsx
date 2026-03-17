@@ -13,8 +13,16 @@ export const MyCreationsScreen: React.FC<MyCreationsScreenProps> = ({ onNavigate
     const [creations, setCreations] = useState<Creation[]>([]);
 
     useEffect(() => {
-        // TODO: Load creations from backend API
-        setCreations([]);
+        // Load creations from local archive (stored posts)
+        const stored = localStorage.getItem('hellobrick_feed_posts');
+        if (stored) {
+            try {
+                const userId = localStorage.getItem('hellobrick_userId');
+                const allPosts = JSON.parse(stored);
+                // In a production app, this would be a real API call
+                setCreations(allPosts.filter(p => p.userId === userId || p.userId === 'current_user'));
+            } catch (e) { }
+        }
     }, []);
 
     const handleShare = async (platform: string) => {

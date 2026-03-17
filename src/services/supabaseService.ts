@@ -36,17 +36,31 @@ export const getSupabaseClient = () => supabase;
  * Helper to get the correct redirect URL based on environment
  */
 const getAuthRedirectUrl = () => {
-  // Check if we're running in a Capacitor app
+  const platform = Capacitor.getPlatform();
   const isApp = Capacitor.isNativePlatform();
+  const protocol = window.location.protocol;
+  const hostname = window.location.hostname;
 
-  if (isApp) {
-    // Custom URL scheme for mobile deep linking
+  console.log('[Supabase] 🛡️ Redirect Detection:', { platform, isApp, protocol, hostname });
+
+  // If we are on iOS or Android, we definitely want the custom scheme
+  if (platform === 'ios' || platform === 'android' || isApp) {
+    console.log('[Supabase] 📱 Native platform detected, using deep link scheme');
     return 'com.hellobrick.app://auth/callback';
   }
 
-  // Use environment variable if provided, else fallback to current origin
+  // If protocol is capacitor:, we are definitely in an app
+  if (protocol === 'capacitor:') {
+    console.log('[Supabase] ⚡ capacitor: protocol detected, using deep link scheme');
+    return 'com.hellobrick.app://auth/callback';
+  }
+
+  // Fallback for web
   const baseUrl = import.meta.env.VITE_AUTH_REDIRECT_URL || window.location.origin;
-  return `${baseUrl}/auth/callback`;
+  const finalUrl = `${baseUrl}/auth/callback`;
+  
+  console.log('[Supabase] 🌐 Web platform detected, using:', finalUrl);
+  return finalUrl;
 };
 
 /**
@@ -61,10 +75,13 @@ export const signInWithGoogle = async (): Promise<{ user: any; error: any }> => 
   }
 
   try {
+    const redirectUrl = getAuthRedirectUrl();
+    console.log('[Supabase] 🚀 Initiating Google Sign-In with redirect:', redirectUrl);
+
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: getAuthRedirectUrl()
+        redirectTo: redirectUrl
       }
     });
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Clock, CheckCircle2, Target, Shield, Sparkles, Handshake } from 'lucide-react';
 import { Screen, GameModeId, BattleResult } from '../types';
 import { xpHelpers } from '../services/xpService';
-import { detectFrame, OnnxDetection } from '../services/onnxDetectionService';
+import { detectBricks, DetectionStabilizer } from '../services/brickDetectionService';
 
 interface HeadToHeadBattleScreenProps {
     onNavigate: (screen: Screen) => void;
@@ -22,6 +22,7 @@ const MOCK_TARGETS = {
 export const HeadToHeadBattleScreen: React.FC<HeadToHeadBattleScreenProps> = ({ onNavigate, modeId, onBattleComplete, isPro = false }) => {
     const [gameState, setGameState] = useState<BattleState>('COUNTDOWN');
     const [countdown, setCountdown] = useState(3);
+    const stabilizerRef = useRef<DetectionStabilizer>(new DetectionStabilizer(1000, 0.4)); // Smoother for battle
     const [gameTimer, setGameTimer] = useState(60);
 
     // Gameplay State
@@ -44,14 +45,15 @@ export const HeadToHeadBattleScreen: React.FC<HeadToHeadBattleScreenProps> = ({ 
         if (gameState !== 'PLAYING') return;
 
         const interval = setInterval(() => {
-            // Opponent randomly scores
-            if (Math.random() > 0.85) {
+            // Opponent randomly scores based on difficulty simulation
+            const difficultyScale = modeId === 'SPRINT' ? 0.92 : 0.85;
+            if (Math.random() > difficultyScale) {
                 setOpponentScore(prev => prev + 1);
             }
-        }, 2000);
+        }, 3000);
 
         return () => clearInterval(interval);
-    }, [gameState]);
+    }, [gameState, modeId]);
 
     // Main Game Loop Timer
     useEffect(() => {
@@ -103,9 +105,10 @@ export const HeadToHeadBattleScreen: React.FC<HeadToHeadBattleScreenProps> = ({ 
             if (!videoRef.current || videoRef.current.paused || videoRef.current.ended) return;
 
             try {
-                const { objects } = await detectFrame(videoRef.current);
-                if (objects.length > 0) {
-                    processDetections(objects);
+                const results = await detectBricks(videoRef.current, { mode: 'live_scanner' });
+                if (results.detections.length > 0) {
+                    const stabilized = stabilizerRef.current.stabilize(results.detections);
+                    processDetections(stabilized);
                 }
             } catch (err) {
                 console.error('Detection loop error:', err);
@@ -126,13 +129,14 @@ export const HeadToHeadBattleScreen: React.FC<HeadToHeadBattleScreenProps> = ({ 
         }
     };
 
-    const processDetections = (objects: OnnxDetection[]) => {
+    const processDetections = (detections: any[]) => {
         scanAttemptsRef.current += 1;
         const target = MOCK_TARGETS[modeId];
         const targetLabel = (target as any).label.toLowerCase();
 
-        for (const obj of objects) {
-            const objLabel = obj.label.toLowerCase();
+        for (const det of detections) {
+            const prediction = det.prediction || {};
+            const objLabel = (prediction.brickName || '').toLowerCase();
             let isMatch = false;
 
             if (modeId === 'TARGET') {
@@ -144,7 +148,7 @@ export const HeadToHeadBattleScreen: React.FC<HeadToHeadBattleScreenProps> = ({ 
             }
 
             if (isMatch) {
-                handleValidDetection(obj.id);
+                handleValidDetection(det.detectionId);
             }
         }
     };
@@ -208,7 +212,7 @@ export const HeadToHeadBattleScreen: React.FC<HeadToHeadBattleScreenProps> = ({ 
 
             onBattleComplete({
                 won,
-                xp: xpResponse.xp_awarded,
+                xp: xpResponse.xp_awarded || (won ? 75 : 25),
                 playerScore: pScore,
                 opponentScore: oScore,
                 modeId
@@ -377,9 +381,11 @@ export const HeadToHeadBattleScreen: React.FC<HeadToHeadBattleScreenProps> = ({ 
                                        ))}
                                    </div>
                                )}
-                               <div className="bg-indigo-500/10 border border-indigo-500/20 px-4 py-2 rounded-2xl flex items-center gap-3">
+                               <div className="bg-indigo-500/10 border border-indigo-500/20 px-4 py-2 rounded-2xl flex items-center gap-3 animate-pulse">
                                   <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                                  <span className="text-[10px] font-black text-white uppercase tracking-widest">Earning +150 XP</span>
+                                  <span className="text-[10px] font-black text-white uppercase tracking-widest">
+                                    {playerScore > opponentScore ? 'WINNING • +150 XP' : 'COMPETING • +50 XP'}
+                                  </span>
                                </div>
                             </div>
                         </div>

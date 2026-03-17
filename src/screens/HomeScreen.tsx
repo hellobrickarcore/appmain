@@ -29,6 +29,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
     return (
         <div className="flex flex-col h-full bg-[#050A18] font-sans overflow-hidden">
             <TopBar currentScreen={Screen.HOME} onNavigate={onNavigate} />
+            
+            {localStorage.getItem('hellobrick_is_pro') === 'true' && (
+                <div className="flex justify-center -mt-2 mb-4 relative z-50">
+                    <div className="bg-white/5 backdrop-blur-md px-4 py-1.5 rounded-xl border border-amber-500/30 shadow-lg shadow-amber-500/5 flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                        <span className="text-[11px] font-black uppercase tracking-wider text-white">
+                            Hello<span className="text-[#FF7A30]">Brick</span> <span className="text-amber-500">Pro</span>
+                        </span>
+                    </div>
+                </div>
+            )}
 
             <div className="relative z-40">
                 <LobbyNotification onJoin={handleJoinGame} />
@@ -160,7 +171,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
                 {/* Feed Row */}
                 <div className="mt-2">
                     <button
-                        onClick={() => onNavigate(Screen.CONNECT)}
+                        onClick={() => onNavigate(Screen.FEED)}
                         className="w-full bg-[#0F172A]/80 p-6 rounded-[28px] border border-white/5 flex items-center justify-between active:scale-[0.98] transition-all"
                     >
                         <div className="flex items-center gap-5">

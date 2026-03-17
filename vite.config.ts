@@ -10,6 +10,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
 
   return {
+    base: './',
     plugins: [react()],
     optimizeDeps: {
       include: ['react', 'react-dom', 'react-router-dom']
@@ -62,7 +63,14 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       outDir: 'dist',
-      sourcemap: false
+      assetsDir: 'assets',
+      sourcemap: false,
+      chunkSizeWarningLimit: 2000,
+      rollupOptions: {
+        output: {
+          manualChunks: undefined // Let Vite handle it naturally
+        }
+      }
     }
   };
 });

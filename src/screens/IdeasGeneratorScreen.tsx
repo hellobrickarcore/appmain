@@ -1,13 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, ArrowLeft, Sparkles, Image as ImageIcon, Loader2, User, Bot } from 'lucide-react';
-import { Screen, Brick } from '../types';
-import { generateBuildIdeas } from '../services/geminiService';
+import { Send, ArrowLeft, Sparkles, User, Bot, Info, Thermometer, Camera } from 'lucide-react';
+import { Screen, Brick, BuildIdea, GPTBuilderResponse } from '../types';
+import { getConversationalIdeas } from '../services/geminiService';
+import { generateIdeaImage } from '../services/imageGenerationService';
 
-interface Message {
+interface UIMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
-  image?: string;
+  ideas?: BuildIdea[];
+  error?: boolean;
 }
 
 interface IdeasGeneratorScreenProps {
@@ -16,55 +18,118 @@ interface IdeasGeneratorScreenProps {
   allBricks?: Brick[];
 }
 
-export const IdeasGeneratorScreen: React.FC<IdeasGeneratorScreenProps> = ({ onNavigate, initialBrick, allBricks }) => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      role: 'assistant',
-      content: initialBrick 
-        ? `Hi! I see you have a **${initialBrick.name}** in ${initialBrick.color}. What would you like to build with it today? I can suggest some creative ideas!` 
-        : allBricks && allBricks.length > 0
-        ? `Hi! I see you have **${allBricks.length} unique parts** in your vault. I can help you build something amazing with your collection! What are you in the mood for? (e.g. "A spaceship", "Something tiny")`
-        : "Hi! I'm your Building Assistant. Tell me what bricks you have, or just ask for an idea, and I'll help you build something amazing!"
-    }
-  ]);
+export const IdeasGeneratorScreen: React.FC<IdeasGeneratorScreenProps> = ({ onNavigate, initialBrick, allBricks: allBricksProp }) => {
+  const [allBricks, setAllBricks] = useState<Brick[]>(allBricksProp || []);
+  const [messages, setMessages] = useState<UIMessage[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [quickReplies, setQuickReplies] = useState<string[]>(['What can I build?', 'Random ideas']);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const bootstrapped = useRef(false);
+  const requestInProgress = useRef(false);
+
+  // 1. Initial Data Loading
+  useEffect(() => {
+    let bricks = allBricksProp || [];
+    if (bricks.length === 0) {
+      const stored = localStorage.getItem('hellobrick_collection');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          bricks = parsed.bricks || [];
+        } catch (e) {
+          console.warn('[IdeasGenerator] Failed to load collection:', e);
+        }
+      }
+    }
+    setAllBricks(bricks);
+    console.log('[IdeasGenerator] vault loaded:', bricks.length);
+  }, [allBricksProp]);
+
+  // 2. Initial Greeting / Bootstrap (Run Once)
+  useEffect(() => {
+    if (bootstrapped.current || allBricks.length === 0) return;
+    bootstrapped.current = true;
+    
+    // Auto-create initial assistant message instead of calling API immediately
+    // to give user a clean landing.
+    const introMsg: UIMessage = {
+      id: 'intro',
+      role: 'assistant',
+      content: "You've got enough pieces for a few small builds! Want my best option or something unexpected?"
+    };
+    setMessages([introMsg]);
+  }, [allBricks]);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, isTyping]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isTyping) return;
+  const handleSend = async (overrideMessage?: string) => {
+    const textToSend = overrideMessage || input;
+    if (!textToSend.trim() || isTyping || requestInProgress.current) return;
 
-    const userMsg: Message = { id: Date.now().toString(), role: 'user', content: input };
+    // Lock Request
+    requestInProgress.current = true;
+    const userMsg: UIMessage = { id: Date.now().toString(), role: 'user', content: textToSend };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setIsTyping(true);
-
+    
     try {
-      const contextBricks = initialBrick ? [initialBrick] : (allBricks || []);
-      const response = await generateBuildIdeas(input, contextBricks);
-      const assistantMsg: Message = {
+      // Memory: filter only successful messages
+      const history = messages
+        .filter(m => !m.error)
+        .slice(-6)
+        .map(m => ({ role: m.role, content: m.content }));
+      
+      const response: GPTBuilderResponse = await getConversationalIdeas(textToSend, allBricks, history);
+      
+      const assistantMsg: UIMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: response
+        content: response.assistantMessage,
+        ideas: response.topIdeas
       };
+      
       setMessages(prev => [...prev, assistantMsg]);
-    } catch (err) {
-      console.error('Failed to get ideas:', err);
-      const errorMsg: Message = {
+      
+      // Phase 28: Trigger Background Image Generation for each idea
+      if (assistantMsg.ideas && assistantMsg.ideas.length > 0) {
+        assistantMsg.ideas.forEach(async (idea, idx) => {
+          if (idea.imagePrompt) {
+            const url = await generateIdeaImage(idea.imagePrompt);
+            setMessages(current => current.map(m => {
+              if (m.id === assistantMsg.id && m.ideas) {
+                const updatedIdeas = [...m.ideas];
+                updatedIdeas[idx] = { ...updatedIdeas[idx], imageUrl: url };
+                return { ...m, ideas: updatedIdeas };
+              }
+              return m;
+            }));
+          }
+        });
+      }
+
+      if (response.suggestedQuickReplies && response.suggestedQuickReplies.length > 0) {
+        setQuickReplies(response.suggestedQuickReplies);
+      }
+      console.log('[IdeasGenerator] request success');
+    } catch (err: any) {
+      console.error('[IdeasGenerator] request failed:', err);
+      const errorMsg: UIMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: "I'm having trouble thinking of ideas right now. Please try again later!"
+        content: "I’m having trouble loading ideas right now. Try again in a moment.",
+        error: true
       };
       setMessages(prev => [...prev, errorMsg]);
+      console.log('[IdeasGenerator] fallback shown');
     } finally {
       setIsTyping(false);
+      requestInProgress.current = false;
     }
   };
 
@@ -74,97 +139,174 @@ export const IdeasGeneratorScreen: React.FC<IdeasGeneratorScreenProps> = ({ onNa
       <div className="bg-[#0A0F1E]/80 backdrop-blur-xl border-b border-white/10 p-6 pt-[max(env(safe-area-inset-top),1.5rem)] flex items-center justify-between z-10">
         <div className="flex items-center gap-4">
           <button 
-            onClick={() => onNavigate(Screen.COLLECTION)}
+            onClick={() => onNavigate(Screen.HOME)}
             className="w-10 h-10 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 text-slate-400 hover:text-white transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-xl font-black tracking-tight">Idea Generator</h1>
+            <h1 className="text-xl font-black tracking-tight">Brick Ideas</h1>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Online</span>
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">Powered by your vault</span>
             </div>
           </div>
         </div>
-        <div className="w-10 h-10 bg-orange-500/10 rounded-2xl flex items-center justify-center border border-orange-500/20 text-orange-500">
-          <Sparkles className="w-5 h-5 shadow-[0_0_15px_rgba(249,115,22,0.4)]" />
-        </div>
       </div>
 
-      {/* Messages Area */}
-      <div 
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar"
-      >
-        {messages.map((msg) => (
-          <div 
-            key={msg.id}
-            className={`flex items-start gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
-          >
-            <div className={`w-10 h-10 rounded-2xl flex-shrink-0 flex items-center justify-center border shadow-lg ${
-              msg.role === 'user' 
-                ? 'bg-blue-600 border-blue-400/30' 
-                : 'bg-[#1E293B] border-white/10'
-            }`}>
-              {msg.role === 'user' ? <User className="w-5 h-5 text-white" /> : <Bot className="w-5 h-5 text-orange-500" />}
-            </div>
-            
-            <div className={`max-w-[75%] space-y-2`}>
-              <div className={`p-4 rounded-[24px] shadow-xl ${
-                msg.role === 'user'
-                  ? 'bg-blue-600 text-white rounded-tr-none'
-                  : 'bg-[#1E293B] text-slate-100 rounded-tl-none border border-white/5'
-              }`}>
-                <p className="text-sm leading-relaxed">{msg.content}</p>
+      {allBricks.length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center p-12 text-center space-y-8 animate-in fade-in duration-700">
+           <div className="w-24 h-24 bg-white/5 rounded-[40px] flex items-center justify-center border border-white/10 relative">
+              <Camera className="w-10 h-10 text-slate-500" />
+              <div className="absolute -top-2 -right-2 w-8 h-8 bg-orange-500 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/20">
+                <Sparkles className="w-4 h-4 text-white" />
               </div>
-              {msg.image && (
-                <div className="rounded-[24px] overflow-hidden border border-white/10 shadow-2xl">
-                  <img src={msg.image} alt="Generated idea" className="w-full h-auto object-cover" />
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-        {isTyping && (
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-2xl bg-[#1E293B] border border-white/10 flex items-center justify-center">
-              <Bot className="w-5 h-5 text-orange-500" />
-            </div>
-            <div className="bg-[#1E293B] border border-white/5 p-4 rounded-[24px] rounded-tl-none shadow-xl">
-              <Loader2 className="w-4 h-4 animate-spin text-slate-500" />
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Input Area */}
-      <div className="p-6 pb-[max(env(safe-area-inset-bottom),1.5rem)] bg-gradient-to-t from-[#050A18] via-[#050A18] to-transparent">
-        <div className="bg-[#1E293B] rounded-[32px] p-2 flex items-center border border-white/10 shadow-2xl focus-within:border-orange-500/50 transition-all">
-          <button className="p-3 text-slate-500 hover:text-white transition-colors">
-            <ImageIcon className="w-6 h-6" />
-          </button>
-          <input 
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Ask for build ideas..."
-            className="flex-1 bg-transparent border-none outline-none text-white px-3 font-bold text-sm placeholder:text-slate-600"
-          />
-          <button 
-            onClick={handleSend}
-            disabled={!input.trim() || isTyping}
-            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
-              input.trim() && !isTyping 
-                ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30 active:scale-90' 
-                : 'bg-white/5 text-slate-700'
-            }`}
-          >
-            <Send className="w-5 h-5" />
-          </button>
+           </div>
+           <div className="space-y-3">
+              <h2 className="text-2xl font-black text-white">Your vault is empty</h2>
+              <p className="text-sm text-slate-500 font-bold leading-relaxed max-w-[260px] mx-auto">
+                Scan some bricks first and I’ll help turn them into build ideas.
+              </p>
+           </div>
+           <button 
+            onClick={() => onNavigate(Screen.SCANNER)}
+            className="px-8 py-4 bg-white text-slate-950 font-black rounded-[24px] uppercase tracking-widest shadow-xl active:scale-95 transition-all text-sm"
+           >
+             Go Scan Bricks
+           </button>
         </div>
-      </div>
+      ) : (
+        <div 
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar"
+        >
+          {messages.map((msg) => (
+            <div 
+              key={msg.id}
+              className={`flex items-start gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
+            >
+              <div className={`w-10 h-10 rounded-2xl flex-shrink-0 flex items-center justify-center border shadow-lg ${
+                msg.role === 'user' 
+                  ? 'bg-blue-600 border-blue-400/30' 
+                  : 'bg-slate-800 border-white/10'
+              }`}>
+                {msg.role === 'user' ? <User className="w-5 h-5 text-white" /> : <Bot className="w-5 h-5 text-orange-500" />}
+              </div>
+              
+              <div className={`max-w-[85%] space-y-4 ${msg.role === 'user' ? 'items-end' : ''}`}>
+                <div className={`p-4 rounded-[24px] shadow-xl ${
+                  msg.role === 'user'
+                    ? 'bg-blue-600 text-white rounded-tr-none'
+                    : 'bg-gradient-to-br from-[#1E293B] to-[#0F172A] text-slate-100 rounded-tl-none border border-white/10'
+                }`}>
+                  <p className="text-sm leading-relaxed whitespace-pre-line font-bold">{msg.content}</p>
+                </div>
+
+                {msg.ideas && msg.ideas.length > 0 && (
+                  <div className="grid gap-4 animate-in slide-in-from-bottom-4 duration-500">
+                    {msg.ideas.map((idea, idx) => (
+                      <div 
+                        key={idx}
+                        className="bg-[#1E293B]/80 border border-white/10 rounded-[32px] overflow-hidden shadow-2xl backdrop-blur-md"
+                      >
+                        <div className="p-6 space-y-4">
+                          <div className="w-full aspect-square bg-[#0a0f1e] rounded-[24px] flex flex-col items-center justify-center border border-white/5 relative overflow-hidden group">
+                             {idea.imageUrl ? (
+                               <img 
+                                 src={idea.imageUrl} 
+                                 alt={idea.ideaName} 
+                                 className="w-full h-full object-cover animate-in fade-in zoom-in-95 duration-1000" 
+                               />
+                             ) : (
+                               <>
+                                 <Sparkles className="w-10 h-10 text-orange-500/20 mb-2 group-hover:scale-110 transition-transform duration-700 animate-pulse" />
+                                 <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Generating build viz...</span>
+                               </>
+                             )}
+                             <div className="absolute inset-0 bg-gradient-to-tr from-orange-500/5 to-transparent pointer-events-none" />
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-xl font-black text-white tracking-tight">{idea.ideaName}</h3>
+                            <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-xl text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                              {idea.difficulty}
+                            </span>
+                          </div>
+                          <p className="text-[13px] text-slate-400 font-medium leading-relaxed italic">
+                            "{idea.whyItFitsYourVault}"
+                          </p>
+                          <div className="flex items-center gap-4 text-[10px] font-black text-slate-500 uppercase tracking-widest pt-1">
+                            <div className="flex items-center gap-1.5">
+                              <Thermometer className="w-4 h-4 text-orange-500/50" />
+                              {idea.estimatedBrickUse}
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <Info className="w-4 h-4 text-blue-500/50" />
+                              Grounded
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+          {isTyping && (
+            <div className="flex items-start gap-4 animate-pulse">
+              <div className="w-10 h-10 rounded-2xl bg-[#1E293B] border border-white/10 flex items-center justify-center">
+                <Bot className="w-5 h-5 text-orange-500" />
+              </div>
+              <div className="bg-gradient-to-br from-[#1E293B] to-[#0F172A] border border-white/10 px-6 py-4 rounded-[24px] rounded-tl-none shadow-xl flex items-center gap-3">
+                <div className="flex gap-1.5">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                  <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                  <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {allBricks.length > 0 && (
+        <div className="p-6 pb-[max(env(safe-area-inset-bottom),1.5rem)] bg-gradient-to-t from-[#050A18] via-[#050A18] to-transparent">
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-4 mb-2">
+              {quickReplies.map((reply) => (
+                  <button
+                      key={reply}
+                      onClick={() => handleSend(reply)}
+                      disabled={isTyping}
+                      className="flex-shrink-0 bg-white/5 border border-white/10 px-6 py-2.5 rounded-2xl text-[10px] font-black text-slate-400 hover:text-white uppercase tracking-widest transition-all active:scale-90"
+                  >
+                      {reply}
+                  </button>
+              ))}
+          </div>
+          <div className="bg-[#1E293B] rounded-[30px] p-2 flex items-center border border-white/10 shadow-3xl focus-within:border-orange-500/50 transition-all">
+            <input 
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+              placeholder="What can we build?"
+              className="flex-1 bg-transparent border-none outline-none text-white px-4 font-bold text-sm placeholder:text-slate-700"
+            />
+            <button 
+              onClick={() => handleSend()}
+              disabled={!input.trim() || isTyping}
+              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+                input.trim() && !isTyping 
+                  ? 'bg-orange-500 text-white shadow-lg active:scale-90' 
+                  : 'bg-white/5 text-slate-800'
+              }`}
+            >
+              <Send className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

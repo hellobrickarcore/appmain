@@ -213,42 +213,53 @@ export const ConnectScreen: React.FC<ConnectScreenProps> = ({ onNavigate, isPro 
   const handlePost = async () => {
     if (!capturedImage || !postCaption.trim()) return;
 
-    const newPost: FeedPost = {
-      id: `post_${Date.now()}`,
-      userId: 'current_user', // TODO: Get from auth
-      userName: 'You', // TODO: Get from user profile
-      userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=user',
-      image: capturedImage,
-      caption: postCaption,
-      likes: 0,
-      comments: 0,
-      timestamp: Date.now(),
-      liked: false,
-      status: 'pending', // Requires admin approval
-      commentList: []
-    };
-
-    // Try to send to backend first
     try {
-      const response = await fetch(CONFIG.FEED_POSTS, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newPost)
-      });
+      const { getCurrentUser } = await import('../services/supabaseService');
+      const { getUserId } = await import('../services/xpService');
+      
+      const user = await getCurrentUser();
+      const userId = user?.id || getUserId();
+      const userName = user?.email?.split('@')[0] || localStorage.getItem('hellobrick_profile_name') || 'Builder';
 
-      if (response.ok) {
-        alert('Post submitted! It will appear in the feed after admin approval.');
-      } else {
-        throw new Error('Backend failed');
+      const newPost: FeedPost = {
+        id: `post_${Date.now()}`,
+        userId: userId,
+        userName: userName,
+        userAvatar: user?.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`,
+        image: capturedImage,
+        caption: postCaption,
+        likes: 0,
+        comments: 0,
+        timestamp: Date.now(),
+        liked: false,
+        status: 'pending', // Requires admin approval
+        commentList: []
+      };
+
+      // Try to send to backend first
+      try {
+        const response = await fetch(CONFIG.FEED_POSTS, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newPost)
+        });
+
+        if (response.ok) {
+          alert('Post submitted! It will appear in the feed after admin approval.');
+        } else {
+          throw new Error('Backend failed');
+        }
+      } catch (error) {
+        // Fallback to localStorage
+        console.log('Backend not available, saving to localStorage');
+        const stored = localStorage.getItem('hellobrick_feed_posts') || '[]';
+        const allPosts = JSON.parse(stored);
+        allPosts.push(newPost);
+        localStorage.setItem('hellobrick_feed_posts', JSON.stringify(allPosts));
+        alert('Post saved! It will appear in the feed after admin approval.');
       }
-    } catch (error) {
-      // Fallback to localStorage
-      console.log('Backend not available, saving to localStorage');
-      const stored = localStorage.getItem('hellobrick_feed_posts') || '[]';
-      const allPosts = JSON.parse(stored);
-      allPosts.push(newPost);
-      localStorage.setItem('hellobrick_feed_posts', JSON.stringify(allPosts));
-      alert('Post saved! It will appear in the feed after admin approval.');
+    } catch (err) {
+      console.error('Error during post:', err);
     }
 
     // Reset state

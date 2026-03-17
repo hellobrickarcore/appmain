@@ -63,7 +63,8 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ onNavigate }) =>
     setVoteFeedback(confirmed ? 'correct' : 'incorrect');
 
     try {
-      const userId = localStorage.getItem('hellobrick_userId') || 'anonymous';
+      const { getUserId } = await import('../services/xpService');
+      const userId = getUserId();
       
       const formData = new FormData();
       formData.append('itemId', currentItem.id);

@@ -1,14 +1,15 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Filter, Box, X, Palette, Brain, ChevronRight, Sparkles, Trash2, Trophy } from 'lucide-react';
+import { Search, Filter, Box, X, Palette, Brain, ChevronRight, Sparkles, Trash2 } from 'lucide-react';
 import { TopBar } from '../components/TopBar';
 import { ZoomableImageViewer } from '../components/ZoomableImageViewer';
 import { Screen, Brick } from '../types';
+import confetti from 'canvas-confetti';
 
 interface CollectionScreenProps {
     onNavigate: (screen: Screen, params?: any) => void;
 }
 
-type SortOption = 'name' | 'count' | 'category';
+type SortOption = 'name' | 'count' | 'category' | 'newest';
 
 export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }) => {
     const [activeCategory] = useState('All');
@@ -19,6 +20,8 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
     const [selectedBrick, setSelectedBrick] = useState<Brick | null>(null);
     const [realCollection, setRealCollection] = useState<Brick[]>([]);
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [manualBrick, setManualBrick] = useState({ name: '', color: 'Gray', count: 1, category: 'Bricks' });
 
     const loadCollection = async () => {
         try {
@@ -60,6 +63,7 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
             if (sortBy === 'count') return b.count - a.count;
             if (sortBy === 'name') return a.name.localeCompare(b.name);
             if (sortBy === 'category') return a.category.localeCompare(b.category);
+            if (sortBy === 'newest') return (b as any).addedAt - (a as any).addedAt;
             return 0;
         });
 
@@ -71,12 +75,12 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
     }, [realCollection]);
 
     return (
-        <div className="flex flex-col min-h-screen bg-[#050A18] font-sans text-white relative">
+        <div className="flex flex-col h-screen bg-[#050A18] font-sans text-white relative overflow-hidden">
             <div className="fixed top-0 left-0 right-0 h-96 bg-gradient-to-b from-blue-600/5 via-transparent to-transparent pointer-events-none z-0" />
 
             <TopBar currentScreen={Screen.COLLECTION} onNavigate={onNavigate} />
 
-            <main className="flex-1 px-6 pt-8 pb-40 relative z-10">
+            <main className="flex-1 px-6 pt-8 pb-40 relative z-10 overflow-y-auto no-scrollbar overscroll-contain">
                 <div className="px-6 pt-8 pb-2">
                     <div className="flex items-center justify-between mb-8">
                        <h1 className="text-4xl font-black text-white tracking-tight">Vault</h1>
@@ -89,6 +93,42 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                              <Box className="w-5 h-5 text-orange-500" />
                           </div>
                        </div>
+                    </div>
+
+                    <div className="space-y-4 mb-8">
+                        <button
+                            onClick={() => onNavigate(Screen.SCANNER)}
+                            className="w-full bg-orange-500 p-6 rounded-[32px] flex items-center justify-between active:scale-95 transition-all shadow-xl shadow-orange-500/20"
+                        >
+                            <div className="flex items-center gap-5">
+                                <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-white border border-white/30 shadow-lg">
+                                    <Search className="w-6 h-6" />
+                                </div>
+                                <div className="text-left">
+                                    <h3 className="font-black text-white text-lg leading-tight uppercase tracking-tight">Scan Bricks</h3>
+                                    <p className="text-[10px] font-black text-white/70 uppercase tracking-widest mt-1">Lens Detection</p>
+                                </div>
+                            </div>
+                            <div className="bg-white text-orange-500 w-10 h-10 rounded-full flex items-center justify-center shadow-lg">
+                                <ChevronRight className="w-6 h-6" />
+                            </div>
+                        </button>
+
+                        <button
+                            onClick={() => setShowAddModal(true)}
+                            className="w-full bg-white/5 border border-white/10 p-6 rounded-[32px] flex items-center justify-between hover:bg-white/10 active:scale-95 transition-all shadow-xl"
+                        >
+                            <div className="flex items-center gap-5">
+                                <div className="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-400 border border-blue-500/20">
+                                    <Box className="w-6 h-6" />
+                                </div>
+                                <div className="text-left">
+                                    <h3 className="font-black text-white text-lg leading-tight uppercase tracking-tight">Add Bricks</h3>
+                                    <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mt-1">Manual Input</p>
+                                </div>
+                            </div>
+                            <ChevronRight className="w-6 h-6 text-slate-700" />
+                        </button>
                     </div>
 
                     {/* Global Ideas Generator */}
@@ -134,16 +174,19 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                         </button>
                     )}
 
-                    {/* Collection Stats (Alternative to Coming Soon block) */}
+                    {/* Collection Potential Stat */}
                     <div className="w-full bg-orange-500/5 border border-orange-500/10 rounded-[32px] p-6 mb-8 flex items-center justify-between">
                         <div className="flex items-center gap-4">
                             <div className="w-14 h-14 bg-orange-500/10 rounded-2xl flex items-center justify-center text-orange-400 border border-orange-500/20">
-                                <Trophy className="w-6 h-6" />
+                                <Sparkles className="w-6 h-6" />
                             </div>
                             <div className="text-left">
-                                <h3 className="font-black text-white text-lg leading-tight">Master Builder</h3>
+                                <h3 className="font-black text-white text-lg leading-tight uppercase tracking-tight">Build Potential</h3>
                                 <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest mt-1">
-                                    {realCollection.length} Bricks in your Vault
+                                    {Math.min(99, Math.round(
+                                        (new Set(realCollection.map(b => b.partNumber || b.name)).size * 4) + 
+                                        (realCollection.reduce((s, b) => s + b.count, 0) / 25)
+                                    ))}% Ready
                                 </p>
                             </div>
                         </div>
@@ -178,8 +221,8 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                         <div className="bg-[#0A0F1E] rounded-[40px] p-8 border border-white/10 shadow-3xl space-y-8">
                             <div>
                                 <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Sort By</h4>
-                                <div className="flex gap-3">
-                                    {['count', 'name'].map((opt) => (
+                                <div className="flex flex-wrap gap-3">
+                                    {['count', 'name', 'newest'].map((opt) => (
                                         <button
                                             key={opt}
                                             onClick={() => setSortBy(opt as SortOption)}
@@ -379,6 +422,86 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
 
             {zoomedImage && (
                 <ZoomableImageViewer imageUrl={zoomedImage} onClose={() => setZoomedImage(null)} />
+            )}            {/* Manual Add Modal */}
+            {showAddModal && (
+                <div className="fixed inset-0 z-[120] flex items-end justify-center px-4 pb-8">
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-xl" onClick={() => setShowAddModal(false)} />
+                    <div className="bg-[#0A1628] border border-white/10 w-full max-w-lg rounded-[48px] p-10 relative z-10 animate-in slide-in-from-bottom-10 shadow-3xl">
+                        <div className="flex items-center justify-between mb-10">
+                            <div>
+                                <h2 className="text-2xl font-black text-white uppercase tracking-tight">Vault Entry</h2>
+                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">Manual Part addition</p>
+                            </div>
+                            <button onClick={() => setShowAddModal(false)} className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-slate-400 hover:text-white transition-all"><X className="w-6 h-6" /></button>
+                        </div>
+                        
+                        <div className="space-y-8">
+                            <div className="group">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 block px-2">Identification</label>
+                                <input 
+                                    type="text"
+                                    value={manualBrick.name}
+                                    onChange={(e) => setManualBrick({ ...manualBrick, name: e.target.value })}
+                                    className="w-full bg-white/5 border border-white/10 rounded-[28px] px-8 py-5 text-white font-black text-base outline-none focus:border-orange-500 focus:bg-white/10 transition-all shadow-inner"
+                                    placeholder="e.g. 2x4 Plate"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-6">
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 block px-2">Palette</label>
+                                    <div className="relative">
+                                        <select 
+                                            value={manualBrick.color}
+                                            onChange={(e) => setManualBrick({ ...manualBrick, color: e.target.value })}
+                                            className="w-full bg-white/5 border border-white/10 rounded-[28px] px-8 py-5 text-white font-black text-sm outline-none appearance-none cursor-pointer"
+                                        >
+                                            {['Black', 'White', 'Red', 'Blue', 'Yellow', 'Green', 'Orange', 'Gray', 'Tan', 'Brown'].map(c => (
+                                                <option key={c} value={c} className="bg-[#050A18]">{c}</option>
+                                            ))}
+                                        </select>
+                                        <div className="absolute right-6 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border border-white/20" style={{ backgroundColor: manualBrick.color.toLowerCase() }} />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 block px-2">Quantity</label>
+                                    <div className="flex items-center bg-white/5 border border-white/10 rounded-[28px] px-4 py-3">
+                                        <button onClick={() => setManualBrick(p => ({ ...p, count: Math.max(1, p.count - 1) }))} className="w-10 h-10 rounded-full hover:bg-white/10 text-white font-black active:scale-90 transition-transform">-</button>
+                                        <span className="flex-1 text-center font-black text-white text-lg">{manualBrick.count}</span>
+                                        <button onClick={() => setManualBrick(p => ({ ...p, count: p.count + 1 }))} className="w-10 h-10 rounded-full hover:bg-white/10 text-white font-black active:scale-90 transition-transform">+</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={() => {
+                                    if (!manualBrick.name) return;
+                                    const newBrick: Brick = {
+                                        id: `manual_${Date.now()}`,
+                                        name: manualBrick.name,
+                                        type: 'Part',
+                                        category: manualBrick.category,
+                                        color: manualBrick.color,
+                                        count: manualBrick.count,
+                                        image: `https://cdn.rebrickable.com/media/parts/ldraw/14/3001.png`,
+                                        addedAt: Date.now()
+                                    } as any;
+                                    
+                                    const updated = [...realCollection, newBrick];
+                                    setRealCollection(updated);
+                                    localStorage.setItem('hellobrick_collection', JSON.stringify({ bricks: updated, lastUpdated: Date.now() }));
+                                    setShowAddModal(false);
+                                    setManualBrick({ name: '', color: 'Gray', count: 1, category: 'Bricks' });
+                                    window.dispatchEvent(new CustomEvent('hellobrick:collection-updated'));
+                                    confetti({ particleCount: 100, spread: 70, origin: { y: 0.8 }, colors: ['#F97316', '#FFFFFF'] });
+                                }}
+                                className="w-full bg-white text-slate-950 font-black py-6 rounded-[32px] shadow-2xl active:scale-95 transition-all text-sm uppercase tracking-[0.2em] mt-4 hover:bg-orange-500 hover:text-white"
+                            >
+                                Secure to Vault
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

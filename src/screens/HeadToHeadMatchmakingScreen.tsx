@@ -112,6 +112,32 @@ export const HeadToHeadMatchmakingScreen: React.FC<HeadToHeadMatchmakingScreenPr
         }
     };
 
+    if (timeLeft <= 0 && status === 'SEARCHING') {
+        return (
+            <div className="flex flex-col min-h-screen bg-[#050A18] font-sans text-white items-center justify-center p-8 text-center">
+                <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/10">
+                    <Users className="w-10 h-10 text-slate-500" />
+                </div>
+                <h2 className="text-2xl font-black mb-4">No Builders Found</h2>
+                <p className="text-slate-400 text-sm mb-10">Matches are taking longer than usual. Would you like to keep waiting or try a different mode?</p>
+                <div className="w-full max-w-xs space-y-4">
+                    <button 
+                        onClick={() => setTimeLeft(180)}
+                        className="w-full py-5 bg-white text-slate-900 font-black rounded-3xl uppercase tracking-widest text-sm shadow-xl"
+                    >
+                        Keep Searching
+                    </button>
+                    <button 
+                        onClick={handleCancel}
+                        className="w-full py-5 bg-white/5 text-white font-black rounded-3xl border border-white/10 uppercase tracking-widest text-sm"
+                    >
+                        Exit to Lobby
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="flex flex-col min-h-screen bg-[#050A18] font-sans text-white relative overflow-hidden">
             <div className="absolute inset-0 z-0 pointer-events-none">

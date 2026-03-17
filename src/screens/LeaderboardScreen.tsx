@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Trophy, Medal, Clock, Crown, Star } from 'lucide-react';
+import { ChevronLeft, Clock, Crown, Star, Flame } from 'lucide-react';
 import { Screen, LeaderboardEntry } from '../types';
 import { CONFIG } from '../services/configService';
+import { getUserId, getUserXP } from '../services/xpService';
 
 interface LeaderboardScreenProps {
   onNavigate: (screen: Screen) => void;
@@ -9,10 +10,10 @@ interface LeaderboardScreenProps {
 
 export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ onNavigate }) => {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [currentUserRank, setCurrentUserRank] = useState<LeaderboardEntry | null>(null);
   const [loading, setLoading] = useState(true);
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0 });
 
-  // Competition period (Monthly)
   useEffect(() => {
     const calculateCountdown = () => {
       const now = new Date();
@@ -35,17 +36,37 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ onNavigate
   useEffect(() => {
     const fetchLeaderboard = async () => {
       try {
-        const response = await fetch(`${CONFIG.XP_LEADERBOARD}?limit=20`);
+        const userId = getUserId();
+        const response = await fetch(`${CONFIG.XP_LEADERBOARD}?limit=50`);
         const data = await response.json();
+        
         if (data.success) {
           const entries: LeaderboardEntry[] = data.leaderboard.map((item: any) => ({
             rank: item.rank,
             name: item.name,
             avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.user_id}`,
             xp: item.xp_total,
-            isCurrentUser: false // In a real app, compare with current user ID
+            isCurrentUser: item.user_id === userId,
+            streak: item.streak_count || 0
           }));
+          
           setLeaderboard(entries);
+
+          const meInList = entries.find(e => e.isCurrentUser);
+          if (meInList) {
+            setCurrentUserRank(meInList);
+          } else {
+            // Fetch personal stats if not in top 50
+            const myXp = await getUserXP(userId);
+            setCurrentUserRank({
+              rank: 0, // Unknown high rank
+              name: localStorage.getItem('hellobrick_profile_name') || 'You',
+              avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`,
+              xp: myXp.xp_total,
+              isCurrentUser: true,
+              streak: myXp.streak_count
+            });
+          }
         }
       } catch (error) {
         console.error('Failed to fetch leaderboard:', error);
@@ -57,8 +78,29 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ onNavigate
     fetchLeaderboard();
   }, []);
 
+  const getLeague = (xp: number) => {
+    if (xp > 50000) return { name: 'Diamond', color: 'text-cyan-400', bg: 'bg-cyan-400/10', border: 'border-cyan-400/20' };
+    if (xp > 25000) return { name: 'Platinum', color: 'text-indigo-400', bg: 'bg-indigo-400/10', border: 'border-indigo-400/20' };
+    if (xp > 10000) return { name: 'Gold', color: 'text-yellow-400', bg: 'bg-yellow-400/10', border: 'border-yellow-400/20' };
+    if (xp > 5000) return { name: 'Silver', color: 'text-slate-300', bg: 'bg-slate-300/10', border: 'border-slate-300/20' };
+    return { name: 'Bronze', color: 'text-orange-500', bg: 'bg-orange-500/10', border: 'border-orange-500/20' };
+  };
+
   const topThree = leaderboard.slice(0, 3);
   const remaining = leaderboard.slice(3);
+
+  // Group by League for visual separators
+  const renderedItems: any[] = [];
+  let currentLeagueName = '';
+
+  remaining.forEach((user) => {
+    const league = getLeague(user.xp);
+    if (league.name !== currentLeagueName) {
+      renderedItems.push({ type: 'separator', league: league });
+      currentLeagueName = league.name;
+    }
+    renderedItems.push({ type: 'user', ...user });
+  });
 
   return (
     <div className="flex flex-col min-h-screen bg-[#050A18] font-sans text-white relative overflow-hidden">
@@ -73,13 +115,13 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ onNavigate
         >
           <ChevronLeft className="w-5 h-5 text-slate-300" />
         </button>
-        <h1 className="text-sm font-black text-white">LEADERBOARD</h1>
+        <h1 className="text-sm font-black text-white tracking-widest uppercase">Global Ranks</h1>
         <div className="w-10" />
       </div>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar pb-32">
+      <div className="flex-1 overflow-y-auto no-scrollbar pb-48">
         {/* Top 3 Podium Area */}
-        <div className="px-6 pt-10 pb-12 flex items-end justify-center gap-4">
+        <div className="px-6 pt-10 pb-12 flex items-end justify-center gap-4 relative">
            {/* Rank 2 */}
            {topThree[1] && (
              <div className="flex flex-col items-center gap-3 mb-4">
@@ -98,7 +140,8 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ onNavigate
 
            {/* Rank 1 */}
            {topThree[0] && (
-             <div className="flex flex-col items-center gap-4">
+             <div className="flex flex-col items-center gap-4 relative">
+                <div className="absolute -inset-8 bg-blue-500/10 blur-[40px] rounded-full animate-pulse pointer-events-none" />
                 <div className="relative">
                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 animate-bounce">
                       <Crown className="w-8 h-8 text-yellow-400 fill-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.5)]" />
@@ -150,8 +193,8 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ onNavigate
            </div>
         </div>
 
-        {/* Full Ranks */}
-        <div className="px-6 space-y-3">
+        {/* Full Ranks with League Separators */}
+        <div className="px-6 space-y-4">
           {loading ? (
             <div className="flex flex-col items-center gap-4 py-20">
               <RefreshCw className="w-8 h-8 text-blue-500 animate-spin" />
@@ -162,38 +205,78 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ onNavigate
                <p className="text-slate-500 font-bold">No competitors yet. Be the first!</p>
             </div>
           ) : (
-            remaining.map((user) => (
-              <div
-                key={user.rank}
-                className={`flex items-center gap-4 p-5 rounded-[28px] border transition-all ${user.isCurrentUser ? 'bg-blue-600/10 border-blue-500/30' : 'bg-white/5 border-white/5 opacity-80'}`}
-              >
-                <div className="w-8 font-black text-slate-600 text-xs">
-                   #{user.rank}
-                </div>
+            renderedItems.map((item, i) => {
+              if (item.type === 'separator') {
+                return (
+                  <div key={`sep-${i}`} className="pt-4 pb-2 flex items-center gap-4">
+                    <div className="h-px flex-1 bg-white/5" />
+                    <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-lg border ${item.league.color} ${item.league.bg} ${item.league.border}`}>
+                      {item.league.name} League
+                    </span>
+                    <div className="h-px flex-1 bg-white/5" />
+                  </div>
+                );
+              }
+              
+              const user = item as LeaderboardEntry & { streak?: number };
+              return (
+                <div
+                  key={user.rank}
+                  className={`flex items-center gap-4 p-5 rounded-[28px] border transition-all ${user.isCurrentUser ? 'bg-blue-600/15 border-blue-500/50 shadow-[0_0_20px_rgba(59,130,246,0.1)]' : 'bg-white/5 border-white/5'}`}
+                >
+                  <div className="w-8 font-black text-slate-600 text-xs">
+                     #{user.rank}
+                  </div>
 
-                <div className="w-12 h-12 rounded-2xl bg-slate-800/50 border border-white/10 overflow-hidden">
-                   <img src={user.avatar} className="w-full h-full object-cover" alt={user.name} />
-                </div>
+                  <div className="w-12 h-12 rounded-2xl bg-slate-800/50 border border-white/10 overflow-hidden">
+                     <img src={user.avatar} className="w-full h-full object-cover" alt={user.name} />
+                  </div>
 
-                <div className="flex-1 text-left">
-                  <h3 className="font-black text-sm text-white capitalize">
-                    {user.name}
-                  </h3>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                     <Star className="w-3 h-3 text-orange-500 fill-orange-500" />
-                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Lvl {Math.floor(user.xp / 1000) || 1}</p>
+                  <div className="flex-1 text-left">
+                    <h3 className="font-black text-sm text-white capitalize flex items-center gap-2">
+                      {user.name}
+                      {user.streak && user.streak > 2 && (
+                        <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500 animate-pulse" />
+                      )}
+                    </h3>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                       <Star className="w-3 h-3 text-orange-500 fill-orange-500" />
+                       <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Lvl {Math.floor(user.xp / 1000) || 1}</p>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="font-black text-white text-base leading-none">{user.xp.toLocaleString()}</p>
+                    <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mt-1">XP</p>
                   </div>
                 </div>
-
-                <div className="text-right">
-                  <p className="font-black text-white text-base leading-none">{user.xp.toLocaleString()}</p>
-                  <p className="text-[8px] text-slate-500 font-black uppercase tracking-widest mt-1">XP</p>
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>
+
+      {/* STICKY CURRENT USER FOOTER */}
+      {currentUserRank && !leaderboard.slice(0, 50).some(e => e.isCurrentUser) && (
+        <div className="absolute bottom-24 left-0 right-0 px-6 pb-4">
+          <div className="bg-blue-600/20 backdrop-blur-2xl border border-blue-500/40 p-5 rounded-[32px] flex items-center gap-4 shadow-2xl">
+             <div className="w-8 font-black text-blue-400 text-xs whitespace-nowrap">
+               #{currentUserRank.rank || '??'}
+             </div>
+             <div className="w-12 h-12 rounded-2xl bg-blue-900/50 border border-blue-400/30 overflow-hidden">
+                <img src={currentUserRank.avatar} className="w-full h-full object-cover" alt={currentUserRank.name} />
+             </div>
+             <div className="flex-1 text-left">
+               <h3 className="font-black text-sm text-white">You</h3>
+               <p className="text-[10px] text-blue-400 font-black uppercase tracking-widest">Keep scanning to rank up!</p>
+             </div>
+             <div className="text-right">
+               <p className="font-black text-white text-base leading-none">{currentUserRank.xp.toLocaleString()}</p>
+               <p className="text-[8px] text-blue-400 font-black uppercase tracking-widest mt-1">XP</p>
+             </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

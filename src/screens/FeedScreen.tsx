@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, MessageCircle, Share2, MoreVertical, ChevronLeft, Lock, Globe, Plus, Sparkles } from 'lucide-react';
+import { Heart, Share2, MoreVertical, ChevronLeft, Lock, Globe, Plus, Sparkles } from 'lucide-react';
+import houseImg from '../assets/community/house_simple.png';
+import treeImg from '../assets/community/tree_simple.png';
+import carImg from '../assets/community/car_simple.png';
 import { Screen } from '../types';
 
 interface FeedPost {
@@ -13,7 +16,6 @@ interface FeedPost {
   description: string;
   bricksUsed: number;
   likes: number;
-  comments: number;
   isLiked: boolean;
   timestamp: number;
 }
@@ -33,32 +35,44 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
         {
           id: '1',
           userId: 'user1',
-          userName: 'MasterBuilder',
-          userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Master',
+          userName: 'TinyBuilder',
+          userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Tiny',
           isPrivate: false,
-          image: 'https://images.unsplash.com/photo-1563811771046-ba984ff30900?auto=format&fit=crop&q=80&w=800',
-          title: 'Cyberpunk Skyline',
-          description: 'Used almost 4,000 Technic parts for this neon-lit modular build. 🧱',
-          bricksUsed: 3950,
-          likes: 412,
-          comments: 45,
+          image: houseImg,
+          title: 'My First LEGO House',
+          description: 'Used some leftover 2x4 bricks to make this little cottage. 🏠',
+          bricksUsed: 42,
+          likes: 31,
           isLiked: false,
           timestamp: Date.now() - 3600000,
         },
         {
           id: '2',
           userId: 'user2',
-          userName: 'BrickHuntress',
-          userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Huntress',
+          userName: 'NatureLover',
+          userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Nature',
           isPrivate: false,
-          image: 'https://images.unsplash.com/photo-1472457897821-70d3819a0e24?auto=format&fit=crop&q=80&w=800',
-          title: 'Forest Retreat',
-          description: 'Simple 1x2 and 2x4 build focusing on organic shapes and textures.',
-          bricksUsed: 800,
-          likes: 215,
-          comments: 12,
+          image: treeImg,
+          title: 'Simple Desktop Tree',
+          description: 'Just a few brown and green bricks, but it makes my desk look great!',
+          bricksUsed: 18,
+          likes: 24,
           isLiked: true,
           timestamp: Date.now() - 7200000,
+        },
+        {
+          id: '3',
+          userId: 'user3',
+          userName: 'QuickRacer',
+          userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Racer',
+          isPrivate: false,
+          image: carImg,
+          title: '5-Minute Race Car',
+          description: 'Built this with my son in a few minutes. Simple but fast!',
+          bricksUsed: 25,
+          likes: 12,
+          isLiked: false,
+          timestamp: Date.now() - 14400000,
         }
       ]);
       setLoading(false);
@@ -85,7 +99,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#050A18] text-white font-sans overflow-hidden">
+    <div className="flex flex-col h-screen bg-[#050A18] text-white font-sans overflow-hidden">
       <div className="absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-b from-blue-600/5 via-transparent to-transparent pointer-events-none" />
 
       {/* Header */}
@@ -111,11 +125,19 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar pb-32">
+      <div className="flex-1 overflow-y-auto no-scrollbar overscroll-contain pb-[max(env(safe-area-inset-bottom),120px)]">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <div className="w-10 h-10 border-2 border-white/5 border-t-orange-500 rounded-full animate-spin" />
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Fetching Latest Builds...</p>
+          <div className="space-y-6 pt-6 px-4">
+             {[1,2].map(i => (
+               <div key={i} className="animate-pulse bg-white/5 border border-white/5 rounded-[40px] h-[500px] overflow-hidden">
+                  <div className="h-16 w-full bg-white/5 mb-4" />
+                  <div className="mx-4 h-[350px] bg-white/10 rounded-[32px] mb-4" />
+                  <div className="px-6 space-y-3">
+                     <div className="h-4 w-1/3 bg-white/10 rounded-full" />
+                     <div className="h-3 w-2/3 bg-white/10 rounded-full" />
+                  </div>
+               </div>
+             ))}
           </div>
         ) : (
           <div className="space-y-6 pt-6">
@@ -156,10 +178,6 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
                           <button onClick={() => handleLike(post.id)} className="flex items-center gap-2 group">
                              <Heart className={`w-6 h-6 transition-all ${post.isLiked ? 'fill-red-500 text-red-500 scale-110' : 'text-slate-500 group-active:scale-95'}`} />
                              <span className={`text-sm font-black ${post.isLiked ? 'text-white' : 'text-slate-500'}`}>{post.likes}</span>
-                          </button>
-                          <button className="flex items-center gap-2">
-                             <MessageCircle className="w-6 h-6 text-slate-500" />
-                             <span className="text-sm font-black text-slate-500">{post.comments}</span>
                           </button>
                           <button className="ml-auto w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/5">
                              <Share2 className="w-4 h-4 text-slate-500" />

@@ -39,7 +39,7 @@ export const NotificationsIntroScreen: React.FC<NotificationsIntroScreenProps> =
              </div>
 
              <div className="scale-[1.8]">
-                <Logo size="xl" />
+                <Logo size="xl" showText={false} />
              </div>
           </div>
 

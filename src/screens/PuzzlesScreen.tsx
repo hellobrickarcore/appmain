@@ -7,10 +7,10 @@ interface PuzzlesScreenProps {
 }
 
 const LEVELS = [
-    { id: 1, name: 'Find a 2x4 Brick', type: 'Easy', stars: 0, locked: false, emoji: '🧱', xp: 100 },
-    { id: 2, name: 'Red Only Challenge', type: 'Easy', stars: 0, locked: false, emoji: '🎨', xp: 150 },
-    { id: 3, name: 'Technic Discovery', type: 'Medium', stars: 0, locked: true, emoji: '⚙️', xp: 300 },
-    { id: 4, name: 'Mini-fig Hunter', type: 'Medium', stars: 0, locked: true, emoji: '🌉', xp: 500 },
+    { id: 1, name: 'Find a 2x4 Brick', target: '2x4 brick', type: 'Easy', stars: 0, locked: false, emoji: '🧱', xp: 100 },
+    { id: 2, name: 'Red Only Challenge', target: 'red', type: 'Easy', stars: 0, locked: false, emoji: '🎨', xp: 150 },
+    { id: 3, name: 'Technic Discovery', target: 'technic', type: 'Medium', stars: 0, locked: true, emoji: '⚙️', xp: 300 },
+    { id: 4, name: 'Mini-fig Hunter', target: 'minifigure', type: 'Medium', stars: 0, locked: true, emoji: '🌉', xp: 500 },
 ];
 
 export const PuzzlesScreen: React.FC<PuzzlesScreenProps> = ({ onNavigate }) => {
@@ -18,7 +18,9 @@ export const PuzzlesScreen: React.FC<PuzzlesScreenProps> = ({ onNavigate }) => {
         if (level.locked) return;
 
         const challenge = {
+            id: level.id,
             type: level.name,
+            target: level.target,
             difficulty: level.id,
             isNew: true
         };

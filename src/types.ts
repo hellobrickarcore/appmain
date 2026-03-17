@@ -14,7 +14,6 @@ export enum Screen {
   REWARDS = 'REWARDS',
   FEED = 'FEED',
   PROFILE_SETTINGS = 'PROFILE_SETTINGS',
-  CONNECT = 'CONNECT',
   IDEAS = 'IDEAS',
   PUZZLES = 'PUZZLES',
   HEAD_TO_HEAD = 'HEAD_TO_HEAD',
@@ -147,6 +146,7 @@ export interface LeaderboardEntry {
   xp: number;
   avatar: string;
   isCurrentUser?: boolean;
+  streak?: number;
 }
 
 export interface RewardItem {
@@ -208,4 +208,39 @@ export interface GameSession {
   bricksFound?: DetectedBrick[];
   completed?: boolean;
   xpEarned?: number;
+}
+export interface VaultSummary {
+  countsBySize: Record<string, number>;
+  countsByColor: Record<string, number>;
+  shapeCapabilities: {
+    stacking: number;
+    wide_base: number;
+    symmetry: number;
+    fine_detail: number;
+    long_span: number;
+    organic_shape: number;
+  };
+  buildProfiles: {
+    tower: number;
+    vehicle: number;
+    creature: number;
+    micro_scene: number;
+    pixel_art: number;
+    spaceship: number;
+  };
+}
+
+export interface BuildIdea {
+  ideaName: string;
+  difficulty: string;
+  estimatedBrickUse: string;
+  whyItFitsYourVault: string;
+  imagePrompt: string;
+  imageUrl?: string;
+}
+
+export interface GPTBuilderResponse {
+  assistantMessage: string;
+  topIdeas: BuildIdea[];
+  suggestedQuickReplies: string[];
 }

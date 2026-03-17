@@ -108,6 +108,8 @@ export interface ScanFrameResponse {
     detections: FrameDetection[];
     trackedObjects: TrackedObject[];
     inferenceMs?: number;
+    rttMs?: number;
+    targetDimension?: number;
     debug?: {
         raw: number;
         valid_geo: number;

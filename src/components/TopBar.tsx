@@ -10,7 +10,8 @@ interface TopBarProps {
 export const TopBar: React.FC<TopBarProps> = ({ currentScreen, onNavigate }) => {
   return (
     <div className="flex items-center justify-between px-6 pt-[max(env(safe-area-inset-top),3rem)] pb-4 relative z-50">
-      <div className="w-10 h-10" />
+      <div className="flex items-center">
+      </div>
 
       {/* Central Toggle & Help Container */}
       <div className="flex items-center gap-2">
