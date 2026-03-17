@@ -3,7 +3,7 @@ import { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.hellobrick.app',
 
-  appName: 'HelloBrick Pro',
+  appName: 'HelloBrick',
   webDir: 'dist',
   server: {
     androidScheme: 'https',

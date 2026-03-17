@@ -222,7 +222,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
                 <Logo size="md" showText={false} />
               </div>
               <div className="flex-1">
-                <h4 className="font-bold text-[17px] text-black">HelloBrick Pro</h4>
+                <h4 className="font-bold text-[17px] text-black">HelloBrick Premium</h4>
                 <p className="text-slate-500 text-[13px] leading-tight">Monthly Subscription</p>
               </div>
               <div className="text-right">

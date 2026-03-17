@@ -216,7 +216,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onBack }) => {
           <div className="bg-gradient-to-br from-orange-500 to-yellow-500 rounded-3xl p-6 shadow-lg text-white">
             <div className="flex items-center gap-3 mb-2">
               <Crown size={24} />
-              <h3 className="text-xl font-bold">HelloBrick Pro</h3>
+              <h3 className="text-xl font-bold">HelloBrick Premium</h3>
             </div>
             <p className="text-orange-50 mb-4">
               Unlock unlimited scans, advanced quests, and exclusive features!

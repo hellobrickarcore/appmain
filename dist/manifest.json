@@ -1,7 +1,7 @@
 {
-  "name": "HelloBrick Pro",
-  "short_name": "HelloBrick Pro",
-  "description": "Premium AI-powered building brick detection and organization",
+  "name": "HelloBrick",
+  "short_name": "HelloBrick",
+  "description": "AI-powered building brick detection and organization",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#fff7ed",
