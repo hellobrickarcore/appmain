@@ -1,4 +1,4 @@
-console.log('--- IMAGE SERVICE V1.0.9 ACTIVE ---');
+console.log('--- IMAGE SERVICE V2.2 ACTIVE ---');
 
 /**
  * Image Generation Service
@@ -6,11 +6,16 @@ console.log('--- IMAGE SERVICE V1.0.9 ACTIVE ---');
  * using Pollinations.ai (Flux model) to provide high-quality LEGO builds.
  */
 
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
+const getApiKey = () => {
+    return import.meta.env.VITE_GEMINI_IMAGE_KEY || 
+           import.meta.env.VITE_GEMINI_BACKUP_KEY || 
+           import.meta.env.VITE_GEMINI_API_KEY || '';
+};
 
 export const generateIdeaImage = async (prompt: string): Promise<string> => {
     try {
-        if (!GEMINI_API_KEY) {
+        const apiKey = getApiKey();
+        if (!apiKey) {
             console.error('[ImageGenerator] 🛑 Missing API Key');
             return '';
         }
@@ -22,7 +27,7 @@ export const generateIdeaImage = async (prompt: string): Promise<string> => {
         const finalPrompt = prompt + styleSuffix;
         
         const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${GEMINI_API_KEY}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${apiKey}`,
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
