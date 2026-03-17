@@ -34,8 +34,8 @@ import { subscriptionService } from './services/subscriptionService';
 import { onAuthStateChange, supabase } from './services/supabaseService';
 import { usageService } from './services/usageService';
 
-console.log('🚀 BUILD_VERSION: 1.1.5 - AUTH_REBRAND_FINAL');
-console.log('--- APP V1.1.5 ACTIVE ---');
+console.log('🚀 BUILD_VERSION: 1.1.6 - GEMINI_ROTATION_PRO_PATCH');
+console.log('--- APP V1.1.6 ACTIVE ---');
 
 
 const App: React.FC = () => {

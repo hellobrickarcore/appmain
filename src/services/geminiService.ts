@@ -10,13 +10,19 @@ import { getSystemPrompt, buildRuntimePrompt } from '../features/ideas/buildIdea
  * Enhanced AI Instance with multi-key support
  * Purges legacy model references or uses centralized config.
  */
-const getAIInstance = (useBackup = false) => {
-    const primaryKey = import.meta.env.VITE_GEMINI_API_KEY || '';
-    const backupKey = import.meta.env.VITE_GEMINI_BACKUP_KEY || '';
-    const key = useBackup ? (backupKey || primaryKey) : primaryKey;
-    
+const getAllKeys = () => {
+  return [
+    import.meta.env.VITE_GEMINI_API_KEY,
+    import.meta.env.VITE_GEMINI_BACKUP_KEY,
+    import.meta.env.VITE_GEMINI_IMAGE_KEY
+  ].filter(Boolean);
+};
+
+const getAIInstance = (keyIndex = 0) => {
+    const keys = getAllKeys();
+    const key = keys[keyIndex];
     if (!key) {
-      console.error('[Gemini] 🛑 Missing API Key');
+      console.error('[Gemini] 🛑 No API Key found for index', keyIndex);
       return null;
     }
     return new GoogleGenerativeAI(key);
@@ -96,8 +102,8 @@ export const getConversationalIdeas = async (
   bricks: Brick[] = [],
   history: { role: 'user' | 'assistant', content: string }[] = []
 ): Promise<GPTBuilderResponse> => {
-  const primaryAi = getAIInstance(false);
-  const backupAi = getAIInstance(true);
+  const primaryAi = getAIInstance(0); // Use index 0 for primary
+  const backupAi = getAIInstance(1); // Use index 1 for backup
 
   if (!primaryAi) throw new Error(IdeasErrorType.AUTH_ERROR);
 
@@ -133,7 +139,7 @@ export const getConversationalIdeas = async (
        throw error;
     }
 
-    if (backupAi && backupAi !== primaryAi) {
+    if (backupAi && backupAi !== primaryAi) { // Ensure backupAi is distinct and exists
       try {
         console.log('[Gemini] 🔄 Retrying with backup service...');
         const result = await executeGeminiRequest(backupAi, systemPrompt, runtimePrompt, recentHistory);
