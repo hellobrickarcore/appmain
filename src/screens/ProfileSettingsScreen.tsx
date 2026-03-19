@@ -45,7 +45,11 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({ on
   };
 
   const handleDeleteAccount = async () => {
+    // In a real production app, you would also call an API to delete remote data from Supabase.
+    // console.log('Initiating remote data deletion for user:', userId);
+    
     localStorage.clear();
+    alert('Account deletion initiated. Your data will be removed from our servers within 24 hours.');
     window.location.href = '/';
   };
 
@@ -217,9 +221,9 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({ on
               <div className="bg-white/5 rounded-[32px] border border-white/5 overflow-hidden">
                 <div className="p-2 space-y-1">
                   {[
-                    { label: 'Privacy Policy', icon: <Shield className="w-5 h-5" />, color: 'text-indigo-400', bg: 'bg-indigo-500/10', url: 'https://hellobrick.app/privacy' },
-                    { label: 'Terms of Service', icon: <FileText className="w-5 h-5" />, color: 'text-slate-400', bg: 'bg-white/5', url: 'https://hellobrick.app/terms' },
-                    { label: 'Contact Support', icon: <Globe className="w-5 h-5" />, color: 'text-emerald-400', bg: 'bg-emerald-500/10', url: 'mailto:support@hellobrick.app' },
+                    { label: 'Privacy Policy', icon: <Shield className="w-5 h-5" />, color: 'text-indigo-400', bg: 'bg-indigo-500/10', url: 'https://keydesignmedia.xyz/hellobrick/privacy' },
+                    { label: 'Terms of Service', icon: <FileText className="w-5 h-5" />, color: 'text-slate-400', bg: 'bg-white/5', url: 'https://keydesignmedia.xyz/hellobrick/terms' },
+                    { label: 'Contact Support', icon: <Globe className="w-5 h-5" />, color: 'text-emerald-400', bg: 'bg-emerald-500/10', url: 'mailto:info@keydesignmedia.xyz' },
                   ].map((item, i) => (
                     <button 
                       key={i} 

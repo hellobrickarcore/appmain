@@ -32,14 +32,15 @@ export const normalizeVault = (bricks: Brick[] | any[]): NormalizedVault => {
   bricks.forEach(b => {
     const rawLabel = (b.name || b.label || '').toLowerCase();
     
-    // Extraction Regexes
+    // Extraction Regexes - Standardizing extraction
     const sizeMatch = rawLabel.match(/(\d+\s*x\s*\d+)/);
     const colorMatch = rawLabel.match(/(red|blue|yellow|green|white|black|orange|gray|grey|brown|tan|lime|pink|purple)/i);
     
-    const size = sizeMatch ? sizeMatch[1].replace(/\s/g, '') : 'Unknown';
+    // Default to the provided color/dimensions if regex fails
+    const size = sizeMatch ? sizeMatch[1].replace(/\s/g, '') : (b.dimensions || 'Unknown');
     const color = colorMatch ? colorMatch[0].charAt(0).toUpperCase() + colorMatch[0].slice(1) : (b.color || 'Unknown');
     
-    let category = 'Brick';
+    let category = b.category || 'Brick';
     if (rawLabel.includes('plate')) category = 'Plate';
     else if (rawLabel.includes('tile')) category = 'Tile';
     else if (rawLabel.includes('slope')) category = 'Slope';
@@ -57,10 +58,10 @@ export const normalizeVault = (bricks: Brick[] | any[]): NormalizedVault => {
     norm.totalBricks += normalized.quantity;
 
     // Aggregates
-    if (normalized.sizeLabel !== 'Unknown') {
+    if (normalized.sizeLabel && normalized.sizeLabel !== 'Unknown') {
       norm.countsBySize[normalized.sizeLabel] = (norm.countsBySize[normalized.sizeLabel] || 0) + normalized.quantity;
     }
-    if (normalized.colorLabel !== 'Unknown') {
+    if (normalized.colorLabel && normalized.colorLabel !== 'Unknown') {
       norm.countsByColor[normalized.colorLabel] = (norm.countsByColor[normalized.colorLabel] || 0) + normalized.quantity;
     }
     norm.countsByCategory[normalized.category] = (norm.countsByCategory[normalized.category] || 0) + normalized.quantity;

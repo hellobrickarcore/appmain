@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HelloBrick | Master Your Building Brick Collection</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="bg-glow"></div>
+
+    <nav id="main-nav">
+        <div class="container" style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-family:'Outfit'; font-weight:900; font-size:24px; display:flex; align-items:center; gap:12px;">
+                <div style="width:32px; height:32px; background:var(--accent-orange); border-radius:10px; box-shadow:0 0 20px rgba(255,87,51,0.3);"></div>
+                HelloBrick
+            </div>
+            <div style="display:flex; gap:32px; align-items:center;">
+                <a href="support.html" style="color:var(--text-slate); text-decoration:none; font-size:14px; font-weight:700;">Support</a>
+                <a href="privacy.html" style="color:var(--text-slate); text-decoration:none; font-size:14px; font-weight:700;">Privacy</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <!-- Hero Section -->
+        <section style="text-align:center; padding-top:120px;">
+            <div class="glass-pill" style="display:inline-block; margin-bottom:32px; color:var(--accent-orange);">AI-Powered Organization</div>
+            <h1 class="text-gradient" style="font-size: clamp(3rem, 10vw, 6rem); margin-bottom:32px;">Master Every <br>Single Brick.</h1>
+            <p style="font-size:20px; color:var(--text-slate); max-width:680px; margin:0 auto 56px; font-weight:500;">
+                The most advanced scanner for building enthusiasts. Digitize your collection, track rare pieces, and unlock infinite building possibilities with Gemini 2.0.
+            </p>
+            
+            <div style="display:flex; gap:20px; justify-content:center; flex-wrap:wrap;">
+                <a href="#" class="btn-massive">Download HelloBrick</a>
+                <a href="#" class="btn-massive" id="h2h-btn">Enter Arena</a>
+            </div>
+
+            <div class="hero-visual glass">
+                <div class="scanner-line"></div>
+                <img src="hero.png" alt="Scanner Interface" style="width:100%; display:block; opacity:0.9;">
+            </div>
+        </section>
+
+        <!-- Features -->
+        <section>
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:32px;">
+                <div class="feature-card glass">
+                    <div class="icon-wrap">🔍</div>
+                    <h2 class="font-outfit" style="font-size:28px; margin-bottom:16px;">Instant Capture</h2>
+                    <p style="color:var(--text-slate); font-weight:500;">Proprietary YOLO-powered vision identifies thousands of unique parts in milliseconds. Just point and scan.</p>
+                </div>
+                <div class="feature-card glass">
+                    <div class="icon-wrap">🛡️</div>
+                    <h2 class="font-outfit" style="font-size:28px; margin-bottom:16px;">The Vault</h2>
+                    <p style="color:var(--text-slate); font-weight:500;">Your physical collection, mirrored in the cloud. Know exactly what you have and where it's stored, always.</p>
+                </div>
+                <div class="feature-card glass">
+                    <div class="icon-wrap">⚔️</div>
+                    <h2 class="font-outfit" style="font-size:28px; margin-bottom:16px;">Global Arena</h2>
+                    <p style="color:var(--text-slate); font-weight:500;">Challenge friends in Head-to-Head builds, climb the leaderboard, and earn exclusive Master Legend XP.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA -->
+        <section style="text-align:center; padding:100px 0;">
+            <div class="glass" style="padding:80px 40px; border-color:rgba(99, 102, 241, 0.2);">
+                <h2 class="font-outfit" style="font-size:48px; margin-bottom:24px;">Ready to build smarter?</h2>
+                <p style="color:var(--text-slate); margin-bottom:48px; font-size:18px;">Join 50,000+ builders worldwide using HelloBrick Pro.</p>
+                <a href="#" class="btn-massive">Get Started for Free</a>
+            </div>
+        </section>
+    </main>
+
+    <footer style="padding:100px 0; border-top:1px solid var(--glass-border); text-align:center;">
+        <div class="container">
+            <p style="color:var(--text-slate); font-size:14px; font-weight:600; margin-bottom:24px;">
+                © 2026 Key Design Media. All rights reserved.
+            </p>
+            <p style="color:rgba(255,255,255,0.1); font-size:11px; font-weight:900; letter-spacing:0.1em; text-transform:uppercase; max-width:600px; margin:0 auto;">
+                HelloBrick is an independent utility and is not affiliated, associated, authorized, endorsed by, or in any way officially connected with The LEGO Group.
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('main-nav');
+            if (window.scrollY > 50) {
+                nav.classList.add('nav-blur');
+            } else {
+                nav.classList.remove('nav-blur');
+            }
+        });
+    </script>
+</body>
+</html>

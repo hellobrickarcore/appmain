@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, ArrowLeft, Sparkles, User, Bot, Info, Thermometer, Camera } from 'lucide-react';
+import { Send, ArrowLeft, Sparkles, User, Bot, Camera, Box, Puzzle } from 'lucide-react';
 import { Screen, Brick, BuildIdea, GPTBuilderResponse } from '../types';
 import { getConversationalIdeas } from '../services/geminiService';
-import { generateIdeaImage } from '../services/imageGenerationService';
+import { generateIdeaImage } from '../services/geminiImageService';
+import { buildIdeaImagePrompt } from '../features/ideas/buildIdeasPrompt';
+import { normalizeVault } from '../lib/brick/normalizeVault';
 
 interface UIMessage {
   id: string;
@@ -18,7 +20,7 @@ interface IdeasGeneratorScreenProps {
   allBricks?: Brick[];
 }
 
-export const IdeasGeneratorScreen: React.FC<IdeasGeneratorScreenProps> = ({ onNavigate, initialBrick, allBricks: allBricksProp }) => {
+export const IdeasGeneratorScreen: React.FC<IdeasGeneratorScreenProps> = ({ onNavigate, allBricks: allBricksProp }) => {
   const [allBricks, setAllBricks] = useState<Brick[]>(allBricksProp || []);
   const [messages, setMessages] = useState<UIMessage[]>([]);
   const [input, setInput] = useState('');
@@ -87,30 +89,116 @@ export const IdeasGeneratorScreen: React.FC<IdeasGeneratorScreenProps> = ({ onNa
       
       const response: GPTBuilderResponse = await getConversationalIdeas(textToSend, allBricks, history);
       
+      // Part 16 Hard Fix: Chat First, Cards After, Parallel Generation (Max 2)
+      const vaultSummary = normalizeVault(allBricks);
       const assistantMsg: UIMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: response.assistantMessage,
-        ideas: response.topIdeas
+        ideas: response.topIdeas?.map(idea => {
+           // We assign a prompt specifically for the image service here if needed,
+           // or use the one provided by LLM. The user wants US to build the prompt
+           // using the vault grounding if possible.
+           return {
+             ...idea,
+             imagePrompt: buildIdeaImagePrompt(idea, vaultSummary),
+             imageLoading: true
+           };
+        })
       };
       
       setMessages(prev => [...prev, assistantMsg]);
       
-      // Phase 28: Trigger Background Image Generation for each idea
+      // background parallel generation for max 2 ideas
       if (assistantMsg.ideas && assistantMsg.ideas.length > 0) {
-        assistantMsg.ideas.forEach(async (idea, idx) => {
-          if (idea.imagePrompt) {
-            const url = await generateIdeaImage(idea.imagePrompt);
-            setMessages(current => current.map(m => {
-              if (m.id === assistantMsg.id && m.ideas) {
-                const updatedIdeas = [...m.ideas];
-                updatedIdeas[idx] = { ...updatedIdeas[idx], imageUrl: url };
-                return { ...m, ideas: updatedIdeas };
-              }
-              return m;
-            }));
-          }
+        const generationPool = assistantMsg.ideas.slice(0, 2);
+        
+        generationPool.forEach(async (idea) => {
+          const idx = assistantMsg.ideas!.findIndex(i => i.ideaName === idea.ideaName);
+          if (idx === -1) return;
+
+          const attemptGeneration = async (isRetry = false) => {
+            try {
+               const vaultTotal = vaultSummary.totalBricks;
+               const estUse = idea.estimatedBrickUse || 0;
+               const maxBricks = Math.max(3, Math.min(20, Math.round(vaultTotal * 0.6)));
+
+               // LOGGING GROUNDING DATA
+               console.log(`[IdeasGenerator] IMAGE_GROUNDING ${isRetry ? '(RETRY)' : ''} {
+                 ideaName: "${idea.ideaName}",
+                 vaultTotal: ${vaultTotal},
+                 maxBricksAllowed: ${maxBricks},
+                 estimatedBrickUse: ${estUse},
+                 imagePrompt: "${idea.imagePrompt}"
+               }`);
+
+               // VALIDATION LAYER
+               if (estUse > vaultTotal && vaultTotal > 0) {
+                  console.warn(`[ImageGenerator] BLOCKER: ${idea.ideaName} uses too many bricks (${estUse} > ${vaultTotal})`);
+                  setMessages(current => current.map(m => {
+                    if (m.id === assistantMsg.id && m.ideas) {
+                      const updatedIdeas = [...m.ideas];
+                      updatedIdeas[idx] = { ...updatedIdeas[idx], imageLoading: false };
+                      return { ...m, ideas: updatedIdeas };
+                    }
+                    return m;
+                  }));
+                  return;
+               }
+
+               let finalPrompt = idea.imagePrompt;
+               if (isRetry) {
+                 finalPrompt = `IMPORTANT: show ONLY a brick-built construction made from standard rectangular LEGO bricks with visible studs. Do not show symbols, graphics, scenery, or non-brick shapes. | ${finalPrompt}`;
+               }
+
+               console.log(`[ImageGenerator] Dispatching for: ${idea.ideaName}`);
+               const result = await generateIdeaImage(finalPrompt);
+               
+               if (!result.ok && !isRetry) {
+                 console.log(`[ImageGenerator] Prompt drift or failure detected for ${idea.ideaName}. Retrying once with stricter rules.`);
+                 await attemptGeneration(true);
+                 return;
+               }
+
+               setMessages(current => current.map(m => {
+                 if (m.id === assistantMsg.id && m.ideas) {
+                   const updatedIdeas = [...m.ideas];
+                   updatedIdeas[idx] = { 
+                     ...updatedIdeas[idx], 
+                     imageUrl: result.ok ? result.dataUrl : undefined, 
+                     imageLoading: false,
+                     promptDrift: !result.ok // internal flag
+                   };
+                   return { ...m, ideas: updatedIdeas };
+                 }
+                 return m;
+               }));
+            } catch (err) {
+               console.error(`[ImageGenerator] Hard Failure for ${idea.ideaName}`, err);
+               setMessages(current => current.map(m => {
+                 if (m.id === assistantMsg.id && m.ideas) {
+                   const updatedIdeas = [...m.ideas];
+                   updatedIdeas[idx] = { ...updatedIdeas[idx], imageLoading: false };
+                   return { ...m, ideas: updatedIdeas };
+                 }
+                 return m;
+               }));
+            }
+          };
+
+          await attemptGeneration();
         });
+
+        // Ensure rest of ideas (if > 2) are not stuck in loading
+        if (assistantMsg.ideas.length > 2) {
+           setMessages(current => current.map(m => {
+             if (m.id === assistantMsg.id && m.ideas) {
+               const updatedIdeas = m.ideas.map((idea, i) => i >= 2 ? { ...idea, imageLoading: false } : idea);
+               return { ...m, ideas: updatedIdeas };
+             }
+             return m;
+           }));
+        }
       }
 
       if (response.suggestedQuickReplies && response.suggestedQuickReplies.length > 0) {
@@ -217,11 +305,20 @@ export const IdeasGeneratorScreen: React.FC<IdeasGeneratorScreenProps> = ({ onNa
                                  alt={idea.ideaName} 
                                  className="w-full h-full object-cover animate-in fade-in zoom-in-95 duration-1000" 
                                />
+                             ) : idea.imageLoading ? (
+                               <div className="flex flex-col items-center gap-3">
+                                 <div className="flex gap-1.5">
+                                   <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                                   <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                                   <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" />
+                                 </div>
+                                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest animate-pulse">Generating preview...</span>
+                               </div>
                              ) : (
-                               <>
-                                 <Sparkles className="w-10 h-10 text-orange-500/20 mb-2 group-hover:scale-110 transition-transform duration-700 animate-pulse" />
-                                 <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Generating build viz...</span>
-                               </>
+                               <div className="flex flex-col items-center gap-2 opacity-40">
+                                 <Box className="w-10 h-10 text-slate-600" />
+                                 <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">No preview available</span>
+                               </div>
                              )}
                              <div className="absolute inset-0 bg-gradient-to-tr from-orange-500/5 to-transparent pointer-events-none" />
                           </div>
@@ -232,17 +329,22 @@ export const IdeasGeneratorScreen: React.FC<IdeasGeneratorScreenProps> = ({ onNa
                               {idea.difficulty}
                             </span>
                           </div>
-                          <p className="text-[13px] text-slate-400 font-medium leading-relaxed italic">
-                            "{idea.whyItFitsYourVault}"
+                          <p className="text-[13px] text-slate-400 font-medium leading-relaxed italic border-l-2 border-orange-500/10 pl-3">
+                            {idea.whyItFitsYourVault}
                           </p>
-                          <div className="flex items-center gap-4 text-[10px] font-black text-slate-500 uppercase tracking-widest pt-1">
-                            <div className="flex items-center gap-1.5">
-                              <Thermometer className="w-4 h-4 text-orange-500/50" />
-                              {idea.estimatedBrickUse}
+
+                          <div className="space-y-4 pt-2">
+                            <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                               <Puzzle className="w-3.5 h-3.5 text-orange-500/50" />
+                               <span>Build Steps</span>
                             </div>
-                            <div className="flex items-center gap-1.5">
-                              <Info className="w-4 h-4 text-blue-500/50" />
-                              Grounded
+                            <div className="space-y-2">
+                               {idea.buildSteps?.map((step, sidx) => (
+                                 <div key={sidx} className="flex gap-3 bg-white/5 p-3 rounded-2xl border border-white/5 animate-in fade-in slide-in-from-left duration-500" style={{ animationDelay: `${sidx * 100}ms` }}>
+                                   <span className="text-[10px] font-black text-orange-500 w-4 flex-shrink-0">{sidx + 1}</span>
+                                   <p className="text-xs text-slate-300 font-bold leading-tight">{step}</p>
+                                 </div>
+                               ))}
                             </div>
                           </div>
                         </div>

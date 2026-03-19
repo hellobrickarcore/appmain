@@ -25,41 +25,42 @@ export default defineConfig(({ mode }) => {
       // Central proxy for all backend services to enable mobile access via relative paths
       proxy: {
         '/api/detect': {
-          target: 'http://127.0.0.1:3003',
+          target: 'https://api.keydesignmedia.xyz',
           changeOrigin: true,
-          secure: false
+          secure: true
         },
         '/api/dataset': {
-          target: 'http://127.0.0.1:3004',
+          target: 'https://api.keydesignmedia.xyz',
           changeOrigin: true,
-          secure: false
+          secure: true
         },
         '/api/xp': {
-          target: 'http://127.0.0.1:3005',
+          target: 'https://api.keydesignmedia.xyz',
           changeOrigin: true,
-          secure: false
+          secure: true
         },
         '/api/auth': {
-          target: 'http://127.0.0.1:3007',
+          target: 'https://api.keydesignmedia.xyz',
           changeOrigin: true,
-          secure: false
+          secure: true
         },
         '/api/user': {
-          target: 'http://127.0.0.1:3007',
+          target: 'https://api.keydesignmedia.xyz',
           changeOrigin: true,
-          secure: false
+          secure: true
         },
         '/api/feed': {
-          target: 'http://127.0.0.1:3006',
+          target: 'https://api.keydesignmedia.xyz',
           changeOrigin: true,
-          secure: false
+          secure: true
         },
         '/api/notifications': {
-          target: 'http://127.0.0.1:3007',
+          target: 'https://api.keydesignmedia.xyz',
           changeOrigin: true,
-          secure: false
+          secure: true
         }
       }
+
     },
     build: {
       outDir: 'dist',

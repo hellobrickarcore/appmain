@@ -3,7 +3,7 @@ import { ChevronLeft, QrCode, Scan, Handshake, UserPlus, X, Sparkles, ShieldChec
 import { Screen } from '../types';
 
 interface HeadToHeadScreenProps {
-    onNavigate: (screen: Screen) => void;
+    onNavigate: (screen: Screen, params?: any) => void;
     isPro?: boolean;
 }
 
@@ -26,14 +26,13 @@ export const HeadToHeadScreen: React.FC<HeadToHeadScreenProps> = ({ onNavigate }
         const loadBattles = async () => {
             try {
                 const userId = localStorage.getItem('hellobrick_userId') || 'anonymous';
-                // Simulated or real fetch
                 const response = await fetch(`/api/xp/battles?userId=${userId}`);
                 if (response.ok) {
                     const data = await response.json();
                     setRecentBattles(data.battles || []);
                 }
             } catch (error) {
-                console.log('No battle history yet');
+                console.error('Failed to load battle history:', error);
             } finally {
                 setIsLoading(false);
             }
@@ -41,21 +40,29 @@ export const HeadToHeadScreen: React.FC<HeadToHeadScreenProps> = ({ onNavigate }
         loadBattles();
     }, []);
 
-    const handleConnect = () => {
+    const handleConnect = async () => {
         if (!connectId || connectId.trim().length < 3) {
             setIdError('Please enter a valid Arena ID');
             return;
         }
 
-        // Simulating user search - only "BRICK-PRO" or "FRIEND" work for now
-        const validIds = ['BRICK-PRO', 'FRIEND'];
-        if (!validIds.includes(connectId.toUpperCase())) {
-            setIdError('User not found, please try again');
-            return;
+        setIsLoading(true);
+        try {
+            const response = await fetch(`/api/xp/search?query=${encodeURIComponent(connectId)}`);
+            const data = await response.json();
+            
+            if (data.success && data.user) {
+                setIdError('');
+                setShowIdInput(false);
+                onNavigate(Screen.H2H_MODES, { opponent: data.user });
+            } else {
+                setIdError(data.error || 'User not found, please try again');
+            }
+        } catch (error) {
+            setIdError('Connection error. Please try again.');
+        } finally {
+            setIsLoading(false);
         }
-
-        setIdError('');
-        onNavigate(Screen.H2H_MODES);
     };
 
     return (
@@ -71,7 +78,7 @@ export const HeadToHeadScreen: React.FC<HeadToHeadScreenProps> = ({ onNavigate }
                     <ChevronLeft className="w-5 h-5 text-slate-300" />
                 </button>
                 <div className="flex flex-col items-center">
-                   <h1 className="text-sm font-black uppercase tracking-[0.2em] text-white">Challenge Mode</h1>
+                   <h1 className="text-sm font-black uppercase tracking-[0.2em] text-white">Arena</h1>
                    <div className="flex items-center gap-1.5 mt-0.5">
                       <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
                       <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Active League</span>
@@ -88,8 +95,8 @@ export const HeadToHeadScreen: React.FC<HeadToHeadScreenProps> = ({ onNavigate }
                             <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16" />
                             <ShieldCheck className="absolute -bottom-10 -right-10 w-48 h-48 text-white/5" />
 
-                            <h2 className="text-2xl font-black mb-2 tracking-tight">Match Profile</h2>
-                            <p className="text-indigo-200 text-xs mb-8 font-bold uppercase tracking-widest opacity-80">Ready for a match...</p>
+                            <h2 className="text-2xl font-black mb-1 tracking-tight">Match Profile</h2>
+                            <p className="text-indigo-200 text-[10px] mb-8 font-black uppercase tracking-widest opacity-60">Ready for Arena Match</p>
 
                             <div className="bg-white p-5 rounded-[40px] shadow-2xl mb-8 relative group">
                                 <div className="absolute inset-0 bg-blue-600/20 rounded-[40px] animate-pulse pointer-events-none" />
@@ -108,9 +115,9 @@ export const HeadToHeadScreen: React.FC<HeadToHeadScreenProps> = ({ onNavigate }
                             </div>
                             
                             <div className="bg-white/5 border border-white/10 px-6 py-2.5 rounded-2xl flex items-center gap-3 backdrop-blur-xl">
-                               <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest leading-none">ID:</p>
+                               <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest leading-none">ARENA ID:</p>
                                <span className="text-sm font-black text-white tracking-[0.1em]">
-                                 {localStorage.getItem('hellobrick_profile_name') || 'BUILDER'}
+                                 {localStorage.getItem('hellobrick_profile_name')?.toUpperCase() || 'BUILDER-PRO'}
                                </span>
                             </div>
                         </div>
@@ -119,7 +126,7 @@ export const HeadToHeadScreen: React.FC<HeadToHeadScreenProps> = ({ onNavigate }
                     {/* Action Hub */}
                     <div className="w-full grid grid-cols-2 gap-4 mb-12">
                         <button
-                            onClick={handleConnect}
+                            onClick={() => onNavigate(Screen.SCANNER, { mode: 'h2h' })}
                             className="bg-white/5 border border-white/10 rounded-[32px] p-6 flex flex-col items-center gap-3 active:scale-95 transition-all group"
                         >
                             <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center text-slate-400 group-hover:text-white transition-colors">

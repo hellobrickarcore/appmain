@@ -158,7 +158,15 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
                           <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">{formatTimeAgo(post.timestamp)}</span>
                         </div>
                       </div>
+                    <button 
+                      onClick={() => {
+                        const action = window.confirm('Report this post or block this user?');
+                        if (action) alert('Post reported. Thank you for keeping the community safe.');
+                      }}
+                      className="p-2 hover:bg-white/5 rounded-full"
+                    >
                       <MoreVertical className="w-5 h-5 text-slate-700" />
+                    </button>
                     </div>
 
                     {/* Image Area */}

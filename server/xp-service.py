@@ -147,6 +147,7 @@ def init_db():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id TEXT PRIMARY KEY,
+            display_name TEXT,
             xp_total INTEGER DEFAULT 0,
             level INTEGER DEFAULT 1,
             streak_count INTEGER DEFAULT 0,
@@ -244,10 +245,12 @@ def get_or_create_user(user_id: str) -> Dict:
     user = cursor.fetchone()
     
     if not user:
+        # Generate a default display name if not provided
+        default_name = f"Builder-{user_id[-4:]}" if len(user_id) > 4 else f"Builder-{uuid.uuid4().hex[:4]}"
         cursor.execute("""
-            INSERT INTO users (id, xp_total, level, streak_count, streak_last_date)
-            VALUES (?, 0, 1, 0, ?)
-        """, (user_id, date.today().isoformat()))
+            INSERT INTO users (id, display_name, xp_total, level, streak_count, streak_last_date)
+            VALUES (?, ?, 0, 1, 0, ?)
+        """, (user_id, default_name, date.today().isoformat()))
         conn.commit()
         cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
         user = cursor.fetchone()
@@ -754,24 +757,49 @@ def get_battles():
         
         conn = get_db()
         cursor = conn.cursor()
-        cursor.execute("""
-            SELECT * FROM xp_events
-            WHERE user_id = ? AND event_type = 'multiplayer'
-            ORDER BY timestamp DESC
-            LIMIT 20
-        """, (user_id,))
         
-        events = [dict(row) for row in cursor.fetchall()]
+        # Real query from battles table
+        cursor.execute("""
+            SELECT b.*, 
+                   ua.display_name as name_a, 
+                   ub.display_name as name_b
+            FROM battles b
+            LEFT JOIN users ua ON b.user_a_id = ua.id
+            LEFT JOIN users ub ON b.user_b_id = ub.id
+            WHERE b.user_a_id = ? OR b.user_b_id = ?
+            ORDER BY b.created_at DESC
+            LIMIT 20
+        """, (user_id, user_id))
+        
+        rows = cursor.fetchall()
         conn.close()
         
         battles = []
-        for event in events:
+        for row in rows:
+            is_user_a = row['user_a_id'] == user_id
+            opponent_id = row['user_b_id'] if is_user_a else row['user_a_id']
+            opponent_name = row['name_b'] if is_user_a else row['name_a']
+            
+            # Determine result from row['result'] or scores
+            result = row['result']
+            if not result:
+                if row['score_a'] > row['score_b']:
+                    result = 'win' if is_user_a else 'loss'
+                elif row['score_b'] > row['score_a']:
+                    result = 'win' if not is_user_a else 'loss'
+                else:
+                    result = 'draw'
+
+            # Meta XP or default
+            meta = json.loads(row['meta']) if row['meta'] else {}
+            xp = meta.get('xp_awarded', 25 if result == 'win' else 10)
+
             battles.append({
-                'id': str(event.get('id', '')),
-                'opponent': event.get('metadata', 'Unknown'),
-                'result': 'win' if event.get('xp_earned', 0) >= 50 else 'loss',
-                'xp': event.get('xp_earned', 0),
-                'timestamp': event.get('timestamp', 0)
+                'id': row['id'],
+                'opponent': opponent_name or opponent_id[:8] or 'Unknown',
+                'result': result,
+                'xp': xp,
+                'timestamp': row['created_at']
             })
         
         return jsonify({
@@ -780,7 +808,45 @@ def get_battles():
         }), 200
         
     except Exception as e:
+        print(f"Error fetching battles: {e}")
         return jsonify({'error': str(e), 'battles': []}), 200
+
+@app.route('/api/xp/search', methods=['GET'])
+def search_user():
+    """Search for a user by ID or Arena ID (display name)"""
+    try:
+        query = request.args.get('query', '').strip()
+        if not query:
+            return jsonify({'success': False, 'error': 'Query required'}), 400
+            
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        # Search by exact ID or case-insensitive display name
+        cursor.execute("""
+            SELECT id, display_name, level, xp_total
+            FROM users 
+            WHERE id = ? OR UPPER(display_name) = ?
+            LIMIT 1
+        """, (query, query.upper()))
+        
+        user = cursor.fetchone()
+        conn.close()
+        
+        if user:
+            return jsonify({
+                'success': True,
+                'user': {
+                    'id': user['id'],
+                    'display_name': user['display_name'],
+                    'level': user['level']
+                }
+            }), 200
+        else:
+            return jsonify({'success': False, 'error': 'User not found'}), 404
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
     print("🚀 Starting XP Service...")

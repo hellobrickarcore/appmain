@@ -16,7 +16,7 @@ export class DetectionStabilizer {
   private smoothingFactor: number;
   private lockThreshold: number; 
 
-  constructor(persistenceWindowMs = 3500, smoothingFactor = 0.05, lockThreshold = 20) {
+  constructor(persistenceWindowMs = 2000, smoothingFactor = 0.18, lockThreshold = 15) {
     this.persistenceWindowMs = persistenceWindowMs;
     this.smoothingFactor = smoothingFactor;
     this.lockThreshold = lockThreshold;
@@ -206,15 +206,15 @@ export const detectBricks = async (
   
   // Adaptive Performance Tracking
   const startTime = Date.now();
-  // Phase 24: Default to 1024 for better distance detection. 
-  // Only scale down if RTT is extremely high (>1500ms) to maintain detail.
-  let targetDimension = 1024; 
+  // Phase 28: Favor 640 for live scanner for high FPS.
+  // Use 1024 for mass capture to maintain detail.
+  let targetDimension = mode === 'live_scanner' ? 640 : 1024; 
   
   const cachedRTT = localStorage.getItem('hellobrick_last_rtt');
   if (cachedRTT && mode === 'live_scanner') {
     const rtt = parseInt(cachedRTT);
-    if (rtt > 1500) targetDimension = 640;
-    else if (rtt > 2500) targetDimension = 512;
+    if (rtt > 800) targetDimension = 640;
+    else if (rtt > 1500) targetDimension = 512;
   }
 
   let responseText = '';

@@ -46,15 +46,17 @@
     <key>UIViewControllerBasedStatusBarAppearance</key>
     <true/>
     <key>NSCameraUsageDescription</key>
-    <string>We need camera access to scan your LEGO bricks in AR.</string>
+    <string>We need camera access to scan your building bricks in AR.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>We need access to your photo library to save and share your brick creations.</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>We need permission to save photos of your brick builds to your library.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>We need microphone access for video recording and analysis.</string>
-    <key>NSLocalNetworkUsageDescription</key>
-    <string>We need access to your local network to connect to the brick detection server on your Mac.</string>
     <key>NSAppTransportSecurity</key>
     <dict>
         <key>NSAllowsArbitraryLoads</key>
-        <true/>
+        <false/>
     </dict>
     <key>CFBundleURLTypes</key>
     <array>

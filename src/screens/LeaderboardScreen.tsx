@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Clock, Crown, Star, Flame } from 'lucide-react';
+import { ChevronLeft, Clock, Crown, Star, Flame, Trophy, Award, Shield } from 'lucide-react';
 import { Screen, LeaderboardEntry } from '../types';
 import { CONFIG } from '../services/configService';
 import { getUserId, getUserXP } from '../services/xpService';
@@ -210,9 +210,16 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ onNavigate
                 return (
                   <div key={`sep-${i}`} className="pt-4 pb-2 flex items-center gap-4">
                     <div className="h-px flex-1 bg-white/5" />
-                    <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-lg border ${item.league.color} ${item.league.bg} ${item.league.border}`}>
-                      {item.league.name} League
-                    </span>
+                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border ${item.league.color} ${item.league.bg} ${item.league.border} shadow-lg shadow-black/20 animate-in fade-in zoom-in duration-500`}>
+                      {item.league.name === 'Diamond' && <Crown className="w-3.5 h-3.5 fill-current" />}
+                      {item.league.name === 'Platinum' && <Trophy className="w-3.5 h-3.5 fill-current" />}
+                      {item.league.name === 'Gold' && <Award className="w-3.5 h-3.5" />}
+                      {item.league.name === 'Silver' && <Shield className="w-3.5 h-3.5" />}
+                      {item.league.name === 'Bronze' && <Star className="w-3.5 h-3.5 fill-current" />}
+                      <span className="text-[10px] font-black uppercase tracking-widest">
+                        {item.league.name} League
+                      </span>
+                    </div>
                     <div className="h-px flex-1 bg-white/5" />
                   </div>
                 );

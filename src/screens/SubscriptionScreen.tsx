@@ -196,13 +196,13 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
 
             <div className="flex gap-6 mt-1">
               <button 
-                onClick={() => window.open('https://hellobrick.app/terms', '_blank')}
+                onClick={() => window.open('https://keydesignmedia.xyz/hellobrick/terms', '_blank')}
                 className="text-slate-400/60 text-[11px] font-black tracking-tight border-b border-slate-200 uppercase"
               >
                 Terms of Use
               </button>
               <button 
-                onClick={() => window.open('https://hellobrick.app/privacy', '_blank')}
+                onClick={() => window.open('https://keydesignmedia.xyz/hellobrick/privacy', '_blank')}
                 className="text-slate-400/60 text-[11px] font-black tracking-tight border-b border-slate-200 uppercase"
               >
                 Privacy Policy

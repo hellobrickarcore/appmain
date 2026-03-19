@@ -34,8 +34,8 @@ import { subscriptionService } from './services/subscriptionService';
 import { onAuthStateChange, supabase } from './services/supabaseService';
 import { usageService } from './services/usageService';
 
-console.log('🚀 BUILD_VERSION: 1.1.6 - GEMINI_ROTATION_PRO_PATCH');
-console.log('--- APP V1.1.6 ACTIVE ---');
+console.log('🚀 BUILD_VERSION: 1.1.8 - GEMINI_IMAGE_ENGINE_V1');
+console.log('--- APP V1.1.8 ACTIVE ---');
 
 
 const App: React.FC = () => {
@@ -285,7 +285,7 @@ const App: React.FC = () => {
       case Screen.HOME:
         return <HomeScreen onNavigate={handleNavigate} />;
       case Screen.SCANNER:
-        return <ScannerScreen onNavigate={handleNavigate} challenge={activeChallenge} onPhaseChange={handlePhaseChange} />;
+        return <ScannerScreen onNavigate={handleNavigate} challenge={activeChallenge} onPhaseChange={handlePhaseChange} mode={screenParams?.mode} />;
       case Screen.COLLECTION:
         return <CollectionScreen onNavigate={handleNavigate} />;
       case Screen.PROFILE:

@@ -211,8 +211,13 @@ The app automatically checks subscription status on launch. You can verify:
 
 1. **Set up webhooks** (optional but recommended)
    - Go to RevenueCat → Settings → Webhooks
-   - Add your backend URL to receive subscription events
-   - Useful for server-side verification
+   - **Webhook URL**: `https://hellobrick.app/api/webhooks/revenuecat`
+   - **Authorization header value**: `Bearer [YOUR_CUSTOM_SECRET]`
+     - *Choose a random secure string (e.g., `hb_prod_wh_secret_123`).*
+     - *Prepend it with `Bearer ` in the RevenueCat dashboard.*
+     - *Set that same secret in your server environment as `REVENUECAT_WEBHOOK_SECRET`.*
+   - This ensures only RevenueCat can call your subscription update endpoint.
+
 
 2. **Add analytics** (optional)
    - RevenueCat provides basic analytics

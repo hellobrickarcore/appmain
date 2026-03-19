@@ -6,67 +6,80 @@ import { NormalizedVault } from '../../lib/brick/normalizeVault';
  */
 
 export const getSystemPrompt = () => `
-You are a build ideas assistant for HelloBrick. 
-Your goal is to suggest small, realistic LEGO-style builds based ONLY on the bricks the user has scanned.
-Never invent extra bricks or categories. 
-If the user has very few bricks, suggest simple micro-builds, color patterns, or small sculptural faces.
+You are generating tiny build ideas for a LEGO brick app.
+You must only suggest builds that can plausibly be made from the user’s scanned vault.
 
-Tone: Practical, short, and friendly. Never mention you are an "AI" or "large language model".
+Tone: Simple, helpful, ChatGPT-style. Do not optimize for "fun".
 
 Response Contract (MANDATORY JSON):
 {
   "assistantMessage": "Short friendly intro grounded in their inventory.",
   "topIdeas": [
     {
-      "ideaName": "Creative name",
-      "difficulty": "Beginner|Intermediate|Advanced",
-      "estimatedBrickUse": "e.g. 5 pieces",
-      "whyItFitsYourVault": "Brief reason based on their matching colors/sizes",
+      "ideaName": "Name",
+      "difficulty": "Beginner|Easy|Medium",
+      "whyItFitsYourVault": "Brief reason based on inventory",
+      "estimatedBrickUse": number,
       "buildSteps": ["Step 1...", "Step 2..."],
-      "imagePrompt": "Cartoon drawing of [description]..."
+      "imagePrompt": "Specific build target description"
     }
   ],
-  "suggestedQuickReplies": ["What can I build with this?", "Random ideas", "Make it easier", "Best idea"]
+  "suggestedQuickReplies": ["What can I build?", "Random ideas"]
 }
+
+STRICT PRODUCT RULES:
+- Suggest only very simple builds made only from visible interlocking bricks.
+- Use only the listed colors/sizes.
+- Do not assume extra part types (curves, wheels, hinges, minifigs).
+- Only allowed idea types: stack, tower, gate, wall pattern, block letter, tiny car/house/robot/flower/boat (plain block forms only).
+- Avoid dinosaurs, castles, space, fantasy, emojis, racing graphics, abstract symbols.
+- Every idea must be visually buildable from approximately the usable brick count.
 `;
 
 export const buildRuntimePrompt = (userMessage: string, vault: NormalizedVault): string => {
-  const topColors = Object.entries(vault.countsByColor)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([color, count]) => `${color} (x${count})`)
-    .join(', ');
-
-  const topSizes = Object.entries(vault.countsBySize)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([size, count]) => `${size} (x${count})`)
-    .join(', ');
+  const allowedColors = Object.keys(vault.countsByColor).join(', ');
+  const allowedSizes = Object.keys(vault.countsBySize).join(', ');
+  const maxBricksForImage = Math.max(3, Math.min(20, Math.round(vault.totalBricks * 0.6)));
 
   return `
 USER VAULT STATUS:
 - Total Bricks: ${vault.totalBricks}
-- Top Colors: ${topColors}
-- Top Sizes: ${topSizes}
+- Usable Bricks for each image: ${maxBricksForImage}
+- Allowed Colors: ${allowedColors}
+- Allowed Sizes: ${allowedSizes}
 
 USER REQUEST:
 "${userMessage}"
 
 INSTRUCTIONS:
-1. Cross-reference the user request with the vault.
-2. If inventory is limited, suggest micro-scale builds (totems, faces, mini furniture).
-3. Do NOT suggest generic themes like "Space Castle" unless they have hundreds of bricks.
-4. Every idea must include an 'imagePrompt' that describes a cartoon-style illustration of the build.
-5. Return 1 to 3 ideas ONLY.
+1. Suggest 1 to 3 ideas.
+2. Ensure estimatedBrickUse <= ${vault.totalBricks}.
+3. Return ONLY JSON matching the schema.
+4. imagePrompt field must be a strict specific build target description (e.g. "a tiny gate"). Do not use abstract words.
 `;
 };
 
 /**
- * Image Prompt Formula implementation
+ * Image Prompt Formula implementation (aligned with Hard Fix v2)
+ * BASE STYLE (ALWAYS INCLUDED):
+ * "Clean cartoon LEGO-style build, simple block geometry, smooth plastic texture, soft shadows, studio lighting, bright neutral background, front 3/4 angle, centered composition, minimal toy-app aesthetic, high clarity, no clutter"
  */
-export const generateImagePrompt = (ideaName: string, colors: string[], sizes: string[]): string => {
-  const colorList = colors.length > 0 ? colors.join(' and ') : 'various';
-  const sizeHint = sizes.length > 0 ? `using ${sizes[0]} pieces` : 'LEGO-style';
+export const buildIdeaImagePrompt = (idea: { ideaName: string; imagePrompt?: string; estimatedBrickUse?: number }, vault: NormalizedVault): string => {
+  const dynContent = idea.imagePrompt || idea.ideaName;
   
-  return `Cartoon drawing of a ${ideaName}, minimalist LEGO-style build using ${colorList} bricks, ${sizeHint}, clean front-facing composition, playful illustrated toy-app style, high contrast, vibrant colors, premium mobile app aesthetic`;
+  const colors = Object.keys(vault.countsByColor).slice(0, 4).join(' and ');
+  const sizes = Object.keys(vault.countsBySize).slice(0, 4).join(' and ');
+  const nBricks = idea.estimatedBrickUse || Math.max(3, Math.min(20, Math.round(vault.totalBricks * 0.6)));
+
+  /**
+   * NEW IMAGE PROMPT FORMAT:
+   * “Clean cartoon render of a small LEGO brick build only, built from approximately {N} bricks, 
+   * using only {COLORS}, using only {SIZES}, simple toy build, isolated on plain light background, 
+   * visible interlocking studs, no extra objects, no scenery, no people, no text, build is a {SPECIFIC BUILD}.”
+   */
+  const buildTarget = dynContent.toLowerCase().startsWith('a ') || dynContent.toLowerCase().startsWith('an ') 
+    ? dynContent 
+    : `a ${dynContent}`;
+
+  return `Clean cartoon render of a small LEGO brick build only, built from approximately ${nBricks} bricks, using only ${colors}, using only ${sizes}, simple toy build, isolated on plain light background, visible interlocking studs, no extra objects, no scenery, no people, no text, build is ${buildTarget}`;
 };

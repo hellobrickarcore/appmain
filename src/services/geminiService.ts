@@ -54,7 +54,6 @@ async function executeGeminiRequest(
   try {
     const apiResponse = await model.generateContent({
       contents,
-      generationConfig: { temperature: 0.7 },
       safetySettings: [
         { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
         { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -173,8 +172,7 @@ export const identifyBricks = async (base64Image: string): Promise<any> => {
           { inlineData: { data: base64Data, mimeType: 'image/jpeg' } },
           { text: `Detect LEGO bricks. Return ONLY JSON: {"items": [{"label": "2x2", "color": "yellow", "confidence": 0.9}]}` }
         ]
-      }],
-      generationConfig: { temperature: 0.1, responseMimeType: "application/json" },
+      }]
     });
     const result = await apiResponse.response;
     return JSON.parse(result.text());

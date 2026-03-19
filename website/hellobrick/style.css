@@ -1,0 +1,286 @@
+:root {
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --accent-blue: #3b82f6;
+    --accent-indigo: #6366f1;
+    --accent-neon: #00f2ff;
+    --text-primary: #ffffff;
+    --text-secondary: #94a3b8;
+    --bg-dark: #0f172a;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    line-height: 1.6;
+    overflow-x: hidden;
+}
+
+/* --- Navigation --- */
+header {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 1000;
+    padding: 1.5rem 2rem;
+    transition: all 0.3s ease;
+}
+
+header.scrolled {
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--glass-border);
+    padding: 1rem 2rem;
+}
+
+nav {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: 800;
+    background: linear-gradient(to right, #fff, var(--accent-blue));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-decoration: none;
+}
+
+.nav-links {
+    display: flex;
+    gap: 2rem;
+}
+
+.nav-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: color 0.3s;
+}
+
+.nav-links a:hover, .nav-links a.active {
+    color: var(--text-primary);
+}
+
+/* --- Hero & Sections --- */
+.hero-section {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8rem 2rem 4rem;
+    background: radial-gradient(circle at top right, #1e293b, var(--bg-dark));
+}
+
+.hero-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.2;
+    filter: blur(20px);
+    z-index: 0;
+}
+
+.glass-card {
+    position: relative;
+    z-index: 1;
+    background: var(--glass-bg);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border: 1px solid var(--glass-border);
+    border-radius: 40px;
+    padding: 4rem;
+    max-width: 1100px;
+    width: 100%;
+    box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.7);
+    text-align: center;
+}
+
+/* --- Advanced Scanner UI --- */
+.scanner-viewport {
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+    height: 350px;
+    margin: 3rem auto;
+    border-radius: 24px;
+    overflow: hidden;
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 0 40px rgba(0, 242, 255, 0.1);
+}
+
+.scanner-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.6;
+}
+
+.scan-line {
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background: var(--accent-neon);
+    box-shadow: 0 0 20px var(--accent-neon);
+    z-index: 2;
+    animation: scanVertical 4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.scan-line-h {
+    position: absolute;
+    height: 100%;
+    width: 2px;
+    background: rgba(0, 242, 255, 0.3);
+    z-index: 2;
+    animation: scanHorizontal 6s linear infinite;
+}
+
+@keyframes scanVertical {
+    0%, 100% { top: 0; opacity: 0; }
+    10%, 90% { opacity: 1; }
+    50% { top: 100%; }
+}
+
+@keyframes scanHorizontal {
+    0% { left: 0; }
+    100% { left: 100%; }
+}
+
+.detection-box {
+    position: absolute;
+    border: 1px solid var(--accent-neon);
+    background: rgba(0, 242, 255, 0.1);
+    box-shadow: inset 0 0 10px rgba(0, 242, 255, 0.2);
+    border-radius: 4px;
+    animation: pulseBox 2s infinite;
+}
+
+.detection-tag {
+    position: absolute;
+    top: -20px;
+    left: 0;
+    background: var(--accent-neon);
+    color: #000;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 2px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+@keyframes pulseBox {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.05); }
+}
+
+/* --- Features & Grid --- */
+.section-title {
+    font-size: 3rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+    text-align: center;
+    background: linear-gradient(to right, #fff, #94a3b8);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    margin-top: 4rem;
+}
+
+.feature-item {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    padding: 2.5rem;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    text-align: left;
+}
+
+.feature-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateY(-10px);
+    border-color: var(--accent-blue);
+}
+
+.feature-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* --- Mockup Section --- */
+.mockup-section {
+    margin-top: 8rem;
+    display: flex;
+    align-items: center;
+    gap: 4rem;
+    text-align: left;
+}
+
+.mockup-image {
+    width: 100%;
+    max-width: 500px;
+    border-radius: 48px;
+    box-shadow: 0 50px 100px rgba(0,0,0,0.5);
+    animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+}
+
+/* --- Common --- */
+.btn-primary {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-indigo));
+    color: white;
+    padding: 1.25rem 3rem;
+    border-radius: 100px;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 1.1rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 20px 40px -10px rgba(59, 130, 246, 0.5);
+}
+
+.btn-primary:hover {
+    transform: scale(1.05);
+    box-shadow: 0 30px 50px -10px rgba(59, 130, 246, 0.6);
+}
+
+footer {
+    padding: 8rem 2rem 4rem;
+    background: #020617;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+@media (max-width: 900px) {
+    .mockup-section { flex-direction: column; text-align: center; }
+    h1 { font-size: 2.5rem; }
+}

@@ -70,7 +70,7 @@ We may update this Privacy Policy. We will notify you of significant changes via
 ## Contact Us
 
 For privacy questions or requests:
-- Email: privacy@hellobrick.app
+- Email: info@keydesignmedia.xyz
 - In-app: Profile > Settings > Privacy Policy
 
 ## Compliance

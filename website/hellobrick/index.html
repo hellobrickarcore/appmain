@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brickit - Reimagined</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            orange: '#FF5A00',
+                            pink: '#FF4D8D',
+                            dark: '#111827',
+                            light: '#F8FAFC'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #F8FAFC;
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(28,100%,74%,0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, hsla(338,100%,75%,0.15) 0px, transparent 50%);
+            background-attachment: fixed;
+        }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .phone-shadow {
+            box-shadow: 
+                0 25px 50px -12px rgba(0, 0, 0, 0.25),
+                0 -10px 40px -10px rgba(0,0,0,0.1) inset,
+                0 30px 60px rgba(255,90,0,0.15);
+        }
+        
+        .shape-shadow {
+            box-shadow: 20px 20px 60px rgba(0,0,0,0.1), 
+                       -20px -20px 60px rgba(255,255,255,0.8);
+        }
+    </style>
+</head>
+<body class="text-brand-dark min-h-screen flex flex-col relative overflow-x-hidden w-full h-full">
+
+    <nav class="w-full fixed top-0 z-50 glass-panel">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <a href="#" class="flex items-center gap-3 group">
+                <div class="w-10 h-10 bg-brand-orange rounded-xl flex items-center justify-center transform group-hover:rotate-12 transition-transform duration-300 shadow-lg shadow-brand-orange/30">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M6 4C6 2.89543 6.89543 2 8 2H14C17.3137 2 20 4.68629 20 8C20 10.3396 18.6586 12.3653 16.7118 13.3444C18.667 14.3216 20 16.3503 20 18.7C20 22.0137 17.3137 24.7 14 24.7H8C6.89543 24.7 6 23.8046 6 22.7V4Z" fill="white"></path>
+                    </svg>
+                </div>
+                <span class="text-xl font-bold tracking-tight text-slate-900">HelloBrick</span>
+            </a>
+
+            <div class="hidden md:flex items-center gap-8">
+                <a href="#scanner" class="text-sm font-semibold text-slate-600 hover:text-brand-orange transition-colors">Scanner</a>
+                <a href="#inventory" class="text-sm font-semibold text-slate-600 hover:text-brand-orange transition-colors">Inventory</a>
+                <a href="#ideas" className="text-sm font-semibold text-slate-600 hover:text-brand-orange transition-colors">Build Ideas</a>
+                <a href="#multiplayer" className="text-sm font-semibold text-slate-600 hover:text-brand-orange transition-colors">Multiplayer</a>
+            </div>
+
+            <a href="#" class="hidden sm:inline-flex items-center justify-center px-6 py-2.5 rounded-full bg-slate-900 text-white text-sm font-bold tracking-wide hover:bg-brand-orange hover:shadow-lg hover:shadow-brand-orange/30 transition-all duration-300">
+                Download
+            </a>
+        </div>
+    </nav>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-6 pt-32 pb-20 flex flex-col lg:flex-row items-center gap-16 lg:gap-8">
+        <div class="flex-1 flex flex-col items-center lg:items-start text-center lg:text-left z-10 w-full">
+            <h1 class="text-5xl sm:text-6xl md:text-7xl lg:text-[5rem] font-extrabold tracking-tighter leading-[1.05] text-slate-900 mb-6">
+                The <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-orange to-brand-pink">Neural Core</span> <br class="hidden sm:block">
+                of Your Brick <br class="hidden sm:block">
+                Collection
+            </h1>
+            
+            <p class="text-lg sm:text-xl text-slate-600 mb-10 max-w-xl font-medium leading-relaxed">
+                HelloBrick uses state-of-the-art computer vision to identify, categorize, and catalog thousands of pieces in seconds. Powered by custom-trained neural networks optimized for 45,000+ geometries.
+            </p>
+
+            <div class="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                <a href="#" class="flex items-center justify-center lg:justify-start gap-3 bg-slate-900 hover:bg-slate-800 text-white px-6 py-3.5 rounded-2xl transition-all duration-300 transform hover:-translate-y-1 shadow-xl shadow-slate-900/20">
+                    <div class="text-left">
+                        <div class="text-[10px] leading-none text-slate-300 mb-1">Download on the</div>
+                        <div class="text-lg font-bold leading-none tracking-tight">App Store</div>
+                    </div>
+                </a>
+                <a href="#" class="flex items-center justify-center lg:justify-start gap-3 bg-white border-2 border-slate-200 hover:border-slate-300 text-slate-900 px-6 py-3.5 rounded-2xl transition-all duration-300 transform hover:-translate-y-1 shadow-lg shadow-slate-200/50">
+                    <div class="text-left">
+                        <div class="text-[10px] leading-none text-slate-500 mb-1">GET IT ON</div>
+                        <div class="text-lg font-bold leading-none tracking-tight">Google Play</div>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <div class="flex-1 w-full relative flex justify-center lg:justify-end min-h-[600px] mt-12 lg:mt-0 z-0">
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-[500px] pointer-events-none">
+                <div class="absolute top-[10%] -right-10 w-64 h-96 bg-gradient-to-br from-brand-orange to-orange-400 rounded-[2.5rem] rotate-12 opacity-80 shape-shadow backdrop-blur-3xl border border-white/20"></div>
+                <div class="absolute bottom-[5%] -left-10 w-72 h-80 bg-gradient-to-tr from-brand-pink to-pink-400 rounded-[3rem] -rotate-6 opacity-90 shape-shadow backdrop-blur-3xl border border-white/20"></div>
+            </div>
+
+            <div class="relative w-[300px] sm:w-[340px] h-[640px] sm:h-[700px] bg-[#1a1a1a] rounded-[3rem] sm:rounded-[3.5rem] p-3 shadow-2xl phone-shadow border-4 border-[#2a2a2a] transform transition-transform duration-700 hover:rotate-2">
+                <div class="w-full h-full bg-black rounded-[2.5rem] sm:rounded-[2.8rem] overflow-hidden relative flex flex-col font-sans">
+                    <div class="px-6 pt-14 pb-4 flex justify-between items-center text-white z-20 relative">
+                        <div class="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+                            <span class="text-xs font-semibold tracking-wide uppercase">Neural Scan</span>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 relative w-full -mt-20">
+                        <img src="https://images.unsplash.com/photo-1585366119957-e9730b6d0ef7?auto=format&fit=crop&q=80&w=800" alt="Scattered Bricks" class="w-full h-full object-cover filter brightness-75 contrast-125">
+                        <div class="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/80 to-transparent z-10"></div>
+                        <div class="absolute bottom-12 inset-x-0 flex flex-col items-center justify-end pb-8 z-20">
+                            <p class="text-white/60 text-sm font-medium tracking-wide mb-3 animate-pulse">Recognizing bricks...</p>
+                            <h2 class="text-6xl font-black text-white tracking-tighter drop-shadow-lg">433</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-slate-50 py-20 border-t border-slate-200">
+        <div class="max-w-7xl mx-auto px-6 text-center">
+            <p class="text-slate-400 text-xs">© 2026 HelloBrick AI. Not affiliated with or endorsed by LEGO.</p>
+        </div>
+    </footer>
+
+
+</body>
+</html>

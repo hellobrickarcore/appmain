@@ -11,7 +11,6 @@ interface HomeScreenProps {
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
     const [totalBricks, setTotalBricks] = React.useState(0);
-
     React.useEffect(() => {
         const stored = localStorage.getItem('hellobrick_collection');
         if (stored) {

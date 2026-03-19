@@ -849,4 +849,4 @@ async def health():
 if __name__ == '__main__':
     import uvicorn
     initialize_yolo()
-    uvicorn.run(app, host='0.0.0.0', port=3003)
+    uvicorn.run(app, host='0.0.0.0', port=3001)

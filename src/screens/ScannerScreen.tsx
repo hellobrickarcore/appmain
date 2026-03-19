@@ -12,6 +12,7 @@ interface ScannerScreenProps {
   onNavigate: (screen: Screen, params?: any) => void;
   challenge?: any;
   onPhaseChange?: (phase: 'preview' | 'scanning' | 'results') => void;
+  mode?: 'scan' | 'h2h';
 }
 
 const COLORS = ['#3B82F6', '#60A5FA', '#93C5FD', '#2563EB', '#1D4ED8']; // Blue-focused palette
@@ -45,7 +46,7 @@ const cropBrickImage = (sourceBase64: string, bbox: { xMin: number; yMin: number
   });
 };
 
-export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challenge, onPhaseChange }) => {
+export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challenge, onPhaseChange, mode = 'scan' }) => {
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -60,7 +61,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
   const [selectedBricks, setSelectedBricks] = useState<Set<string>>(new Set());
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [qualityAdvice, setQualityAdvice] = useState<string | null>(null);
+  const [qualityAdvice, setQualityAdvice] = useState<string | null>(mode === 'h2h' ? 'Position opponent QR code' : null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [phase, setPhase] = useState<'preview' | 'scanning' | 'results'>('preview');
 
@@ -147,7 +148,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
     }
   }, [hasPermission]);
 
-  const stabilizerRef = useRef<DetectionStabilizer>(new DetectionStabilizer(2500, 0.2, 12));
+  const stabilizerRef = useRef<DetectionStabilizer>(new DetectionStabilizer(2000, 0.18, 15));
 
 
   // ─── API Detection Loop ────────────────

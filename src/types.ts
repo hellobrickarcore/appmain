@@ -233,10 +233,13 @@ export interface VaultSummary {
 export interface BuildIdea {
   ideaName: string;
   difficulty: string;
-  estimatedBrickUse: string;
+  estimatedBrickUse?: number;
   whyItFitsYourVault: string;
   imagePrompt: string;
+  buildSteps?: string[];
   imageUrl?: string;
+  imageLoading?: boolean;
+  promptDrift?: boolean;
 }
 
 export interface GPTBuilderResponse {
