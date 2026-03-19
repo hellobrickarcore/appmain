@@ -5,7 +5,7 @@ export const Logo: React.FC<{
   showText?: boolean,
   light?: boolean,
   className?: string
-}> = ({ size = 'md', showText = true, light = false, className = '' }) => {
+}> = ({ size = 'md', showText = true, light = true, className = '' }) => {
   const markSize = {
     sm: 'w-6 h-6 rounded-lg',
     md: 'w-10 h-10 rounded-[12px]',
@@ -30,7 +30,7 @@ export const Logo: React.FC<{
   return (
     <div className={`flex items-center gap-3 ${className}`}>
       {/* The Mascot Mark */}
-      <div className={`${markSize[size]} bg-[#FF7A30] flex items-center justify-center shadow-lg relative overflow-hidden border-2 border-white/10`}>
+      <div className={`${markSize[size]} bg-brand-orange flex items-center justify-center shadow-lg relative overflow-hidden border-2 border-white/10`}>
          <div className="flex gap-[25%] relative z-10">
             <div className={`${eyeSize[size]} bg-black rounded-full`} />
             <div className={`${eyeSize[size]} bg-black rounded-full`} />
@@ -40,8 +40,8 @@ export const Logo: React.FC<{
       </div>
 
       {showText && (
-        <span className={`${textSize[size]} tracking-tight uppercase ${light ? 'text-white' : 'text-slate-900'}`}>
-          Hello<span className="text-[#FF7A30]">Brick</span>
+        <span className={`${textSize[size]} tracking-tight uppercase ${light ? 'text-white' : 'text-brand-navy'}`}>
+          Hello<span className="text-brand-orange">Brick</span>
         </span>
       )}
     </div>
