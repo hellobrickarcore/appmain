@@ -1,6 +1,6 @@
 import fetch from 'node-fetch';
 
-const BASE_URL = 'https://api.keydesignmedia.xyz/api';
+const BASE_URL = 'https://hellobrick.netlify.app/api';
 const endpoints = [
     { name: 'Health', url: `${BASE_URL}/health` },
     { name: 'Detect (GET - expect 405/404)', url: `${BASE_URL}/detect` },

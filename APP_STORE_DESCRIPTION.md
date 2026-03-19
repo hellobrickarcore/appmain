@@ -61,13 +61,13 @@ building bricks,scanner,AI,detection,collection,organization,LEGO alternative,br
 Transform your brick pile into an organized collection with AI-powered detection. Scan, sort, and build with HelloBrick!
 
 ## Support URL
-https://keydesignmedia.xyz/hellobrick/support
+https://hellobrick.netlify.app/support
 
 ## Marketing URL (Optional)
-https://keydesignmedia.xyz/hellobrick
+https://hellobrick.netlify.app/
 
 ## Privacy Policy URL
-https://keydesignmedia.xyz/hellobrick/privacy
+https://hellobrick.netlify.app/privacy
 
 ## What's New (for updates)
 - Initial release

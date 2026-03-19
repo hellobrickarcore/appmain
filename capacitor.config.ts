@@ -8,7 +8,7 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https',
     cleartext: true, // Allow HTTP during development if needed, but production uses HTTPS
-    allowNavigation: ['api.keydesignmedia.xyz']
+    allowNavigation: ['hellobrick.netlify.app', 'api.keydesignmedia.xyz']
   },
   plugins: {
     Camera: {

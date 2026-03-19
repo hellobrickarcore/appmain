@@ -25,37 +25,37 @@ export default defineConfig(({ mode }) => {
       // Central proxy for all backend services to enable mobile access via relative paths
       proxy: {
         '/api/detect': {
-          target: 'https://api.keydesignmedia.xyz',
+          target: 'https://hellobrick.netlify.app',
           changeOrigin: true,
           secure: true
         },
         '/api/dataset': {
-          target: 'https://api.keydesignmedia.xyz',
+          target: 'https://hellobrick.netlify.app',
           changeOrigin: true,
           secure: true
         },
         '/api/xp': {
-          target: 'https://api.keydesignmedia.xyz',
+          target: 'https://hellobrick.netlify.app',
           changeOrigin: true,
           secure: true
         },
         '/api/auth': {
-          target: 'https://api.keydesignmedia.xyz',
+          target: 'https://hellobrick.netlify.app',
           changeOrigin: true,
           secure: true
         },
         '/api/user': {
-          target: 'https://api.keydesignmedia.xyz',
+          target: 'https://hellobrick.netlify.app',
           changeOrigin: true,
           secure: true
         },
         '/api/feed': {
-          target: 'https://api.keydesignmedia.xyz',
+          target: 'https://hellobrick.netlify.app',
           changeOrigin: true,
           secure: true
         },
         '/api/notifications': {
-          target: 'https://api.keydesignmedia.xyz',
+          target: 'https://hellobrick.netlify.app',
           changeOrigin: true,
           secure: true
         }

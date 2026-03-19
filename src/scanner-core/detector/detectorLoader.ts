@@ -34,7 +34,7 @@ export const getDetectionAPIUrl = (): string => {
 
   let url = '/api';
   if (isNative) {
-    url = 'https://api.keydesignmedia.xyz/api'; // Primary production fallback
+    url = 'https://hellobrick.netlify.app/api'; // Primary production fallback
   }
 
   console.log(`[ScannerCore:Loader] Detection API URL resolved to: ${url} (isNative: ${isNative})`);
