@@ -4,7 +4,7 @@ import { Capacitor } from '@capacitor/core';
  * Granular API configuration for HelloBrick
  */
 
-const PROD_API_BASE = 'https://hellobrick.netlify.app';
+const PROD_API_BASE = 'https://hellobrick.app';
 
 /**
  * Resolves a central API URL based on platform.

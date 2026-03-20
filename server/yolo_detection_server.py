@@ -300,8 +300,14 @@ def detect():
             # PART 3/4/5: DENSE CAPTURE DETECTION
             print(f"📸 [STAGE 1] DENSE CAPTURE: resolution=1024")
             
+            # Application of Unsharp Mask for maximum clarity
+            img_np = np.array(image)
+            gaussian = cv2.GaussianBlur(img_np, (0, 0), 2.0)
+            sharpened = cv2.addWeighted(img_np, 1.5, gaussian, -0.5, 0)
+            image_sharp = Image.fromarray(sharpened)
+
             # Pass 1: Multi-scale 640
-            res640 = model(image, conf=0.35, imgsz=640, verbose=False)
+            res640 = model(image_sharp, conf=0.15, imgsz=640, verbose=False)
             for res in res640:
                 for b in res.boxes:
                     raw_proposals.append({
@@ -351,11 +357,18 @@ def detect():
             debug_metrics['tiles_processed'] = len(tile_coords)
             
         else:
-            # PART 2: LIVE DETECTION (GUIDANCE MODE)
-            # Increased imgsz to 640 and lowered conf to 0.18 for 4-5ft magnetism
-            live_imgsz = 640
-            print(f"📦 [STAGE 1] LIVE GUIDANCE: imgsz={live_imgsz}")
-            results = model(image, conf=0.18, iou=0.45, imgsz=live_imgsz, agnostic_nms=True, max_det=120, verbose=False)
+            # PART 2: LIVE DETECTION (GUIDANCE MODE) - HARD BUILD OUT FOR 5FT
+            # Increased imgsz to 1024 and lowered conf to 0.12 for maximum magnetism
+            live_imgsz = 1024
+            
+            # Sharpening for Live mode too (Crucial for 5ft distance)
+            img_np = np.array(image)
+            gaussian = cv2.GaussianBlur(img_np, (0, 0), 1.5)
+            sharpened = cv2.addWeighted(img_np, 1.4, gaussian, -0.4, 0)
+            image_sharp = Image.fromarray(sharpened)
+
+            print(f"📦 [STAGE 1] LIVE GUIDANCE (HARD): imgsz={live_imgsz}")
+            results = model(image_sharp, conf=0.12, iou=0.45, imgsz=live_imgsz, agnostic_nms=True, max_det=120, verbose=False)
             for res in results:
                 for b in res.boxes:
                     raw_proposals.append({
@@ -367,9 +380,9 @@ def detect():
         raw_count = len(raw_proposals)
         
         # C1: Box Validation (Drop clearly bad geometry)
-        # Phase 25: lowered area threshold for distant bricks (from 0.0004 to 0.0001)
+        # Phase 25: Ultra-low area threshold for 5ft scanning at 1024px (from 0.0001 to 0.00005)
         frame_area = img_width * img_height
-        min_area_threshold = frame_area * 0.0001
+        min_area_threshold = frame_area * 0.00005
         
         valid_proposals = []
         for p in raw_proposals:
