@@ -158,7 +158,7 @@ export const EventTypes = {
 /**
  * Format raw event type into human-friendly string
  */
-export const PROD_API_BASE = 'https://hellobrick.app/api';
+export const PROD_API_BASE = 'https://hellobrick.netlify.app/api';
 export const formatXPEvent = (type: string, payload: any = {}): string => {
   switch (type) {
     case EventTypes.SCAN_DETECTION_CONFIRMED:
