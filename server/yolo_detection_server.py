@@ -352,9 +352,10 @@ def detect():
             
         else:
             # PART 2: LIVE DETECTION (GUIDANCE MODE)
-            live_imgsz = 416
+            # Increased imgsz to 640 and lowered conf to 0.18 for 4-5ft magnetism
+            live_imgsz = 640
             print(f"📦 [STAGE 1] LIVE GUIDANCE: imgsz={live_imgsz}")
-            results = model(image, conf=0.35, iou=0.45, imgsz=live_imgsz, agnostic_nms=True, max_det=120, verbose=False)
+            results = model(image, conf=0.18, iou=0.45, imgsz=live_imgsz, agnostic_nms=True, max_det=120, verbose=False)
             for res in results:
                 for b in res.boxes:
                     raw_proposals.append({
@@ -366,9 +367,9 @@ def detect():
         raw_count = len(raw_proposals)
         
         # C1: Box Validation (Drop clearly bad geometry)
-        # Phase 25: bbox_area > frame_area * 0.0004
+        # Phase 25: lowered area threshold for distant bricks (from 0.0004 to 0.0001)
         frame_area = img_width * img_height
-        min_area_threshold = frame_area * 0.0004
+        min_area_threshold = frame_area * 0.0001
         
         valid_proposals = []
         for p in raw_proposals:

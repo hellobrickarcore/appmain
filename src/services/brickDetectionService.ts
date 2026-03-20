@@ -17,7 +17,7 @@ export class DetectionStabilizer {
   private smoothingFactor: number;
   private lockThreshold: number; 
 
-  constructor(persistenceWindowMs = 2000, smoothingFactor = 0.18, lockThreshold = 15) {
+  constructor(persistenceWindowMs = 4500, smoothingFactor = 0.1, lockThreshold = 40) {
     this.persistenceWindowMs = persistenceWindowMs;
     this.smoothingFactor = smoothingFactor;
     this.lockThreshold = lockThreshold;
@@ -255,8 +255,8 @@ export const detectBricks = async (
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Could not get 2D context');
     
-    // Phase 26 Sharpening: Apply contrast and brightness for better edge detection at distance
-    ctx.filter = 'contrast(1.1) brightness(1.05)';
+    // Phase 26 Sharpening: Enhanced contrast and saturation for 5ft distance
+    ctx.filter = 'contrast(1.25) brightness(1.1) saturate(1.2)';
     ctx.drawImage(source, 0, 0, originalWidth, originalHeight, 0, 0, canvas.width, canvas.height);
 
     const scaleX = originalWidth / canvas.width;
