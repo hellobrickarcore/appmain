@@ -16,6 +16,7 @@ import cv2
 import os
 import time
 from pathlib import Path
+import re
 
 from config import STABILITY_CONFIG
 from tracker import SortTracker
@@ -439,16 +440,24 @@ def detect():
             
         geo_drop = raw_count - len(valid_proposals)
         
-        # C2: NMS
-        from torchvision.ops import nms
-        boxes_t = torch.tensor([p['box'] for p in valid_proposals]) if valid_proposals else torch.empty((0, 4))
-        scores_t = torch.tensor([p['conf'] for p in valid_proposals]) if valid_proposals else torch.empty((0,))
-        
+        # C2: NMS - Switch to OpenCV to avoid torchvision dependency
         refined = []
         if len(valid_proposals) > 0:
-            # Phase 25: global nms threshold = 0.5
-            keep = nms(boxes_t, scores_t, 0.5) 
-            refined = [valid_proposals[i] for i in keep]
+            # Prepare data for cv2.dnn.NMSBoxes (expects boxes as [x, y, w, h])
+            nms_boxes = []
+            nms_scores = []
+            for p in valid_proposals:
+                b = p['box']
+                nms_boxes.append([b[0], b[1], b[2]-b[0], b[3]-b[1]])
+                nms_scores.append(p['conf'])
+            
+            # Phase 27: Strict NMS (threshold 0.45)
+            # nms_iou_threshold=0.45, score_threshold=0.25 (matches our confidence floor)
+            indices = cv2.dnn.NMSBoxes(nms_boxes, nms_scores, 0.25, 0.45)
+            if len(indices) > 0:
+                # Flatten indices if needed (depends on OpenCV version)
+                idx_list = indices.flatten() if hasattr(indices, 'flatten') else indices
+                refined = [valid_proposals[i] for i in idx_list]
         
         nms_drop = len(valid_proposals) - len(refined)
         print(f"📊 [PIPELINE] Raw: {raw_count} | Geo-Drop: {geo_drop} | NMS-Drop: {nms_drop} | Final: {len(refined)}")
