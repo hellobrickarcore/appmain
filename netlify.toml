@@ -4,8 +4,20 @@
   command = "npm install && npm run build"
 
 [[redirects]]
+  from = "/api/detect"
+  to = "http://174.138.93.172:3003/api/detect"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/health"
+  to = "http://174.138.93.172:3003/api/health"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/api/*"
-  to = "http://174.138.93.172/api/:splat"
+  to = "http://174.138.93.172:3003/api/:splat"
   status = 200
   force = true
 
