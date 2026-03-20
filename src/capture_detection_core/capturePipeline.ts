@@ -9,7 +9,7 @@ export interface CapturePipelineResult {
 
 /**
  * 🔒 CAPTURE PIPELINE CORE
- * Restored working implementation of Brickit-style capture scanning.
+ * Restored working implementation of HelloBrick-style capture scanning.
  * takes high resolution snapshot, runs tiled mass_capture inference, generates thumbnails.
  */
 export const executeCapturePipeline = async (

@@ -1,15 +1,6 @@
-# Netlify configuration for HelloBrick
-# This specifies how to build the landing page from the website/react-landing subdirectory
-
 [build]
-  # The directory to change into before starting the build
-  base = "website/react-landing"
-  
-  # The command to run to build the site
-  command = "npm install && npm run build"
-  
-  # The directory that contains the deploy-ready HTML/assets (relative to base)
-  publish = "dist"
+  # The directory that contains the deploy-ready HTML/assets
+  publish = "website/react-landing/dist"
 
 [[redirects]]
   # Support Single Page Application (SPA) routing: 

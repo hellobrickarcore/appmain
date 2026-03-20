@@ -269,7 +269,7 @@ def get_tiles(image, tile_size=512, overlap=0.25):
 @app.route('/api/detect', methods=['POST'])
 def detect():
     """
-    Brickit-Style 4-Stage Detection Pipeline
+    HelloBrick-Style 4-Stage Detection Pipeline
     1. Dense Proposal (Tiling + High Recall)
     2. Geometry Refinement (Global NMS + Size Filter)
     3. Attribute Refinement (Color/Family/Dimensions)

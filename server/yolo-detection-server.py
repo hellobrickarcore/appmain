@@ -439,7 +439,7 @@ async def detect(
     debugMode: bool = Form(False)
 ):
     """
-    Brickit-Style 4-Stage Detection Pipeline
+    HelloBrick-Style 4-Stage Detection Pipeline
     1. Dense Proposal (Tiling + High Recall)
     2. Geometry Refinement (Global NMS + Size Filter)
     3. Attribute Refinement (Color/Family/Dimensions)
