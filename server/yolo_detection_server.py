@@ -243,6 +243,17 @@ def generate_compact_label(color, family, dims, identity):
             
     return " ".join(unique_parts)
 
+def get_iou(boxA, boxB):
+    # box: [x1, y1, x2, y2]
+    xA = max(boxA[0], boxB[0])
+    yA = max(boxA[1], boxB[1])
+    xB = min(boxA[2], boxB[2])
+    yB = min(boxA[3], boxB[3])
+    interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
+    boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
+    boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
+    return interArea / float(boxAArea + boxBArea - interArea)
+
 tracker = SortTracker(max_disappeared=10, min_iou=0.3)
 
 def get_tiles(image, tile_size=512, overlap=0.25):
@@ -605,6 +616,26 @@ def health():
         'model_loaded': MODEL_LOADED,
         'timestamp': time.time(),
         'version': 'v1.1-production'
+    })
+
+@app.route('/api/user/xp', methods=['GET'])
+def get_user_xp():
+    """Mock XP endpoint for Build 1.3.1"""
+    return jsonify({
+        'xp': 1250,
+        'level': 5,
+        'next_level_xp': 2500,
+        'rank': 'Senior Builder'
+    })
+
+@app.route('/api/user/profile', methods=['GET'])
+def get_user_profile():
+    """Mock Profile endpoint for Build 1.3.1"""
+    return jsonify({
+        'id': 'user_1774009545551_u0ujlp63j',
+        'username': 'BrickMaster',
+        'avatar_url': '',
+        'created_at': '2026-03-20T12:25:46Z'
     })
 
 if __name__ == '__main__':
