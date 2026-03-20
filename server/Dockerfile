@@ -16,6 +16,7 @@ RUN pip install --no-cache-dir ultralytics opencv-python-headless pillow gunicor
 # Copy the server code and models
 COPY yolo_detection_server.py .
 COPY config.py .
+COPY tracker.py .
 COPY models/ ./models/
 
 # Expose port
