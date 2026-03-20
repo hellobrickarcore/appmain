@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  yolo-backend:
+    build: 
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: hellobrick-yolo
+    ports:
+      - "3003:3003"
+    restart: always
+    volumes:
+      - ./server/models:/app/models
+    environment:
+      - PORT=3003
