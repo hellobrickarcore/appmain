@@ -254,7 +254,8 @@ def get_iou(boxA, boxB):
     boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
     return interArea / float(boxAArea + boxBArea - interArea)
 
-tracker = SortTracker(max_disappeared=60, min_iou=0.2)
+# Phase 27: Ultra-Magnetic Tracker (5.0s Persistence)
+tracker = SortTracker(max_disappeared=150, min_iou=0.15)
 
 def get_tiles(image, tile_size=512, overlap=0.25):
     """Split image into overlapping tiles for dense detection.
@@ -399,8 +400,9 @@ def detect():
             sharpened = cv2.addWeighted(img_np, 1.6, gaussian, -0.6, 0)
             image_sharp = Image.fromarray(sharpened)
 
-            print(f"📦 [STAGE 1] LIVE GUIDANCE (ULTRA): imgsz={live_imgsz} conf=0.14")
-            results = model(image_sharp, conf=0.14, iou=0.45, imgsz=live_imgsz, agnostic_nms=True, max_det=150, verbose=False)
+            # Phase 27: Ultra-Stable Floor (0.28 Conf) to kill hallucinations
+            print(f"📦 [STAGE 1] LIVE GUIDANCE (ULTRA): imgsz={live_imgsz} conf=0.28")
+            results = model(image_sharp, conf=0.28, iou=0.45, imgsz=live_imgsz, agnostic_nms=True, max_det=150, verbose=False)
             for res in results:
                 for i, b in enumerate(res.boxes):
                     mask = res.masks[i].xy[0].tolist() if res.masks is not None else None
@@ -427,8 +429,11 @@ def detect():
             
             # Strict filters
             if area < min_area_threshold: continue
-            if aspect_ratio > 10.0 or aspect_ratio < 0.1: continue
+            if aspect_ratio > 8.0 or aspect_ratio < 0.12: continue
             if w > img_width * 0.7 or h > img_height * 0.7: continue
+            
+            # Explicit Brick Class Filter (0-26 are known bricks)
+            if prop['cls'] < 0 or prop['cls'] > 26: continue
             
             valid_proposals.append(p)
             

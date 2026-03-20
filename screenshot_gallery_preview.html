@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HelloBrick 6-Screen Preview (Brickit Sand)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-sand: #E5D3B3;
+            --text-dark: #1A1A1A;
+            --font-main: 'Outfit', sans-serif;
+            --screen-width: 460px;
+            --screen-height: 996px;
+        }
+        body {
+            margin: 0;
+            padding: 40px;
+            background: #111;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 40px;
+            justify-content: center;
+        }
+        .screenshot-container {
+            width: var(--screen-width);
+            height: var(--screen-height);
+            background-color: var(--bg-sand);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 80px 20px 0 20px;
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+        }
+        .headline {
+            font-family: var(--font-main);
+            font-size: 34px;
+            font-weight: 700;
+            color: var(--text-dark);
+            text-align: center;
+            line-height: 1.1;
+            margin-bottom: 60px;
+            letter-spacing: -0.8px;
+            max-width: 320px;
+        }
+        .phone-mockup {
+            width: 380px;
+            height: 820px;
+            background: #000;
+            border-radius: 50px;
+            border: 8px solid #1a1a1a;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.3);
+            overflow: hidden;
+            position: relative;
+        }
+        .phone-content {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .label-tag {
+            position: absolute;
+            bottom: 20px;
+            background: rgba(0,0,0,0.1);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-family: var(--font-main);
+            font-weight: 700;
+            color: var(--text-dark);
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <!-- SCREEN 1 -->
+    <div class="screenshot-container">
+        <div class="headline">1. Scan your bricks</div>
+        <div class="phone-mockup">
+            <img class="phone-content" src="file:///Users/akeemojuko/.gemini/antigravity/scratch/hellobrick/mainhome.PNG">
+        </div>
+        <div class="label-tag">SCANNER</div>
+    </div>
+
+    <!-- SCREEN 2 -->
+    <div class="screenshot-container">
+        <div class="headline">2. Choose a building idea</div>
+        <div class="phone-mockup">
+            <img class="phone-content" src="file:///Users/akeemojuko/.gemini/antigravity/scratch/hellobrick/ideasgenerator.PNG">
+        </div>
+        <div class="label-tag">IDEAS</div>
+    </div>
+
+    <!-- SCREEN 3 -->
+    <div class="screenshot-container">
+        <div class="headline">3. Level up your skills</div>
+        <div class="phone-mockup">
+            <img class="phone-content" src="file:///Users/akeemojuko/.gemini/antigravity/scratch/hellobrick/quests.PNG">
+        </div>
+        <div class="label-tag">QUESTS</div>
+    </div>
+
+    <!-- SCREEN 4 -->
+    <div class="screenshot-container">
+        <div class="headline">4. Unlock real rewards</div>
+        <div class="phone-mockup">
+            <img class="phone-content" src="file:///Users/akeemojuko/.gemini/antigravity/scratch/hellobrick/rewards.PNG">
+        </div>
+        <div class="label-tag">REWARDS</div>
+    </div>
+
+    <!-- SCREEN 5 -->
+    <div class="screenshot-container">
+        <div class="headline">5. Join the community</div>
+        <div class="phone-mockup">
+            <img class="phone-content" src="file:///Users/akeemojuko/.gemini/antigravity/scratch/hellobrick/community.PNG">
+        </div>
+        <div class="label-tag">COMMUNITY</div>
+    </div>
+
+    <!-- SCREEN 6 -->
+    <div class="screenshot-container">
+        <div class="headline">6. Master new builds</div>
+        <div class="phone-mockup">
+            <img class="phone-content" src="file:///Users/akeemojuko/.gemini/antigravity/scratch/hellobrick/missions.PNG">
+        </div>
+        <div class="label-tag">MISSIONS</div>
+    </div>
+</body>
+</html>

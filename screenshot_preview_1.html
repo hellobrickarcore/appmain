@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HelloBrick Screenshot Preview (Narrow)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-sand: #E5D3B3;
+            --text-dark: #1A1A1A;
+            --font-main: 'Outfit', sans-serif;
+            --screen-width: 460px;
+            --screen-height: 996px;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background: #222;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .screenshot-container {
+            width: var(--screen-width);
+            height: var(--screen-height);
+            background-color: var(--bg-sand);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 80px 20px 0 20px;
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+        }
+        .headline {
+            font-family: var(--font-main);
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--text-dark);
+            text-align: center;
+            line-height: 1.1;
+            margin-bottom: 60px;
+            letter-spacing: -0.8px;
+            max-width: 320px;
+        }
+        .phone-mockup {
+            width: 380px; /* Wider phone relative to screen for 'narrow' impact */
+            height: 820px;
+            background: #000;
+            border-radius: 50px;
+            border: 8px solid #1a1a1a;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.3);
+            overflow: hidden;
+            position: relative;
+        }
+        .phone-content {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body>
+    <div class="screenshot-container">
+        <div class="headline">1. Scan your bricks</div>
+        <div class="phone-mockup">
+            <img class="phone-content" src="file:///Users/akeemojuko/.gemini/antigravity/scratch/hellobrick/mainhome.PNG" alt="App Screenshot">
+        </div>
+    </div>
+</body>
+</html>
