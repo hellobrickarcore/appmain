@@ -384,26 +384,26 @@ def detect():
             
         else:
             # PART 2: LIVE DETECTION (GUIDANCE MODE) - HARD BUILD OUT V2
-            # Lowered conf to 0.08 and imgsz to 1024 for extreme distance sensitivity
-            live_imgsz = 1024
+            # Phase 28: Extreme Distance Sharpness (1280px + CLAHE)
+            live_imgsz = 1280
             
             # Sharpening for Live mode too (Crucial for 5ft distance)
             img_np = np.array(image)
-            # Use CLAHE (Contrast Limited Adaptive Histogram Equalization) for better detail in shadows
-            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+            # Use STRONGER CLAHE for edge preservation at 5ft
+            clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
             lab = cv2.cvtColor(img_np, cv2.COLOR_RGB2LAB)
             l, a, b = cv2.split(lab)
             l2 = clahe.apply(l)
             lab = cv2.merge((l2, a, b))
             img_np = cv2.cvtColor(lab, cv2.COLOR_LAB2RGB)
             
-            gaussian = cv2.GaussianBlur(img_np, (0, 0), 1.5)
-            sharpened = cv2.addWeighted(img_np, 1.6, gaussian, -0.6, 0)
+            gaussian = cv2.GaussianBlur(img_np, (0, 0), 2.0)
+            sharpened = cv2.addWeighted(img_np, 1.8, gaussian, -0.8, 0)
             image_sharp = Image.fromarray(sharpened)
 
             # Phase 27: Ultra-Stable Floor (0.28 Conf) to kill hallucinations
-            print(f"📦 [STAGE 1] LIVE GUIDANCE (ULTRA): imgsz={live_imgsz} conf=0.28")
-            results = model(image_sharp, conf=0.28, iou=0.45, imgsz=live_imgsz, agnostic_nms=True, max_det=150, verbose=False)
+            print(f"📦 [STAGE 1] LIVE GUIDANCE (ULTRA-SHARP): imgsz={live_imgsz} conf=0.28")
+            results = model(image_sharp, conf=0.28, iou=0.40, imgsz=live_imgsz, agnostic_nms=True, max_det=150, verbose=False)
             for res in results:
                 for i, b in enumerate(res.boxes):
                     mask = res.masks[i].xy[0].tolist() if res.masks is not None else None
