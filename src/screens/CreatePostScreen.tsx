@@ -100,7 +100,7 @@ export const CreatePostScreen: React.FC<CreatePostScreenProps> = ({ onNavigate, 
                     <ChevronLeft className="w-5 h-5 text-slate-300" />
                 </button>
                 <div className="flex flex-col items-center">
-                    <h1 className="text-sm font-black text-white">BROADCAST</h1>
+                    <h1 className="text-sm font-black text-white">SHARE</h1>
                     <div className="flex items-center gap-1.5 mt-0.5">
                        <Shield className="w-2.5 h-2.5 text-indigo-500" />
                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Public Feed</span>
@@ -126,8 +126,8 @@ export const CreatePostScreen: React.FC<CreatePostScreenProps> = ({ onNavigate, 
                             <div className="w-20 h-20 bg-[#0A0F1E] rounded-[28px] flex items-center justify-center mb-6 border border-white/5 shadow-3xl group-active:scale-90 transition-transform">
                                 <Plus className="w-10 h-10 text-slate-500" />
                             </div>
-                            <h3 className="text-xl font-black text-white">Upload Specimen</h3>
-                            <p className="text-[10px] text-slate-500 mt-2 font-black uppercase tracking-widest">Digitalize Physical Build</p>
+                            <h3 className="text-xl font-black text-white px-8">Share a Discovery</h3>
+                            <p className="text-[10px] text-slate-500 mt-2 font-black uppercase tracking-widest">Show the community your creation</p>
                         </button>
                     ) : (
                         <div className="relative group">

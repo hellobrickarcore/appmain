@@ -151,10 +151,11 @@ export const IdeasScreen: React.FC<IdeasScreenProps> = () => {
             setMessages(prev => [...prev, assistantMsg]);
 
         } catch (err) {
+            console.error('Ideas Screen Error:', err);
             const errorMsg: Message = {
                 id: `err_${Date.now()}`,
                 role: 'assistant',
-                text: "**The Cosmic Forge**\nYour creative signal is flickering, but the forge is never empty. Try building a tiny mosaic of a sunset while I warm up the generators.\n(Difficulty: Beginner)",
+                text: "I'm having a bit of trouble connecting to the cloud, but don't let that stop your build! Based on your collection, why not try building a **Mini Robot** or a **Small House**? These usually only need basic bricks and plates.",
                 timestamp: Date.now()
             };
             setMessages(prev => [...prev, errorMsg]);

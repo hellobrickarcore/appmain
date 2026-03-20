@@ -210,7 +210,7 @@ export const IdeasGeneratorScreen: React.FC<IdeasGeneratorScreenProps> = ({ onNa
       const errorMsg: UIMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: "I’m having trouble loading ideas right now. Try again in a moment.",
+        content: "I'm having a bit of trouble connecting to the cloud right now, but don't let it stop you! Try building a mini tower or a small animal with your current pieces. I'll be back online in a moment.",
         error: true
       };
       setMessages(prev => [...prev, errorMsg]);

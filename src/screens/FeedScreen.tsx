@@ -27,11 +27,13 @@ interface FeedScreenProps {
 export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [onlineCount, setOnlineCount] = useState(342);
 
   useEffect(() => {
-    // Simulated API Fetch
-    setTimeout(() => {
-      setPosts([
+    // Simulated API Fetch + Local Storage Merge
+    const loadFeed = () => {
+      const local = JSON.parse(localStorage.getItem('hellobrick_feed_posts') || '[]');
+      const remote = [
         {
           id: '1',
           userId: 'user1',
@@ -74,9 +76,25 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
           isLiked: false,
           timestamp: Date.now() - 14400000,
         }
-      ]);
+      ];
+
+      // Merge and sort
+      const allPosts = [...local, ...remote].sort((a, b) => b.timestamp - a.timestamp);
+      setPosts(allPosts);
       setLoading(false);
-    }, 800);
+    };
+
+    const timer = setTimeout(loadFeed, 800);
+    
+    // Online counter fluctuation
+    const counterInterval = setInterval(() => {
+       setOnlineCount(prev => prev + (Math.random() > 0.5 ? 1 : -1));
+    }, 5000);
+
+    return () => {
+      clearTimeout(timer);
+      clearInterval(counterInterval);
+    };
   }, []);
 
   const handleLike = (postId: string) => {
@@ -114,7 +132,9 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
            <h1 className="text-sm font-black uppercase tracking-[0.2em] text-white">Community</h1>
            <div className="flex items-center gap-1 mt-0.5">
              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
-             <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">342 Online</span>
+             <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
+               {onlineCount} Online
+             </span>
            </div>
         </div>
         <button

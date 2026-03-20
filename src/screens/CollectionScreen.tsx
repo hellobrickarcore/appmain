@@ -283,9 +283,9 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                             <div className="w-full text-center">
                                 <h4 className="font-black text-white text-sm leading-tight truncate mb-1">{brick.name}</h4>
                                 <div className="flex items-center justify-center gap-2">
-                                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: brick.color?.toLowerCase() || '#444' }} />
+                                    {brick.color !== 'Unknown' && <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: brick.color?.toLowerCase() || '#444' }} />}
                                     <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none">
-                                        {brick.dimensions || '??'} • {brick.color}
+                                        {brick.dimensions && brick.dimensions !== '??' ? `${brick.dimensions} • ` : ''}{brick.color}
                                     </span>
                                 </div>
                             </div>

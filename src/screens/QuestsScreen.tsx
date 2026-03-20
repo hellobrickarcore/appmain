@@ -17,7 +17,16 @@ export const QuestsScreen: React.FC<QuestsScreenProps> = ({ onNavigate }) => {
     const loadData = async () => {
       try {
         const userId = getUserId();
-        const xpData = await getUserXP(userId);
+        let xpData;
+        try {
+          xpData = await getUserXP(userId);
+          // Sync to local
+          localStorage.setItem(`xp_stats_${userId}`, JSON.stringify(xpData));
+        } catch (e) {
+          const stored = localStorage.getItem(`xp_stats_${userId}`);
+          xpData = stored ? JSON.parse(stored) : { streak_count: 0 };
+        }
+        
         setStreak(xpData.streak_count || 0);
         const availableQuests = getAvailableQuests();
         setQuests(availableQuests);
