@@ -17,7 +17,7 @@ export class DetectionStabilizer {
   private smoothingFactor: number;
   private lockThreshold: number; 
 
-  constructor(persistenceWindowMs = 4500, smoothingFactor = 0.1, lockThreshold = 40) {
+  constructor(persistenceWindowMs = 6500, smoothingFactor = 0.06, lockThreshold = 75) {
     this.persistenceWindowMs = persistenceWindowMs;
     this.smoothingFactor = smoothingFactor;
     this.lockThreshold = lockThreshold;

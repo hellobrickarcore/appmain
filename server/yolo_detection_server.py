@@ -254,7 +254,7 @@ def get_iou(boxA, boxB):
     boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
     return interArea / float(boxAArea + boxBArea - interArea)
 
-tracker = SortTracker(max_disappeared=10, min_iou=0.3)
+tracker = SortTracker(max_disappeared=60, min_iou=0.2)
 
 def get_tiles(image, tile_size=512, overlap=0.25):
     """Split image into overlapping tiles for dense detection.
@@ -399,8 +399,8 @@ def detect():
             sharpened = cv2.addWeighted(img_np, 1.6, gaussian, -0.6, 0)
             image_sharp = Image.fromarray(sharpened)
 
-            print(f"📦 [STAGE 1] LIVE GUIDANCE (ULTRA): imgsz={live_imgsz} conf=0.08")
-            results = model(image_sharp, conf=0.08, iou=0.45, imgsz=live_imgsz, agnostic_nms=True, max_det=150, verbose=False)
+            print(f"📦 [STAGE 1] LIVE GUIDANCE (ULTRA): imgsz={live_imgsz} conf=0.14")
+            results = model(image_sharp, conf=0.14, iou=0.45, imgsz=live_imgsz, agnostic_nms=True, max_det=150, verbose=False)
             for res in results:
                 for i, b in enumerate(res.boxes):
                     mask = res.masks[i].xy[0].tolist() if res.masks is not None else None
@@ -416,7 +416,7 @@ def detect():
         # C1: Box Validation (Drop clearly bad geometry)
         # Phase 25: Ultra-low area threshold for 5ft scanning at 1024px (from 0.0001 to 0.00005)
         frame_area = img_width * img_height
-        min_area_threshold = frame_area * 0.00005
+        min_area_threshold = frame_area * 0.0001
         
         valid_proposals = []
         for p in raw_proposals:

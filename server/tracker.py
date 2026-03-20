@@ -58,7 +58,7 @@ class BrickTrack:
         
         # EMA (Exponential Moving Average) smoothing for stability
         # Lower alpha = more stable/locked, higher alpha = more responsive
-        alpha = 0.6 
+        alpha = 0.4 
         self.smoothed_bbox = [
             alpha * new_bbox[0] + (1 - alpha) * self.smoothed_bbox[0],
             alpha * new_bbox[1] + (1 - alpha) * self.smoothed_bbox[1],
