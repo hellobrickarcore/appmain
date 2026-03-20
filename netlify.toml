@@ -1,6 +1,7 @@
 [build]
-  # The directory that contains the deploy-ready HTML/assets
-  publish = "website/react-landing/dist"
+  base = "website/react-landing"
+  publish = "dist"
+  command = "npm install && npm run build"
 
 [[redirects]]
   # Support Single Page Application (SPA) routing: 
