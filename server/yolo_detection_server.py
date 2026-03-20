@@ -623,7 +623,7 @@ def health():
         'version': 'v1.1-production'
     })
 
-@app.route('/api/user/xp', methods=['GET'])
+@app.route('/api/xp/me', methods=['GET'])
 def get_user_xp():
     """Mock XP endpoint for Build 1.3.1"""
     return jsonify({
@@ -633,7 +633,7 @@ def get_user_xp():
         'rank': 'Senior Builder'
     })
 
-@app.route('/api/user/profile', methods=['GET'])
+@app.route('/api/user/settings', methods=['GET'])
 def get_user_profile():
     """Mock Profile endpoint for Build 1.3.1"""
     return jsonify({
