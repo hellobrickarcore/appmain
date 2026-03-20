@@ -79,7 +79,9 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
       ];
 
       // Merge and sort
-      const allPosts = [...local, ...remote].sort((a, b) => b.timestamp - a.timestamp);
+      const allPosts = [...local, ...remote]
+        .filter((p: any) => !p.isPending)
+        .sort((a, b) => b.timestamp - a.timestamp);
       setPosts(allPosts);
       setLoading(false);
     };

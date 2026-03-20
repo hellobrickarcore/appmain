@@ -4,6 +4,7 @@
  */
 
 import { CONFIG } from './configService';
+import { apiRequest } from './apiService';
 
 export interface XPEvent {
   event_id: string;
@@ -37,21 +38,10 @@ export interface UserXP {
  */
 export const emitXPEvent = async (event: XPEvent): Promise<XPResponse> => {
   try {
-    const response = await fetch(CONFIG.XP_EVENTS, {
+    const data = await apiRequest(CONFIG.XP_EVENTS, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(event),
     });
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        // Silent fallback for missing endpoints
-        return { success: true, xp_awarded: 10, breakdown: [], new_xp_total: 0, new_level: 1, streak_count: 0 };
-      }
-      throw new Error(`Server returned ${response.status}`);
-    }
-
-    const data = await response.json();
     return data;
   } catch (error) {
     console.error('❌ Exception in emitXPEvent:', error);
@@ -68,28 +58,7 @@ export const emitXPEvent = async (event: XPEvent): Promise<XPResponse> => {
  */
 export const getUserXP = async (userId: string): Promise<UserXP & { today_xp?: number }> => {
   try {
-    const response = await fetch(`${CONFIG.XP_ME}?user_id=${userId}`);
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        console.warn('⚠️ XP endpoint not found (404), returning default stats');
-        return {
-          xp_total: 0,
-          level: 1,
-          streak_count: 0,
-          streak_last_date: null
-        };
-      }
-      const errorText = await response.text();
-      console.error('❌ Failed to get user XP:', {
-        status: response.status,
-        response: errorText,
-        userId
-      });
-      throw new Error(`Failed to get user XP: ${response.status}`);
-    }
-
-    return await response.json();
+    return await apiRequest(`${CONFIG.XP_ME}?user_id=${userId}`);
   } catch (error) {
     console.error('❌ Error getting user XP:', error);
     if (typeof error === 'object' && error !== null) {
@@ -189,6 +158,7 @@ export const EventTypes = {
 /**
  * Format raw event type into human-friendly string
  */
+export const PROD_API_BASE = 'https://hellobrick.app/api';
 export const formatXPEvent = (type: string, payload: any = {}): string => {
   switch (type) {
     case EventTypes.SCAN_DETECTION_CONFIRMED:

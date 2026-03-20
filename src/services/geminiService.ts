@@ -81,6 +81,7 @@ async function executeGeminiRequest(
     }
   } catch (error: any) {
     const errText = error.message?.toLowerCase() || "";
+
     if (errText.includes("404") || errText.includes("not found") || errText.includes("not supported")) {
       console.error(`[Gemini] 🛑 Error Classifed: MODEL_NOT_FOUND (${modelName})`);
       throw new Error(IdeasErrorType.MODEL_NOT_FOUND);

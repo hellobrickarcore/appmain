@@ -154,6 +154,27 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
                     </div>
                 </section>
 
+                <section className="space-y-4">
+                   <h2 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">AI Calibration</h2>
+                   <div className="flex flex-col gap-3">
+                        <button 
+                             onClick={() => onNavigate(Screen.TRAINING_INTRO)}
+                             className="bg-white/5 p-6 rounded-[28px] border border-white/5 flex items-center justify-between group active:scale-[0.98] transition-all"
+                        >
+                            <div className="flex items-center gap-5">
+                                <div className="w-12 h-12 bg-orange-500/10 rounded-2xl flex items-center justify-center text-orange-500">
+                                    <Zap className="w-5 h-5 fill-current" />
+                                </div>
+                                <div className="text-left">
+                                    <p className="text-sm font-black text-white">Train the AI</p>
+                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Improve your scanner accuracy</p>
+                                </div>
+                            </div>
+                            <Activity className="w-4 h-4 text-slate-700 group-hover:text-orange-500 transition-colors" />
+                        </button>
+                   </div>
+                </section>
+
                 <section className="space-y-4 pb-12">
                    <h2 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Vault Progress</h2>
                    <div className="flex flex-col gap-3">
@@ -171,6 +192,17 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
                                </div>
                            </div>
                            <Users className="w-4 h-4 text-slate-700 group-hover:text-blue-400 transition-colors" />
+                       </button>
+
+                       {/* Hidden Admin Entry - Hidden link at the bottom of the section */}
+                       <button 
+                            onContextMenu={(e) => {
+                                e.preventDefault();
+                                onNavigate(Screen.ADMIN);
+                            }}
+                            className="w-full h-8 opacity-0 pointer-events-auto"
+                       >
+                           Admin
                        </button>
                    </div>
                 </section>

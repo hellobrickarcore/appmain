@@ -160,15 +160,15 @@ export interface TrackedObject {
 
 export const DETECTION_THRESHOLDS = {
     /** Min confidence to render ANY geometry (Stage 1) */
-    GEOMETRY_RENDER_MIN: 0.15,
+    GEOMETRY_RENDER_MIN: 0.12,
     /** Min confidence to consider geometry "stable" (Stage 1/2) */
-    GEOMETRY_STABLE_MIN: 0.50,
+    GEOMETRY_STABLE_MIN: 0.45,
     /** Min identity confidence for 'confirmed' status (Stage 3) */
-    IDENTITY_CONFIRMED_MIN: 0.70,
+    IDENTITY_CONFIRMED_MIN: 0.65,
     /** Min color confidence for 'confirmed' status (Stage 3) */
-    COLOR_CONFIRMED_MIN: 0.70,
+    COLOR_CONFIRMED_MIN: 0.65,
     /** Min dimension confidence for 'confirmed' status (Stage 3) */
-    DIMENSION_CONFIRMED_MIN: 0.70,
+    DIMENSION_CONFIRMED_MIN: 0.65,
     COLLECTION_PROMOTION_MIN: 0.70,
     TRACK_STABLE_MIN_FRAMES: 5,
     TRACK_CONSENSUS_CONSECUTIVE_FRAMES: 3,

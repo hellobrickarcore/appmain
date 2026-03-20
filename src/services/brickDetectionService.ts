@@ -9,6 +9,7 @@
 
 import { FrameDetection, ScanFrameResponse, DETECTION_THRESHOLDS, DetectionOverlay, TrackedObject } from '../types/detection';
 import { CONFIG } from './configService';
+import { apiFormRequest } from './apiService';
 
 export class DetectionStabilizer {
   private prevDetections: any[] = [];
@@ -199,23 +200,18 @@ export const detectBricks = async (
     imgsz, 
     debugMode = false,
     detectorState = 'unknown',
-    timeoutMs = mode === 'mass_capture' ? 15000 : 5000
+    captureInProgress = false
   } = options;
 
   const stage = mode === 'mass_capture' ? 'holistic_capture' : 'live_detection';
   
   // Adaptive Performance Tracking
   const startTime = Date.now();
-  // Phase 28: Favor 640 for live scanner for high FPS.
-  // Use 1024 for mass capture to maintain detail.
-  let targetDimension = mode === 'live_scanner' ? 640 : 1024; 
+  // Phase 30: Use higher resolution (1024) by default to support distant scanning (5ft).
+  // 640 is too low for small bricks from a distance.
+  const targetDimension = 1024; 
   
-  const cachedRTT = localStorage.getItem('hellobrick_last_rtt');
-  if (cachedRTT && mode === 'live_scanner') {
-    const rtt = parseInt(cachedRTT);
-    if (rtt > 800) targetDimension = 640;
-    else if (rtt > 1500) targetDimension = 512;
-  }
+  // Performance adjustments moved to backend for simplicity
 
   let responseText = '';
   let status = 0;
@@ -279,25 +275,18 @@ export const detectBricks = async (
     formData.append('imgsz', (imgsz || targetDimension).toString());
     formData.append('debugMode', debugMode.toString());
 
-    // 4. Execute Request
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-    const response = await fetch(CONFIG.DETECT_IMAGE, {
-      method: 'POST',
-      body: formData,
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-    status = response.status;
-    responseText = await response.text();
+    // 4. Execute Native-Safe Request using apiFormRequest
+    const data = await apiFormRequest(CONFIG.DETECT_IMAGE, formData);
+    
+    // Simulate some metadata for the canonical adapter
+    status = 200;
+    responseText = JSON.stringify(data);
 
     if (!responseText.trim().startsWith('{')) {
       throw new Error(`Non-JSON response (starts with ${responseText.trim().slice(0, 10)})`);
     }
 
-    const data = JSON.parse(responseText);
+    // No need to redeclare data, we already have it from apiFormRequest
     
     // 5. Canonical Adapter
     const detections: FrameDetection[] = (data.detections || []).map((det: any, idx: number) => {
@@ -532,7 +521,8 @@ export function toRenderableDetection(detection: FrameDetection): RenderableDete
   const shouldRenderGeometry = geoConf >= DETECTION_THRESHOLDS.GEOMETRY_RENDER_MIN;
 
   // Show label if identity or dimensions are somewhat resolved
-  const shouldRenderLabel = status !== 'hidden' && (geoConf > 0.15 || prediction.identityConfidence > 0.15);
+  // Low threshold (0.12) to catch bricks from 5ft height
+  const shouldRenderLabel = status !== 'hidden' && (geoConf > 0.12 || prediction.identityConfidence > 0.12);
 
   const displayText = detection.compactLabel || generationFallbackLabel(detection);
 

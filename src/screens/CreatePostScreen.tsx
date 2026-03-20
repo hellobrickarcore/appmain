@@ -15,6 +15,7 @@ export const CreatePostScreen: React.FC<CreatePostScreenProps> = ({ onNavigate, 
     const [caption, setCaption] = useState('');
     const [isDetecting, setIsDetecting] = useState(false);
     const [detectedBricks, setDetectedBricks] = useState<DetectedBrick[]>([]);
+    const [bricksCount, setBricksCount] = useState(0);
     const [showLabels, setShowLabels] = useState(true);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const imageRef = useRef<HTMLImageElement>(null);
@@ -51,6 +52,7 @@ export const CreatePostScreen: React.FC<CreatePostScreenProps> = ({ onNavigate, 
                 box: obj.box_2d
             }));
             setDetectedBricks(bricks);
+            setBricksCount(bricks.length);
         } catch (error) {
             console.error('Detection failed:', error);
         } finally {
@@ -71,12 +73,15 @@ export const CreatePostScreen: React.FC<CreatePostScreenProps> = ({ onNavigate, 
             comments: 0,
             timestamp: Date.now(),
             liked: false,
-            bricks: detectedBricks
+            bricks: detectedBricks,
+            bricksUsed: bricksCount,
+            isPending: true
         };
         const stored = localStorage.getItem('hellobrick_feed_posts') || '[]';
         const allPosts = JSON.parse(stored);
         allPosts.unshift(newPost);
         localStorage.setItem('hellobrick_feed_posts', JSON.stringify(allPosts));
+        alert("Your post is being reviewed and will be posted once approved.");
         if (onClearImage) onClearImage();
         onNavigate(Screen.FEED);
     };
@@ -167,7 +172,7 @@ export const CreatePostScreen: React.FC<CreatePostScreenProps> = ({ onNavigate, 
                             </div>
 
                             <button
-                                onClick={() => { setImage(null); setDetectedBricks([]); onClearImage?.(); }}
+                                onClick={() => { setImage(null); setDetectedBricks([]); setBricksCount(0); onClearImage?.(); }}
                                 className="absolute top-6 right-6 w-12 h-12 bg-black/60 backdrop-blur-md rounded-2xl flex items-center justify-center text-white border border-white/10 active:scale-90 transition-transform"
                             >
                                 <X className="w-6 h-6" />
@@ -182,6 +187,14 @@ export const CreatePostScreen: React.FC<CreatePostScreenProps> = ({ onNavigate, 
                             </button>
                         </div>
                     )}
+                </div>
+
+                {/* Policy Banner */}
+                <div className="max-w-md mx-auto bg-orange-500/10 border border-orange-500/20 p-4 rounded-2xl flex items-center gap-3">
+                    <Shield className="w-5 h-5 text-orange-500" />
+                    <p className="text-[10px] font-black uppercase tracking-widest text-orange-200">
+                        ⚠️ Only upload images of your physical LEGO builds.
+                    </p>
                 </div>
 
                 {/* Info Section */}
@@ -199,7 +212,35 @@ export const CreatePostScreen: React.FC<CreatePostScreenProps> = ({ onNavigate, 
                         />
                     </div>
 
-                    {detectedBricks.length > 0 && (
+                    <div className="bg-white/5 rounded-[40px] p-8 border border-white/5 shadow-2xl">
+                         <div className="flex items-center gap-4 mb-6 px-2">
+                            <Plus className="w-5 h-5 text-emerald-500" />
+                            <h3 className="text-xs font-black uppercase tracking-[0.3em] text-slate-500">How many bricks?</h3>
+                        </div>
+                        <div className="flex items-center justify-center gap-8">
+                            <button 
+                                onClick={() => setBricksCount(Math.max(0, bricksCount - 1))}
+                                className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 active:scale-90 transition-all font-black text-2xl text-slate-500"
+                            >
+                                -
+                            </button>
+                            <input 
+                                type="number"
+                                value={bricksCount}
+                                onChange={(e) => setBricksCount(parseInt(e.target.value) || 0)}
+                                className="bg-transparent border-none text-3xl font-black text-center w-24 outline-none"
+                            />
+                            <button 
+                                onClick={() => setBricksCount(bricksCount + 1)}
+                                className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 active:scale-90 transition-all font-black text-2xl text-emerald-500"
+                            >
+                                +
+                            </button>
+                        </div>
+                        <p className="text-center text-[9px] font-black text-slate-500 uppercase tracking-widest mt-6">Estimate of total bricks used</p>
+                    </div>
+
+                    {detectedBricks.length > 0 && showLabels && (
                         <div className="bg-white/5 rounded-[40px] p-8 border border-white/5 shadow-2xl animate-in fade-in slide-in-from-top-4 duration-500">
                              <div className="flex items-center gap-4 mb-6 px-2">
                                 <Zap className="w-5 h-5 text-indigo-500" />

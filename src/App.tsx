@@ -29,13 +29,14 @@ import { NotificationsIntroScreen } from './screens/NotificationsIntroScreen';
 import { CameraPermissionScreen } from './screens/CameraPermissionScreen';
 import { EmailAuthScreen } from './screens/EmailAuthScreen';
 import { OnboardingScreen } from './screens/OnboardingScreen'; // New import for OnboardingScreen
+import { AdminDashboardScreen } from './screens/AdminDashboardScreen';
 import { BottomNav } from './components/BottomNav';
 import { subscriptionService } from './services/subscriptionService';
 import { onAuthStateChange, supabase } from './services/supabaseService';
 import { usageService } from './services/usageService';
 
-console.log('🚀 BUILD_VERSION: 1.1.8 - GEMINI_IMAGE_ENGINE_V1');
-console.log('--- APP V1.1.8 ACTIVE ---');
+console.log('🚀 BUILD_VERSION: 1.1.9 - GEMINI_IMAGE_ENGINE_V1');
+console.log('--- APP V1.1.9 ACTIVE ---');
 
 
 const App: React.FC = () => {
@@ -337,6 +338,8 @@ const App: React.FC = () => {
         );
       case Screen.H2H_RESULT:
         return <HeadToHeadResultScreen onNavigate={handleNavigate} result={battleResult} />;
+      case Screen.ADMIN:
+        return <AdminDashboardScreen onNavigate={handleNavigate} />;
 
       default:
         return <HomeScreen onNavigate={handleNavigate} />;

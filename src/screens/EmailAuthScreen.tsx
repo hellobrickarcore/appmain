@@ -20,6 +20,20 @@ export const EmailAuthScreen: React.FC<EmailAuthScreenProps> = ({ onNavigate, mo
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    // Apple Reviewer Bypass
+    if (email.toLowerCase() === 'apple_test@hellobrick.app' && password === 'AppleReview2026!') {
+      console.log('🍎 Apple Reviewer Bypass Triggered');
+      localStorage.setItem('hellobrick_authenticated', 'true');
+      localStorage.setItem('hellobrick_userId', 'apple-reviewer-1');
+      localStorage.setItem('hellobrick_profile_name', 'Apple Reviewer');
+      localStorage.setItem('hellobrick_is_pro', 'true');
+      localStorage.setItem('hellobrick_is_reviewer', 'true');
+      localStorage.setItem('hellobrick_onboarding_finished', 'true');
+      onNavigate(Screen.HOME);
+      return;
+    }
+
     try {
       if (mode === 'signup') {
         if (password !== confirmPassword) {

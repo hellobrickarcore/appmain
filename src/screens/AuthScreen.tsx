@@ -62,7 +62,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onNavigate }) => {
             </button>
 
             <button
-                onClick={() => onNavigate(Screen.EMAIL_SIGNUP)}
+                onClick={() => onNavigate(Screen.EMAIL_LOGIN)}
                 className="w-full bg-white/5 text-slate-400 py-5 rounded-[24px] font-black text-lg active:scale-[0.98] transition-all"
             >
                 Continue with Email

@@ -8,7 +8,7 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https',
     cleartext: true, // Allow HTTP during development if needed, but production uses HTTPS
-    allowNavigation: ['hellobrick.netlify.app', 'api.keydesignmedia.xyz']
+    allowNavigation: ['hellobrick.netlify.app', 'hellobrick.app', 'www.hellobrick.app']
   },
   plugins: {
     Camera: {
@@ -26,6 +26,9 @@ const config: CapacitorConfig = {
       showSpinner: false,
       iosSpinnerStyle: "small",
       spinnerColor: "#F97316"
+    },
+    CapacitorHttp: {
+      enabled: true
     }
   }
 };

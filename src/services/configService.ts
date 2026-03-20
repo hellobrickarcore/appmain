@@ -4,7 +4,7 @@ import { Capacitor } from '@capacitor/core';
  * Granular API configuration for HelloBrick
  */
 
-const PROD_API_BASE = import.meta.env.VITE_SCANNER_BACKEND_URL || import.meta.env.VITE_DETECTION_API || 'https://hellobrick.netlify.app';
+const PROD_API_BASE = 'https://hellobrick.app';
 
 /**
  * Resolves a central API URL based on platform.
