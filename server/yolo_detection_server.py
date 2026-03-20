@@ -433,7 +433,7 @@ def detect():
             if w > img_width * 0.7 or h > img_height * 0.7: continue
             
             # Explicit Brick Class Filter (0-26 are known bricks)
-            if prop['cls'] < 0 or prop['cls'] > 26: continue
+            if p['cls'] < 0 or p['cls'] > 26: continue
             
             valid_proposals.append(p)
             
