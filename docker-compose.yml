@@ -10,6 +10,6 @@ services:
       - "3003:3003"
     restart: always
     volumes:
-      - ./server/models:/app/models
+      - ./server/models:/app/server/models
     environment:
       - PORT=3003
