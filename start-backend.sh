@@ -6,4 +6,3 @@ cd "$(dirname "$0")/server"
 echo "🚀 Starting YOLOv8 Detection Server..."
 echo ""
 
-python3 yolo-detection-server.py
