@@ -309,21 +309,25 @@ def detect():
             # Pass 1: Multi-scale 640
             res640 = model(image_sharp, conf=0.15, imgsz=640, verbose=False)
             for res in res640:
-                for b in res.boxes:
+                for i, b in enumerate(res.boxes):
+                    mask = res.masks[i].xy[0].tolist() if res.masks is not None else None
                     raw_proposals.append({
                         'box': b.xyxy[0].cpu().numpy().tolist(),
                         'conf': float(b.conf[0].cpu().numpy()),
-                        'cls': int(b.cls[0].cpu().numpy())
+                        'cls': int(b.cls[0].cpu().numpy()),
+                        'mask': mask
                     })
             
             # Pass 2: Multi-scale 1024
             res1024 = model(image, conf=0.35, imgsz=1024, verbose=False)
             for res in res1024:
-                for b in res.boxes:
+                for i, b in enumerate(res.boxes):
+                    mask = res.masks[i].xy[0].tolist() if res.masks is not None else None
                     raw_proposals.append({
                         'box': b.xyxy[0].cpu().numpy().tolist(),
                         'conf': float(b.conf[0].cpu().numpy()),
-                        'cls': int(b.cls[0].cpu().numpy())
+                        'cls': int(b.cls[0].cpu().numpy()),
+                        'mask': mask
                     })
 
             # Pass 3: Tiled 2x2 @ 1024
@@ -342,17 +346,26 @@ def detect():
                 tile = tiled_base.crop((tx1, ty1, tx2, ty2))
                 t_results = model(tile, conf=0.45, imgsz=512, verbose=False)
                 for res in t_results:
-                    for b in res.boxes:
+                    for i, b in enumerate(res.boxes):
                         c = b.xyxy[0].cpu().numpy()
                         # Map back to full image (1024 base) then original scale
                         fx1 = (c[0] + tx1) * scale_x
                         fy1 = (c[1] + ty1) * scale_y
                         fx2 = (c[2] + tx1) * scale_x
                         fy2 = (c[3] + ty1) * scale_y
+                        
+                        mask = None
+                        if res.masks is not None:
+                            m = res.masks[i].xy[0] # [N, 2]
+                            m[:, 0] = (m[:, 0] + tx1) * scale_x
+                            m[:, 1] = (m[:, 1] + ty1) * scale_y
+                            mask = m.tolist()
+
                         raw_proposals.append({
                             'box': [fx1, fy1, fx2, fy2],
                             'conf': float(b.conf[0].cpu().numpy()),
-                            'cls': int(b.cls[0].cpu().numpy())
+                            'cls': int(b.cls[0].cpu().numpy()),
+                            'mask': mask
                         })
             debug_metrics['tiles_processed'] = len(tile_coords)
             
@@ -378,11 +391,13 @@ def detect():
             print(f"📦 [STAGE 1] LIVE GUIDANCE (ULTRA): imgsz={live_imgsz} conf=0.08")
             results = model(image_sharp, conf=0.08, iou=0.45, imgsz=live_imgsz, agnostic_nms=True, max_det=150, verbose=False)
             for res in results:
-                for b in res.boxes:
+                for i, b in enumerate(res.boxes):
+                    mask = res.masks[i].xy[0].tolist() if res.masks is not None else None
                     raw_proposals.append({
                         'box': b.xyxy[0].cpu().numpy().tolist(),
                         'conf': float(b.conf[0].cpu().numpy()),
-                        'cls': int(b.cls[0].cpu().numpy())
+                        'cls': int(b.cls[0].cpu().numpy()),
+                        'mask': mask
                     })
 
         raw_count = len(raw_proposals)
@@ -434,7 +449,7 @@ def detect():
             x1, y1, x2, y2 = prop['box']
             initial_bbox = {'x': x1, 'y': y1, 'width': x2-x1, 'height': y2-y1}
             class_name = model.names[prop['cls']]
-            polygon = prop['mask']
+            polygon = prop.get('mask')
             identity_conf = prop['conf']
             
             # Init defaults
