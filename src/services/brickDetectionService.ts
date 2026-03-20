@@ -122,11 +122,13 @@ export class DetectionStabilizer {
       const alreadyInResult = result.some(r => r.detectionId === prev.detectionId);
       if (!alreadyInResult) {
         const age = now - ((prev as any)._lastSeen || now);
-        // Phase 28: FIRMER PERSISTENCE.
-        // We use the constructor's persistenceWindowMs (default 2500) for confident ones,
-        // and a safe base limit (1500ms) for candidates to ensure we don't drop frames during RTT spikes.
-        const isConfident = (prev.prediction.identityConfidence || 0) >= 0.4;
-        const limit = isConfident ? Math.max(this.persistenceWindowMs, 3500) : 1800;
+        // Phase 40: "HARD LOCK" MAGNETISM.
+        // Once a brick is confirmed (Stage 3), it gets a massive 15s persistence window.
+        // It will NOT be removed unless the view changes drastically or it's dead-lost for 15s.
+        const isConfirmed = (prev.labelDisplayStatus === 'confirmed');
+        const isStable = (prev.prediction.identityConfidence || 0) >= 0.15;
+        
+        const limit = isConfirmed ? 15000 : (isStable ? 5000 : 1800);
 
         if (age < limit) {
           result.push(prev);

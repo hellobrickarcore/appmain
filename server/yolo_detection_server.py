@@ -357,18 +357,26 @@ def detect():
             debug_metrics['tiles_processed'] = len(tile_coords)
             
         else:
-            # PART 2: LIVE DETECTION (GUIDANCE MODE) - HARD BUILD OUT FOR 5FT
-            # Increased imgsz to 1024 and lowered conf to 0.12 for maximum magnetism
+            # PART 2: LIVE DETECTION (GUIDANCE MODE) - HARD BUILD OUT V2
+            # Lowered conf to 0.08 and imgsz to 1024 for extreme distance sensitivity
             live_imgsz = 1024
             
             # Sharpening for Live mode too (Crucial for 5ft distance)
             img_np = np.array(image)
+            # Use CLAHE (Contrast Limited Adaptive Histogram Equalization) for better detail in shadows
+            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+            lab = cv2.cvtColor(img_np, cv2.COLOR_RGB2LAB)
+            l, a, b = cv2.split(lab)
+            l2 = clahe.apply(l)
+            lab = cv2.merge((l2, a, b))
+            img_np = cv2.cvtColor(lab, cv2.COLOR_LAB2RGB)
+            
             gaussian = cv2.GaussianBlur(img_np, (0, 0), 1.5)
-            sharpened = cv2.addWeighted(img_np, 1.4, gaussian, -0.4, 0)
+            sharpened = cv2.addWeighted(img_np, 1.6, gaussian, -0.6, 0)
             image_sharp = Image.fromarray(sharpened)
 
-            print(f"📦 [STAGE 1] LIVE GUIDANCE (HARD): imgsz={live_imgsz}")
-            results = model(image_sharp, conf=0.12, iou=0.45, imgsz=live_imgsz, agnostic_nms=True, max_det=120, verbose=False)
+            print(f"📦 [STAGE 1] LIVE GUIDANCE (ULTRA): imgsz={live_imgsz} conf=0.08")
+            results = model(image_sharp, conf=0.08, iou=0.45, imgsz=live_imgsz, agnostic_nms=True, max_det=150, verbose=False)
             for res in results:
                 for b in res.boxes:
                     raw_proposals.append({

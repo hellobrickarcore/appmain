@@ -75,7 +75,7 @@ class SortTracker:
     Lightweight IoU-based tracker with smoothing.
     Inspired by SORT and ByteTrack logic.
     """
-    def __init__(self, max_disappeared=10, min_iou=0.3):
+    def __init__(self, max_disappeared=50, min_iou=0.25):
         self.tracks = []
         self.next_id = 1
         self.max_disappeared = max_disappeared
