@@ -30,20 +30,21 @@ Run these commands in your terminal:
    - Select a simulator from the top toolbar (e.g., **iPhone 15 Pro Max** for the 6.7" screenshots).
    - Press the **Play (Run)** button or `Cmd + R`.
 
-## 📸 Capturing Screenshots
+## 📸 Recommended App Store Screenshots (The "Winning 5")
 
-Once the app is running in the simulator:
+Don't use the paywall as a main screenshot—it's better to show value. Capture these 5 screens for maximum conversion:
 
-1. **Navigate** to the screen you want to capture.
-2. **Take Screenshot**: Press `Cmd + S` in the simulator.
-3. **Where are they?**: Screenshots are saved to your **Desktop** by default.
+1.  **The Scanner (AI in Action)**: Navigate to **Scanner**. Point the camera at bricks (or use mock mode). Capture the moment the AI detects and labels parts. *Shows the core tech.*
+2.  **The Vault (Your Collection)**: Navigate to **Collection**. Show a well-populated list of pieces sorted by category and color. *Shows the utility.*
+3.  **Build Ideas (What to Build)**: Navigate to **Ideas**. Show the discovery screen suggesting a specific model you can build with current inventory. *Shows the outcome.*
+4.  **H2H Battle (Unique Game)**: Navigate to **Multiplayer > Head-to-Head**. Capture the competitive sorting interface. *Shows the fun.*
+5.  **Community Lab (Earn XP)**: Navigate to **Training** or **Feed**. Show the verification interface where users earn rewards for helping the AI. *Shows the community.*
 
-### Required Screenshot Sizes for App Store:
-- **6.5" Display** (e.g., iPhone 11 Pro Max, XS Max)
-- **6.7" Display** (e.g., iPhone 15 Pro Max, 14 Pro Max)
-- **5.5" Display** (Optional, for older iPhones)
+### Best Device Targets
+- **6.7" Display**: iPhone 16 Pro Max (Required)
+- **6.5" Display**: iPhone 11 Pro Max / XS Max (Required)
 
-## 💡 Tips for Great Screenshots
-- **Clean StatusBar**: In the simulator menu, go to `Features > Status Bar` to clean up the time and battery for a professional look.
-- **Dark Mode**: If the app supports it, ensure it's toggled consistently.
-- **Real Data**: If you need real bricks in the scan, you can drag and drop images/videos into the simulator to "simulate" a camera feed if the plugin supports it, or use the Mock mode I've enabled.
+## 💡 Pro Tips for iPhone Screenshots
+- **Clean StatusBar**: In the simulator menu, go to `Features > Status Bar` and select "Clean" for a professional look.
+- **Realistic Data**: I have updated the onboarding backgrounds to be realistic brick environments (wood tables, organized bins) instead of futuristic renders.
+- **Save Location**: Press `Cmd + S` in the simulator. Images will appear on your **Desktop**.
