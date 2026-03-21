@@ -42,3 +42,4 @@ out/
 
 # 5. Whitelist everything else
 # (Git includes by default unless ignored above)
+dist/
