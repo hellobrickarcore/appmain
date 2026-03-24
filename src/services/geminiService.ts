@@ -181,3 +181,25 @@ export const identifyBricks = async (base64Image: string): Promise<any> => {
     return { items: [] };
   }
 };
+
+export const generateBuildIdeas = async (message: string, currentBrick?: any): Promise<string> => {
+  const ai = getAIInstance();
+  if (!ai) throw new Error('Gemini API key not configured');
+
+  try {
+    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const prompt = currentBrick 
+      ? `The user is looking for building ideas for a LEGO ${currentBrick.color} ${currentBrick.name}.
+         User says: "${message}"
+         Provide 3 creative, concise building ideas. Use bullet points and bold titles. Keep it encouraging and fun!`
+      : `The user is looking for LEGO building ideas. 
+         User says: "${message}"
+         Provide 3 creative, concise building ideas. Use bullet points and bold titles. Keep it encouraging and fun!`;
+
+    const result = await model.generateContent(prompt);
+    return result.response.text() || "I'm sorry, I couldn't think of anything right now. Try describing your bricks!";
+  } catch (error) {
+    console.error('Ideas generation failed:', error);
+    return "I'm having trouble connecting to my building brain. Use your imagination or try again in a moment!";
+  }
+};

@@ -110,6 +110,7 @@ export interface ScanFrameResponse {
     inferenceMs?: number;
     rttMs?: number;
     targetDimension?: number;
+
     debug?: {
         raw: number;
         valid_geo: number;

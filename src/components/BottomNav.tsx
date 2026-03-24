@@ -38,7 +38,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentScreen, onNavigate 
           <div className={`absolute inset-0 bg-orange-500/10 rounded-2xl blur-xl transition-opacity duration-300 ${isActive(Screen.FEED) ? 'opacity-100' : 'opacity-0'}`} />
           <Users className={getIconClass(Screen.FEED)} />
         </button>
-        
+
         <button onClick={() => onNavigate(Screen.PROFILE)} className="p-4 relative group">
           <div className={`absolute inset-0 bg-orange-500/10 rounded-2xl blur-xl transition-opacity duration-300 ${isActive(Screen.PROFILE) ? 'opacity-100' : 'opacity-0'}`} />
           <User className={getIconClass(Screen.PROFILE)} />

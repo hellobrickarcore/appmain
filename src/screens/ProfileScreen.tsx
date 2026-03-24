@@ -1,31 +1,39 @@
 import React, { useState, useEffect } from 'react';
-import { Zap, Star, Trophy, Check, Play, Users, History, Activity } from 'lucide-react';
-import { Screen } from '../types';
-import { getUserXP, getUserId, getXPLedger, formatXPEvent } from '../services/xpService';
+import { Settings, Zap, Star, Trophy, Check, Play, Users, History, Activity, ChevronRight, Plus, X, Smile } from 'lucide-react';
+import { Screen, BadgeType, Achievement } from '../types';
+import { getUserXP, getUserId, getXPLedger, formatXPEvent, getUserStats } from '../services/xpService';
 import { Logo } from '../components/Logo';
+import { CONFIG } from '../services/configService';
 
 interface ProfileScreenProps {
     onNavigate: (screen: Screen) => void;
 }
 
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
+    const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);
+    const [selectedBadge, setSelectedBadge] = useState<BadgeType | null>(null);
     const [userStats, setUserStats] = useState({ 
       streak: 0, 
       xp: 0, 
-      league: 'Bronze', 
-      finishes: 0, 
-      level: 1, 
+      todayXp: 0, 
+      setsCompleted: 0, 
+      level: 1,
+      league: 'Bronze',
       xpInLevel: 0,
-      nextLevelXp: 1000 
+      nextLevelXp: 1000
     });
     const [ledger, setLedger] = useState<any[]>([]);
-    const [profileName, setProfileName] = useState('Builder');
+    const [profileName, setProfileName] = useState(localStorage.getItem('hellobrick_profile_name') || 'Builder');
+    const [badges, setBadges] = useState<BadgeType[]>([]);
+    const [achievements, setAchievements] = useState<Achievement[]>([]);
+    const [profileImage, setProfileImage] = useState<string>(localStorage.getItem('hellobrick_profile_image') || '');
 
     useEffect(() => {
         const loadUserData = async () => {
             try {
                 const userId = getUserId();
                 const xpData = await getUserXP(userId);
+                const stats = await getUserStats(userId);
                 
                 let league = 'Bronze';
                 if (xpData.xp_total > 50000) league = 'Diamond';
@@ -33,180 +41,146 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
                 else if (xpData.xp_total > 10000) league = 'Gold';
                 else if (xpData.xp_total > 5000) league = 'Silver';
 
-                const storedCollection = localStorage.getItem('hellobrick_collection');
-                const bricksCount = storedCollection ? JSON.parse(storedCollection).bricks?.length || 0 : 0;
-                
-                const levelProgress = xpData.xp_total % 1000;
-                
                 setUserStats({
-                    streak: xpData.streak_count || 1,
+                    streak: stats.streak || 0,
                     xp: xpData.xp_total || 0,
-                    level: Math.floor((xpData.xp_total || 0) / 1000) + 1,
+                    todayXp: xpData.xp_today || 0,
+                    setsCompleted: stats.setsCompleted || 0,
+                    level: xpData.level || 1,
                     league: league,
-                    finishes: bricksCount,
-                    xpInLevel: levelProgress,
-                    nextLevelXp: 1000
+                    xpInLevel: xpData.xp_current_level || 0,
+                    nextLevelXp: xpData.xp_to_next || 1000
                 });
 
-                const ledgerData = await getXPLedger(userId, 5);
-                setLedger(ledgerData);
-
-                const storedName = localStorage.getItem('hellobrick_profile_name');
-                if (storedName) setProfileName(storedName);
-            } catch (error) {
-                console.error('Failed to load user data:', error);
+                const ledgerData = getXPLedger();
+                setLedger(ledgerData.slice(0, 5));
+            } catch (err) {
+                console.error('Failed to load profile data:', err);
             }
         };
+
         loadUserData();
     }, []);
 
-    const overviewStats = [
-        { label: 'Day Streak', value: userStats.streak, icon: <Zap className="w-5 h-5 fill-current" />, color: 'text-orange-500', bg: 'bg-orange-500/10' },
-        { label: 'Total XP', value: userStats.xp.toLocaleString(), icon: <Star className="w-5 h-5 fill-current" />, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-        { label: 'Unique Bricks', value: userStats.finishes, icon: <Check className="w-5 h-5" />, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-        { label: 'League', value: userStats.league, icon: <Trophy className="w-5 h-5 fill-current" />, color: 'text-yellow-500', bg: 'bg-yellow-500/10' },
-    ];
-
     return (
         <div className="flex flex-col h-screen bg-[#050A18] font-sans text-white relative overflow-hidden">
-            <div className="flex-1 overflow-y-auto no-scrollbar overscroll-contain">
-            <div className="px-6 pt-[max(env(safe-area-inset-top),3.5rem)] pb-8 flex flex-col items-center">
-                <div className="relative mb-6">
-                    <Logo size="xl" showText={false} />
-                    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#EA580C] px-4 py-1.5 rounded-full border-4 border-[#050A18] text-xs font-black shadow-xl">
-                        Lvl {userStats.level}
-                    </div>
-                </div>
+            <div className="fixed top-0 left-0 right-0 h-64 bg-gradient-to-b from-blue-600/5 via-blue-500/0 to-transparent pointer-events-none z-0" />
 
-                <div className="w-full max-w-[200px] h-2 bg-white/5 rounded-full mb-6 overflow-hidden border border-white/5">
-                    <div 
-                      className="h-full bg-gradient-to-r from-orange-600 to-orange-400 shadow-[0_0_10px_rgba(234,88,12,0.5)] transition-all duration-1000"
-                      style={{ width: `${(userStats.xpInLevel / userStats.nextLevelXp) * 100}%` }}
-                    />
+            {/* Header */}
+            <div className="relative z-10 px-6 pt-[max(env(safe-area-inset-top),3.5rem)] pb-4 flex items-center justify-between border-b border-white/5 backdrop-blur-xl bg-[#050A18]/80 sticky top-0">
+                <div className="flex items-center gap-3">
+                    <Logo size="sm" showText={false} className="w-8 h-8" />
+                    <h1 className="text-sm font-black text-white uppercase tracking-widest">Profile</h1>
                 </div>
-
-                <div className="flex items-center gap-3 mb-2">
-                  <h1 className="text-[32px] font-black tracking-tight">{profileName}</h1>
-                  {localStorage.getItem('hellobrick_is_pro') === 'true' && (
-                     <div className="bg-white/5 px-2 py-1 rounded-lg flex items-center gap-1.5 border border-amber-500/20 shadow-sm shadow-amber-500/5">
-                        <span className="text-[10px] font-black uppercase tracking-tight text-white">
-                          Hello<span className="text-[#FF7A30]">Brick</span> <span className="text-amber-500">PRO</span>
-                        </span>
-                     </div>
-                  )}
-                </div>
-                <p className="text-slate-500 font-bold mb-6 text-sm">Joined in 2026</p>
-
-                <button 
+                <button
                     onClick={() => onNavigate(Screen.PROFILE_SETTINGS)}
-                    className="bg-white/5 border border-white/10 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest text-slate-300 active:scale-95 transition-all"
+                    className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10 hover:bg-white/10 transition-colors"
                 >
-                    Edit Settings
+                    <Settings className="w-5 h-5 text-slate-300" />
                 </button>
             </div>
 
-            <main className="flex-1 px-6 space-y-10 pb-32">
-                <section className="space-y-4">
-                    <h2 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Overview</h2>
-                    <div className="grid grid-cols-2 gap-4">
-                        {overviewStats.map((stat, i) => (
-                            <div key={i} className="bg-white/5 p-6 rounded-[32px] border border-white/5 flex flex-col gap-4">
-                                <div className={`w-10 h-10 ${stat.bg} ${stat.color} rounded-xl flex items-center justify-center`}>
-                                    {stat.icon}
+            <div className="relative z-10 flex-1 overflow-y-auto no-scrollbar overscroll-contain pb-[max(env(safe-area-inset-bottom),140px)]">
+                {/* Profile Hero */}
+                <div className="px-6 pt-10 pb-8 flex flex-col items-center">
+                    <div className="w-24 h-24 rounded-[32px] bg-gradient-to-br from-orange-500 to-orange-600 p-1 shadow-2xl shadow-orange-500/20 relative group">
+                        <div className="w-full h-full bg-[#050A18] rounded-[28px] flex items-center justify-center overflow-hidden border border-white/10">
+                            {profileImage ? (
+                                <img src={profileImage} className="w-full h-full object-cover" alt="Profile" />
+                            ) : (
+                                <span className="text-3xl font-black text-white">{profileName.charAt(0).toUpperCase()}</span>
+                            )}
+                        </div>
+                        <div className="absolute -bottom-2 -right-2 bg-[#FFD600] text-[#050A18] px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg border-2 border-[#050A18]">
+                            Lvl {userStats.level}
+                        </div>
+                    </div>
+
+                    <h2 className="mt-6 text-2xl font-black text-white">{profileName}</h2>
+                    <div className="mt-2 flex items-center gap-2">
+                        <div className="px-3 py-1 bg-white/5 rounded-full border border-white/10 flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-orange-500" />
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{userStats.league} League</span>
+                        </div>
+                        <div className="px-3 py-1 bg-orange-500/10 rounded-full border border-orange-500/20 flex items-center gap-2">
+                            <Zap className="w-3 h-3 text-orange-500" />
+                            <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest">{userStats.xp} XP</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Level Progress */}
+                <div className="px-6 mb-10">
+                    <div className="p-6 bg-white/5 rounded-[32px] border border-white/10 shadow-xl relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-orange-500/5 blur-3xl rounded-full" />
+                        <div className="flex justify-between items-end mb-4">
+                            <div>
+                                <h3 className="text-sm font-black text-white uppercase tracking-widest mb-1">Level {userStats.level}</h3>
+                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest font-medium">{userStats.xpInLevel} / {userStats.nextLevelXp} to Level {userStats.level + 1}</p>
+                            </div>
+                            <Trophy className="w-6 h-6 text-[#FFD600] opacity-50" />
+                        </div>
+                        <div className="h-4 bg-white/5 rounded-full overflow-hidden border border-white/5 p-1">
+                            <div 
+                                className="h-full bg-gradient-to-r from-orange-400 to-orange-600 rounded-full shadow-[0_0_15px_rgba(249,115,22,0.4)] transition-all duration-1000"
+                                style={{ width: `${Math.min(100, (userStats.xpInLevel / userStats.nextLevelXp) * 100)}%` }}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Stats Grid */}
+                <div className="px-6 grid grid-cols-2 gap-4 mb-10">
+                    <div className="p-5 bg-white/5 rounded-[32px] border border-white/10 flex flex-col items-center text-center">
+                        <div className="w-12 h-12 bg-orange-500/10 rounded-2xl flex items-center justify-center mb-3">
+                            <Star className="w-6 h-6 text-orange-500" />
+                        </div>
+                        <span className="text-xl font-black text-white">{userStats.streak}</span>
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">Day Streak</span>
+                    </div>
+                    <div className="p-5 bg-white/5 rounded-[32px] border border-white/10 flex flex-col items-center text-center">
+                        <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-3">
+                            <Check className="w-6 h-6 text-blue-400" />
+                        </div>
+                        <span className="text-xl font-black text-white">{userStats.setsCompleted}</span>
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">Sets Built</span>
+                    </div>
+                </div>
+
+                {/* Recent Activity */}
+                <div className="px-6">
+                    <div className="flex items-center justify-between mb-6 px-2">
+                        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Recent Activity</h3>
+                        <Activity className="w-4 h-4 text-slate-700" />
+                    </div>
+                    <div className="space-y-3">
+                        {ledger.map((event, i) => (
+                            <div key={i} className="group p-4 bg-white/5 hover:bg-white/10 transition-all rounded-[24px] border border-white/5 flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-orange-500/20 group-hover:text-orange-500 transition-colors">
+                                        {event.type === 'SCAN' ? <Zap className="w-5 h-5" /> : <Trophy className="w-5 h-5" />}
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-black text-white uppercase tracking-widest">{formatXPEvent(event.type)}</p>
+                                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{new Date(event.timestamp).toLocaleDateString()}</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className="text-2xl font-black leading-none mb-1.5">{stat.value}</p>
-                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{stat.label}</p>
+                                <div className="text-right">
+                                    <p className="text-sm font-black text-orange-500">+{event.amount} XP</p>
                                 </div>
                             </div>
                         ))}
                     </div>
-                </section>
-
-                <section className="space-y-4">
-                    <h2 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Activity Log</h2>
-                    <div className="space-y-3">
-                        {ledger.length > 0 ? (
-                          ledger.map((entry, i) => (
-                            <div key={i} className="bg-white/5 p-5 rounded-[24px] border border-white/5 flex items-center justify-between">
-                              <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-blue-400">
-                                  <Activity className="w-5 h-5" />
-                                </div>
-                                <div>
-                                  <p className="text-sm font-black text-white">{formatXPEvent(entry.type, entry.payload)}</p>
-                                  <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mt-1">
-                                    {new Date(entry.timestamp).toLocaleDateString()}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-blue-400 font-black text-sm">+{entry.amount} XP</p>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="bg-white/5 p-8 rounded-[32px] border border-white/5 text-center">
-                            <History className="w-8 h-8 text-slate-700 mx-auto mb-3" />
-                            <p className="text-xs font-bold text-slate-500">No activity recorded yet.</p>
-                          </div>
-                        )}
+                    <button 
+                      onClick={() => onNavigate(Screen.REWARDS)}
+                      className="w-full mt-6 py-4 rounded-3xl bg-white/5 border border-white/10 font-black text-[10px] text-slate-400 uppercase tracking-[0.2em] hover:bg-white/10 transition-all"
+                    >
+                      View All Activity
+                    </button>
+                    <div className="mt-12 text-center">
+                        <p className="text-[10px] font-black text-slate-700 uppercase tracking-[0.2em]">HelloBrick v1.4.0</p>
                     </div>
-                </section>
-
-                <section className="space-y-4">
-                   <h2 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">AI Calibration</h2>
-                   <div className="flex flex-col gap-3">
-                        <button 
-                             onClick={() => onNavigate(Screen.TRAINING_INTRO)}
-                             className="bg-white/5 p-6 rounded-[28px] border border-white/5 flex items-center justify-between group active:scale-[0.98] transition-all"
-                        >
-                            <div className="flex items-center gap-5">
-                                <div className="w-12 h-12 bg-orange-500/10 rounded-2xl flex items-center justify-center text-orange-500">
-                                    <Zap className="w-5 h-5 fill-current" />
-                                </div>
-                                <div className="text-left">
-                                    <p className="text-sm font-black text-white">Train the AI</p>
-                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Improve your scanner accuracy</p>
-                                </div>
-                            </div>
-                            <Activity className="w-4 h-4 text-slate-700 group-hover:text-orange-500 transition-colors" />
-                        </button>
-                   </div>
-                </section>
-
-                <section className="space-y-4 pb-12">
-                   <h2 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] px-1">Vault Progress</h2>
-                   <div className="flex flex-col gap-3">
-                       <button 
-                            onClick={() => onNavigate(Screen.COLLECTION)}
-                            className="bg-white/5 p-6 rounded-[28px] border border-white/5 flex items-center justify-between group active:scale-[0.98] transition-all"
-                       >
-                           <div className="flex items-center gap-5">
-                               <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-400">
-                                   <Play className="w-5 h-5 fill-current" />
-                               </div>
-                               <div className="text-left">
-                                   <p className="text-sm font-black text-white">Full Collection View</p>
-                                   <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Review your inventory</p>
-                               </div>
-                           </div>
-                           <Users className="w-4 h-4 text-slate-700 group-hover:text-blue-400 transition-colors" />
-                       </button>
-
-                       {/* Hidden Admin Entry - Hidden link at the bottom of the section */}
-                       <button 
-                            onContextMenu={(e) => {
-                                e.preventDefault();
-                                onNavigate(Screen.ADMIN);
-                            }}
-                            className="w-full h-8 opacity-0 pointer-events-auto"
-                       >
-                           Admin
-                       </button>
-                   </div>
-                </section>
-            </main>
+                </div>
             </div>
         </div>
     );

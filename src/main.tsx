@@ -22,13 +22,22 @@ if (!rootElement) {
     console.log('⚛️ React Mounting Starting...');
     const root = ReactDOM.createRoot(rootElement);
     
+    // Initialize RevenueCat
+    import('./services/subscriptionService').then(({ subscriptionService }) => {
+      subscriptionService.initialize();
+    }).catch(err => {
+      console.error('Failed to initialize subscription service:', err);
+    });
+
     root.render(
-      <App />
+      <React.StrictMode>
+        <App />
+      </React.StrictMode>
     );
-    console.log('⚛️ React Render Invoked');
   } catch (error: any) {
-    console.error('❌ Critical Error in main.tsx:', error);
-    rootElement.innerHTML = `<div style="padding:40px;color:red;background:white;height:100vh;"><h1>Mount Error</h1><p>${error.message}</p></div>`;
+    console.error('Fatal Mount Error:', error);
+    const errDiv = document.createElement('div');
+    errDiv.innerHTML = `<h1 style="color:red">Mount Failed</h1><pre>${error.message}</pre>`;
+    document.body.appendChild(errDiv);
   }
 }
-

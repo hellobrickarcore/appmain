@@ -102,261 +102,125 @@ export class DetectionStabilizer {
             yMax: pBox.yMax + (cBox.yMax - pBox.yMax) * this.smoothingFactor,
           };
         }
-        
-        const smoothed = {
+
+        const stabilized = {
           ...curr,
-          geometry: { ...curr.geometry, bbox: smoothBox },
-          _timestamp: now,
-          _lastSeen: now
-        } as any;
-        result.push(smoothed);
+          lastSeen: now,
+          geometry: {
+            ...curr.geometry,
+            bbox: smoothBox
+          }
+        };
+        result.push(stabilized);
       } else {
-        (curr as any)._timestamp = now;
-        (curr as any)._lastSeen = now;
-        result.push(curr);
+        result.push({ ...curr, lastSeen: now });
       }
     });
 
-    // 2. Persistence: Keep missed valid detections
+    // 2. Persistence: Allow objects to stay visible for a few frames even if missed
     this.prevDetections.forEach(prev => {
-      const alreadyInResult = result.some(r => r.detectionId === prev.detectionId);
-      if (!alreadyInResult) {
-        const age = now - ((prev as any)._lastSeen || now);
-        // Phase 40: "HARD LOCK" MAGNETISM.
-        // Once a brick is confirmed (Stage 3), it gets a massive 15s persistence window.
-        // It will NOT be removed unless the view changes drastically or it's dead-lost for 15s.
-        const isConfirmed = (prev.labelDisplayStatus === 'confirmed');
-        const isStable = (prev.prediction.identityConfidence || 0) >= 0.15;
-        
-        const limit = isConfirmed ? 15000 : (isStable ? 5000 : 1800);
-
-        if (age < limit) {
-          result.push(prev);
+      const existsInCurrent = result.some(r => r.detectionId === prev.detectionId);
+      if (!existsInCurrent && (now - prev.lastSeen < this.persistenceWindowMs)) {
+        // Only keep if it was somewhat confident to avoid ghosting junk
+        if (prev.prediction.identityConfidence > 0.25) {
+           result.push(prev);
         }
       }
     });
 
-    // 3. Final NMS Pass (CROSS-DEDUPLICATION)
-    const finalFiltered: FrameDetection[] = [];
-    const finalSorted = [...result].sort((a, b) => 
-      (b.prediction.identityConfidence || 0) - (a.prediction.identityConfidence || 0)
-    );
-
-    finalSorted.forEach(curr => {
-      const isDuplicate = finalFiltered.some(target => {
-        const b1 = curr.geometry.bbox;
-        const b2 = target.geometry.bbox;
-        
-        const xIn1 = Math.max(b1.xMin, b2.xMin);
-        const yIn1 = Math.max(b1.yMin, b2.yMin);
-        const xIn2 = Math.min(b1.xMax, b2.xMax);
-        const yIn2 = Math.min(b1.yMax, b2.yMax);
-        
-        if (xIn2 <= xIn1 || yIn2 <= yIn1) return false;
-        
-        const intersection = (xIn2 - xIn1) * (yIn2 - yIn1);
-        const area1 = (b1.xMax - b1.xMin) * (b1.yMax - b1.yMin);
-        const area2 = (b2.xMax - b2.xMin) * (b2.yMax - b2.yMin);
-        const union = area1 + area2 - intersection;
-        const iou = intersection / union;
-        const containment1 = intersection / area1;
-        const containment2 = intersection / area2;
-        
-        return iou > 0.3 || containment1 > 0.7 || containment2 > 0.7;
-      });
-      
-      if (!isDuplicate) {
-        finalFiltered.push(curr);
-      }
-    });
-
-    this.prevDetections = finalFiltered;
-    return finalFiltered;
-  }
-
-  public clear() {
-    this.prevDetections = [];
+    this.prevDetections = result;
+    return result;
   }
 }
 
 /**
- * Send a frame to the detection server and return canonical ScanFrameResponse.
+ * Main Detection Hook
  */
 export const detectBricks = async (
-  image: HTMLImageElement | HTMLCanvasElement | HTMLVideoElement | File | string,
-  options: {
-    sessionId?: string;
-    frameIndex?: number;
-    mode?: 'mass_capture' | 'live_scanner';
-    imgsz?: number;
-    debugMode?: boolean;
-    detectorState?: string;
-    captureInProgress?: boolean;
-    timeoutMs?: number;
-  } = {}
+  video: HTMLVideoElement,
+  frameIndex: number = 0,
+  sessionId: string = 'native'
 ): Promise<ScanFrameResponse> => {
-  const { 
-    sessionId = 'session_manual', 
-    frameIndex = 0, 
-    mode = 'live_scanner', 
-    imgsz, 
-    debugMode = false,
-    detectorState = 'unknown',
-    captureInProgress = false
-  } = options;
-
-  const stage = mode === 'mass_capture' ? 'holistic_capture' : 'live_detection';
-  
-  // Adaptive Performance Tracking
   const startTime = Date.now();
-  // Phase 30: Use higher resolution (1024) by default to support distant scanning (5ft).
-  // 640 is too low for small bricks from a distance.
-  const targetDimension = 1024; 
-  
-  // Performance adjustments moved to backend for simplicity
-
-  let responseText = '';
   let status = 0;
+  let responseText = '';
   let aborted = false;
+  let stage = 'init';
+  let detectorState = 'idle';
 
   try {
-    // 1. Prepare Source Canvas
-    let source: HTMLCanvasElement | HTMLImageElement | HTMLVideoElement | ImageBitmap;
-    let originalWidth = 0;
-    let originalHeight = 0;
-
-    if (image instanceof HTMLCanvasElement) {
-      source = image;
-      originalWidth = image.width;
-      originalHeight = image.height;
-    } else if (image instanceof HTMLVideoElement) {
-      source = image;
-      originalWidth = image.videoWidth;
-      originalHeight = image.videoHeight;
-    } else if (image instanceof HTMLImageElement) {
-      source = image;
-      originalWidth = image.width;
-      originalHeight = image.height;
-    } else if (typeof image === 'string') {
-      source = await loadImageFromUrl(image);
-      originalWidth = source.width;
-      originalHeight = source.height;
-    } else if (image instanceof File) {
-      source = await loadImageFromFile(image);
-      originalWidth = source.width;
-      originalHeight = source.height;
-    } else {
-      throw new Error('Unsupported image type');
-    }
-
-    // 2. Resize maintaining aspect ratio
-    const scale = Math.min(targetDimension / originalWidth, targetDimension / originalHeight);
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.floor(originalWidth * scale);
-    canvas.height = Math.floor(originalHeight * scale);
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Could not get 2D context');
+    const originalWidth = video.videoWidth;
+    const originalHeight = video.videoHeight;
     
-    // Phase 26 Sharpening: Enhanced contrast and saturation for 5ft distance
-    ctx.filter = 'contrast(1.25) brightness(1.1) saturate(1.2)';
-    ctx.drawImage(source, 0, 0, originalWidth, originalHeight, 0, 0, canvas.width, canvas.height);
+    if (originalWidth === 0) throw new Error('Video not ready');
 
-    const scaleX = originalWidth / canvas.width;
-    const scaleY = originalHeight / canvas.height;
+    // 1. Capture & Prepare Frame
+    stage = 'capture';
+    const canvas = document.createElement('canvas');
+    canvas.width = originalWidth;
+    canvas.height = originalHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas failure');
+    ctx.drawImage(video, 0, 0);
+    
+    stage = 'compress';
+    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+    if (!blob) throw new Error('Blob failure');
 
-    // 3. Prepare Form Data
-    const blob = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob((b) => b ? resolve(b) : reject('Blob creation failed'), 'image/jpeg', 0.85);
+    // 2. Remote Detection Call
+    stage = 'network';
+    detectorState = 'detecting';
+    
+    const formData = new FormData();
+    formData.append('file', blob, 'frame.jpg');
+
+    const data = await apiFormRequest(CONFIG.DETECT_IMAGE, formData);
+    detectorState = 'parsing';
+
+    // 3. Coordinate Normalization & Mapping
+    const detections: FrameDetection[] = (data.detections || []).map((det: any, index: number) => {
+      return {
+        detectionId: `d_${index}_${Date.now()}`,
+        trackId: det.track_id,
+        geometry: {
+          type: det.mask ? 'polygon' : 'bbox',
+          bbox: {
+            xMin: det.box.x_min,
+            yMin: det.box.y_min,
+            xMax: det.box.x_max,
+            yMax: det.box.y_max
+          },
+          polygon: det.mask,
+          geometryConfidence: det.confidence || 0
+        },
+        prediction: {
+          brickName: det.brick_name || 'Unknown',
+          brickPartNum: det.brick_part_num || '0',
+          brickColorName: det.color_name || 'Unknown',
+          identityConfidence: det.confidence || 0,
+          colorConfidence: det.color_confidence || 0,
+          brickFamily: det.brick_family,
+          dimensionsLabel: det.dimensions_label
+        },
+        lastSeen: Date.now()
+      };
     });
 
-    const formData = new FormData();
-    formData.append('image', blob, 'frame.jpg');
-    formData.append('sessionId', sessionId);
-    formData.append('frameIndex', frameIndex.toString());
-    formData.append('mode', mode);
-    formData.append('imgsz', (imgsz || targetDimension).toString());
-    formData.append('debugMode', debugMode.toString());
-
-    // 4. Execute Native-Safe Request using apiFormRequest
-    const data = await apiFormRequest(CONFIG.DETECT_IMAGE, formData);
-    
-    // Simulate some metadata for the canonical adapter
-    status = 200;
-    responseText = JSON.stringify(data);
-
-    if (!responseText.trim().startsWith('{')) {
-      throw new Error(`Non-JSON response (starts with ${responseText.trim().slice(0, 10)})`);
-    }
-
-    // No need to redeclare data, we already have it from apiFormRequest
-    
-    // 5. Canonical Adapter
-    const detections: FrameDetection[] = (data.detections || []).map((det: any, idx: number) => {
-      const geo = det.geometry || {};
-      const bbox = geo.bbox || {};
-      const pred = det.prediction || {};
-
-        return {
-          detectionId: det.detectionId || `det_${idx}_${Date.now()}`,
-          detectionIndex: idx,
-          trackId: det.trackId || '',
-          geometry: {
-            type: geo.type || 'bbox_xyxy',
-            bbox: {
-              format: 'xyxy',
-              space: 'pixel',
-              xMin: (bbox.xMin ?? 0) * scaleX,
-              yMin: (bbox.yMin ?? 0) * scaleY,
-              xMax: (bbox.xMax ?? 0) * scaleX,
-              yMax: (bbox.yMax ?? 0) * scaleY
-            },
-            polygon: geo.polygon?.map((p: any) => ({
-              x: (p.x ?? 0) * scaleX,
-              y: (p.y ?? 0) * scaleY
-            })),
-            geometryConfidence: geo.geometryConfidence ?? 0
-          },
-          prediction: {
-            brickName: pred.brickName,
-            brickFamily: pred.brickFamily,
-            dimensionsLabel: pred.dimensionsLabel,
-            brickColorName: pred.brickColorName,
-            identityConfidence: pred.identityConfidence ?? 0,
-            colorConfidence: pred.colorConfidence ?? 0,
-            dimensionConfidence: pred.dimensionConfidence ?? 0,
-            brandConfidence: pred.brandConfidence ?? 0,
-            detectorConfidence: pred.detectorConfidence ?? 0,
-          },
-          compactLabel: det.compactLabel,
-          labelDisplayStatus: det.labelDisplayStatus || 'tentative',
-          countingBucket: det.countingBucket
-        };
-      });
-
-    const trackedObjects: TrackedObject[] = (data.trackedObjects || []).map((to: any) => {
-      const geo = to.stableGeometry || {};
-      const bbox = geo.bbox || {};
+    // 4. Tracked Object Migration (Phase 7 support)
+    const trackedObjects: TrackedObject[] = (data.tracked_objects || []).map((to: any) => {
       return {
-        trackedObjectId: to.trackedObjectId || `track_${to.trackId}`,
-        trackId: to.trackId,
-        status: (to.status || 'active') as any,
-        totalFramesSeen: to.totalFramesSeen ?? 1,
+        trackedObjectId: to.tracked_id,
+        trackId: to.track_id,
         stableGeometry: {
-          type: (geo.type || 'bbox_xyxy') as any,
+          type: 'bbox',
           bbox: {
-            format: 'xyxy',
-            space: 'pixel',
-            xMin: (bbox.xMin ?? 0) * scaleX,
-            yMin: (bbox.yMin ?? 0) * scaleY,
-            xMax: (bbox.xMax ?? 0) * scaleX,
-            yMax: (bbox.yMax ?? 0) * scaleY
-          },
-          polygon: geo.polygon?.map((p: any) => ({
-            x: (p.x ?? 0) * scaleX,
-            y: (p.y ?? 0) * scaleY
-          })),
-          geometryConfidence: geo.geometryConfidence ?? 0
+            xMin: to.box.x_min,
+            yMin: to.box.y_min,
+            xMax: to.box.x_max,
+            yMax: to.box.y_max
+          }
         },
+        lastSeen: Date.now(),
         consensusBrickName: to.consensusBrickName,
         consensusColorName: to.consensusColorName,
         consensusBrickFamily: to.consensusBrickFamily,
@@ -368,6 +232,9 @@ export const detectBricks = async (
         promotedToCollection: to.promotedToCollection ?? false
       };
     });
+
+    // Detect if we need to show scale guidance (Phase 7)
+    const targetDimension = data.target_dimension;
 
     return {
       sessionId: data.sessionId || sessionId,
@@ -542,36 +409,6 @@ export function toRenderableDetection(detection: FrameDetection): RenderableDete
 }
 
 // ─── Image Loaders ───────────────────────────────────────────────
-
-const loadImageFromUrl = (url: string): Promise<HTMLImageElement> => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = url;
-  });
-};
-
-const loadImageFromFile = (file: File): Promise<HTMLImageElement> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = reject;
-      img.src = e.target?.result as string;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-};
-
-// Placeholder exports to satisfy existing imports
-export const segmentBrick = async () => [];
-export const validateBrickMatch = () => true;
-export const initializeYOLO = async () => { };
-export const initializeSAM3 = async () => { };
 
 export const brickDetectionService = {
   scanFrame: detectBricks,
