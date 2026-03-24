@@ -1,4 +1,8 @@
 import React from 'react';
+<<<<<<< HEAD
+=======
+import { Trophy, ChevronRight, Bell } from 'lucide-react';
+>>>>>>> 7ac4433 (feat: hellobrick v1.4.0 - CV pipeline upgrade & SEO expansion)
 import { Screen } from '../types';
 import { Logo } from '../components/Logo';
 

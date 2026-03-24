@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
+<<<<<<< HEAD
 import { Mail, Lock, Eye, EyeOff, ChevronLeft, Shield, Zap, ArrowRight, Sparkles } from 'lucide-react';
 import { signUpWithEmail, signInWithEmail, resetPassword } from '../services/supabaseService';
+=======
+import { ChevronLeft, Mail, Lock, Eye, EyeOff, Shield, Zap, ArrowRight } from 'lucide-react';
+import { signUpWithEmail, signInWithEmail } from '../services/supabaseService';
+>>>>>>> 7ac4433 (feat: hellobrick v1.4.0 - CV pipeline upgrade & SEO expansion)
 import { Screen } from '../types';
 import { Logo } from '../components/Logo';
 

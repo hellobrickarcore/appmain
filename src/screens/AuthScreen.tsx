@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
+<<<<<<< HEAD
 import { Check, Shield, ChevronRight } from 'lucide-react';
+=======
+import { Star, Mail, ChevronRight } from 'lucide-react';
+>>>>>>> 7ac4433 (feat: hellobrick v1.4.0 - CV pipeline upgrade & SEO expansion)
 import { signInWithGoogle, signInWithApple, isSupabaseConfigured } from '../services/supabaseService';
 import { Screen } from '../types';
 import { Logo } from '../components/Logo';
@@ -76,6 +80,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticate, onNaviga
                 Welcome to <span className="text-[#FF7A30]">Hello</span>Brick
             </h1>
 
+<<<<<<< HEAD
             <div className="w-full space-y-4 mb-10">
                 <div className="flex items-start gap-3">
                     <div className="w-5 h-5 bg-orange-500/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -95,6 +100,48 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticate, onNaviga
                     </div>
                     <p className="text-sm font-bold text-slate-300">Get AI-powered building ideas</p>
                 </div>
+=======
+        <div className="w-full space-y-4 max-w-sm">
+          {supabaseAvailable && (
+            <>
+              <button
+                onClick={handleGoogleSignIn}
+                disabled={isLoading || !termsAccepted}
+                className="w-full bg-white text-slate-950 font-black py-5 rounded-[28px] text-[11px] uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3 border border-transparent disabled:opacity-20"
+              >
+                <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" className="w-4 h-4" alt="" />
+                {authType === 'google' ? 'Initializing...' : 'Sign in with Google'}
+              </button>
+              <button
+                onClick={handleAppleSignIn}
+                disabled={isLoading || !termsAccepted}
+                className="w-full bg-white/5 text-white font-black py-5 rounded-[28px] text-[11px] uppercase tracking-[0.2em] shadow-xl border border-white/10 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-20 backdrop-blur-md"
+              >
+                <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" className="w-4 h-4 invert" alt="" />
+                {authType === 'apple' ? 'Initializing...' : 'Sign in with Apple'}
+              </button>
+            </>
+          )}
+
+          <button
+            onClick={() => onNavigate && onNavigate(Screen.EMAIL_SIGNUP)}
+            disabled={!termsAccepted}
+            className="w-full py-5 text-slate-500 font-black text-[11px] uppercase tracking-[0.2em] active:scale-95 transition-all flex items-center justify-center gap-3 hover:text-white disabled:opacity-20"
+          >
+            <Mail className="w-4 h-4" />
+            Use Email Identity
+          </button>
+        </div>
+
+        {/* Terms Protocol */}
+        <div className="mt-16 flex flex-col items-center">
+          <button 
+            onClick={() => setTermsAccepted(!termsAccepted)}
+            className="flex items-center gap-4 group cursor-pointer"
+          >
+            <div className={`w-10 h-10 rounded-[14px] border-2 transition-all flex items-center justify-center shadow-inner ${termsAccepted ? 'bg-orange-500 border-orange-400' : 'bg-white/5 border-white/5'}`}>
+               <div className={`w-2.5 h-2.5 bg-white rounded-full transition-opacity ${termsAccepted ? 'opacity-100' : 'opacity-0'}`} />
+>>>>>>> 7ac4433 (feat: hellobrick v1.4.0 - CV pipeline upgrade & SEO expansion)
             </div>
 
             <div className="w-full space-y-3 mb-8">

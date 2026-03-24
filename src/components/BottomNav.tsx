@@ -1,5 +1,9 @@
 import React from 'react';
+<<<<<<< HEAD
 import { Home, Scan, User, LayoutGrid, Users } from 'lucide-react';
+=======
+import { Home, Scan, User, LayoutGrid } from 'lucide-react';
+>>>>>>> 7ac4433 (feat: hellobrick v1.4.0 - CV pipeline upgrade & SEO expansion)
 import { Screen } from '../types';
 
 interface BottomNavProps {

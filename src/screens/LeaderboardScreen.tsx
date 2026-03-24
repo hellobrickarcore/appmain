@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
+<<<<<<< HEAD
 import { ChevronLeft, Clock, Crown, Star, Flame, Trophy, Award, Shield } from 'lucide-react';
+=======
+import { ChevronLeft, Clock, Crown, Star } from 'lucide-react';
+>>>>>>> 7ac4433 (feat: hellobrick v1.4.0 - CV pipeline upgrade & SEO expansion)
 import { Screen, LeaderboardEntry } from '../types';
 import { CONFIG } from '../services/configService';
 import { getUserId, getUserXP } from '../services/xpService';

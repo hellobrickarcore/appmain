@@ -136,7 +136,11 @@ export const TrainingScreen: React.FC<TrainingScreenProps> = ({ onNavigate }) =>
             setTimeout(() => { setUploadSuccess(false); setMode('menu'); }, 4000);
           } else { setError(data.error || 'Upload failed'); }
         })
+<<<<<<< HEAD
         .catch(() => { setUploading(false); setError('Network error during upload'); });
+=======
+        .catch(_err => { setUploading(false); setError('Network error during upload'); });
+>>>>>>> 7ac4433 (feat: hellobrick v1.4.0 - CV pipeline upgrade & SEO expansion)
       };
       video.src = URL.createObjectURL(file);
     }

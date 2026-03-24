@@ -1,463 +1,284 @@
-import { detectBricks, DetectionStabilizer, brickDetectionService } from '../services/brickDetectionService';
-import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { X, AlertCircle, CheckCircle2, RefreshCw, Zap } from 'lucide-react';
-import confetti from 'canvas-confetti';
-import { Screen } from '../types';
-import { FrameDetection, ScanFrameResponse, bboxToRenderBox } from '../types/detection';
-import { saveCollectionToSupabase } from '../services/trainingDataService';
-import { usageService } from '../services/usageService';
-import { analytics } from '../services/analyticsService';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { 
+  Camera as CameraIcon, 
+  X, 
+  RotateCcw, 
+  Zap, 
+  Trophy, 
+  Sparkles, 
+  ChevronRight, 
+  LayoutGrid, 
+  Flame, 
+  History,
+  Shield,
+  Activity,
+  AlertTriangle,
+  Info
+} from 'lucide-react';
+import { Screen, DetectionResult, ScanSession } from '../types';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { detectBricks, processDetectionOverlay, DetectionStabilizer } from '../services/brickDetectionService';
+import { xpHelpers, getUserId } from '../services/xpService';
+import { CONFIG } from '../services/configService';
+import { saveScanSession } from '../services/supabaseService';
 
 interface ScannerScreenProps {
-  onNavigate: (screen: Screen, params?: any) => void;
-  challenge?: any;
-  onPhaseChange?: (phase: 'preview' | 'scanning' | 'results') => void;
-  mode?: 'scan' | 'h2h';
+  onNavigate: (screen: Screen) => void;
+  isPro?: boolean;
 }
 
-const cropBrickImage = (sourceBase64: string, bbox: { xMin: number; yMin: number; xMax: number; yMax: number }): Promise<string> => {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.src = sourceBase64;
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const x = Math.max(0, bbox.xMin);
-      const y = Math.max(0, bbox.yMin);
-      const width = Math.min(img.width - x, bbox.xMax - bbox.xMin);
-      const height = Math.min(img.height - y, bbox.yMax - bbox.yMin);
-
-      canvas.width = Math.max(100, width);
-      canvas.height = Math.max(100, height);
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        resolve(sourceBase64);
-        return;
-      }
-      
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, x, y, width, height, 0, 0, canvas.width, canvas.height);
-      resolve(canvas.toDataURL('image/jpeg', 0.8));
-    };
-    img.onerror = () => resolve(sourceBase64);
-  });
-};
-
-export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challenge, onPhaseChange, mode = 'scan' }) => {
+export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, isPro = false }) => {
+  const [isScanning, setIsScanning] = useState(false);
+  const [detections, setDetections] = useState<DetectionResult[]>([]);
+  const [sessionStats, setSessionStats] = useState({ totalBricks: 0, uniqueBricks: 0, xpEarned: 0 });
+  const [lastDetection, setLastDetection] = useState<DetectionResult | null>(null);
+  const [showSummary, setShowSummary] = useState(false);
+  const [activeSession, setActiveSession] = useState<ScanSession | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const isDetectingRef = useRef(false);
-  const overlayContainerRef = useRef<HTMLDivElement>(null);
-  const stabilizerRef = useRef<DetectionStabilizer>(new DetectionStabilizer(2000, 0.18, 15));
-  
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [detectedObjects, setDetectedObjects] = useState<FrameDetection[]>([]);
-  const [lastResponse, setLastResponse] = useState<ScanFrameResponse | null>(null);
-  const [selectedBricks, setSelectedBricks] = useState<Set<string>>(new Set());
-  const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [saveSuccess, setSaveSuccess] = useState(false);
-  const [qualityAdvice, setQualityAdvice] = useState<string | null>(mode === 'h2h' ? 'Position opponent QR code' : null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [phase, setPhase] = useState<'preview' | 'scanning' | 'results'>('preview');
+  const overlayRef = useRef<HTMLCanvasElement>(null);
+  const requestRef = useRef<number>();
+  const stabilizerRef = useRef(new DetectionStabilizer());
+  const scanIntervalRef = useRef<any>();
 
-  useEffect(() => {
-    onPhaseChange?.(phase);
-  }, [phase, onPhaseChange]);
+  // Use dynamic interval based on performance (Adaptive Scan)
+  const [scanInterval, setScanInterval] = useState(200); // ms
 
-  // Camera Setup
-  useEffect(() => {
-    let stream: MediaStream | null = null;
-    const startCamera = async () => {
-      try {
-        const isSecureContext = window.isSecureContext || location.protocol === 'https:';
-        if (!navigator.mediaDevices?.getUserMedia) {
-          setHasPermission(false);
-          setQualityAdvice('Camera not supported.');
-          return;
-        }
-
-        const { getCameraStream } = await import('../services/cameraService');
-        stream = await getCameraStream();
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          setHasPermission(true);
-        }
-      } catch (err: any) {
-        console.error("Camera error:", err);
-        setHasPermission(false);
-        setQualityAdvice(err.name === 'NotAllowedError' ? 'Permission denied.' : 'Camera error.');
-      }
-    };
-
-    startCamera();
-    return () => {
-      if (stream) stream.getTracks().forEach(t => t.stop());
-    };
-  }, []);
-
-  useEffect(() => {
-    if (streamRef.current && videoRef.current && (phase === 'scanning' || phase === 'preview')) {
-      if (videoRef.current.srcObject !== streamRef.current) {
-        videoRef.current.srcObject = streamRef.current;
-        videoRef.current.play().catch(() => {});
-      }
-    }
-  }, [phase, hasPermission]);
-
-  useEffect(() => {
-    if (hasPermission && phase === 'preview') {
-      setPhase('scanning');
-      analytics.track('scan_started');
-    }
-  }, [hasPermission]);
-
-  // Detection Loop with Stabilizer & Adaptive Interval
-  useEffect(() => {
-    if (phase !== 'scanning' || !hasPermission) return;
-
-    let timeoutId: any;
-    let isActive = true;
-
-    const detectLoop = async () => {
-      if (!isActive || phase !== 'scanning' || !videoRef.current || isDetectingRef.current) {
-        if (isActive) timeoutId = setTimeout(detectLoop, 200);
-        return;
-      }
-
-      const video = videoRef.current;
-      if (video.readyState < 2) {
-        timeoutId = setTimeout(detectLoop, 200);
-        return;
-      }
-
-      try {
-        isDetectingRef.current = true;
-        const response: ScanFrameResponse = await detectBricks(video);
-
-        if (phase === 'scanning' && !isProcessing && isActive) {
-          const stabilizedDetections = stabilizerRef.current.stabilize(response.detections);
-          setDetectedObjects(stabilizedDetections);
-          setLastResponse(response);
-          setQualityAdvice(null);
-
-          if (challenge) {
-            const target = challenge.target?.toLowerCase() || '';
-            const goalMet = response.detections.some(obj => {
-              const name = obj.prediction.brickName?.toLowerCase() || '';
-              const color = obj.prediction.brickColorName?.toLowerCase() || '';
-              const confidence = obj.prediction.identityConfidence || 0;
-              return confidence >= 0.7 && (name === target || name.includes(target) || color === target || color.includes(target));
-            });
-
-            if (goalMet && !saveSuccess) {
-               confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#F97316', '#FB923C', '#FFFFFF'] });
-               setSaveSuccess(true);
-               import('../services/xpService').then(({ xpHelpers }) => { xpHelpers.challengeCompleted(challenge.id, 'daily'); });
-               setTimeout(() => setPhase('results'), 2000);
-            }
-          }
-        }
-
-        const nextDelay = Math.max(150, Math.min(1000, (response.rttMs || 150) + 50));
-        if (isActive) timeoutId = setTimeout(detectLoop, nextDelay);
-      } catch (err) {
-        if (isActive) timeoutId = setTimeout(detectLoop, 500);
-      } finally {
-        isDetectingRef.current = false;
-      }
-    };
-
-    detectLoop();
-    return () => {
-      isActive = false;
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [phase, hasPermission, challenge, isProcessing, saveSuccess]);
-
-  const captureImage = useCallback((): string | null => {
-    if (!videoRef.current || videoRef.current.videoWidth === 0) return null;
-    const canvas = document.createElement('canvas');
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
-    ctx.drawImage(videoRef.current, 0, 0);
-    return canvas.toDataURL('image/jpeg', 0.95);
-  }, []);
-
-  const handleCapture = useCallback(async () => {
-    setIsProcessing(true);
-    isDetectingRef.current = true; 
-
-    const image = captureImage();
-    if (image) setCapturedImage(image);
-
+  const startScanner = async () => {
     try {
-      const threshold = 0.3;
-      const capturedBricks = detectedObjects.filter(b => (b.prediction.identityConfidence || 0) >= threshold);
-      setDetectedObjects(capturedBricks);
-      setSelectedBricks(new Set(capturedBricks.map(b => b.detectionId)));
-      setPhase('results');
-      analytics.track('scan_captured', { brick_count: capturedBricks.length });
-    } catch (err) {
-      setPhase('scanning');
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [captureImage, detectedObjects]);
-
-  const handleSaveSelected = async () => {
-    const bricksToSave = detectedObjects.filter(obj => selectedBricks.has(obj.detectionId));
-    if (bricksToSave.length === 0) return;
-
-    setIsProcessing(true);
-    const userId = localStorage.getItem('hellobrick_userId') || `user_${Date.now()}`;
-
-    try {
-      const bricksWithMetaData = await Promise.all(bricksToSave.map(async (obj) => {
-        const pred = obj.prediction;
-        const bbox = obj.geometry.bbox;
-        const partId = pred.brickPartNum;
+      setCameraError(null);
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
+      });
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        setIsScanning(true);
         
-        let brickImage = `https://cdn.rebrickable.com/media/parts/elements/${partId}.jpg`;
-        if (capturedImage) {
-          try {
-            brickImage = await cropBrickImage(capturedImage, bbox);
-          } catch (e) {
-            console.warn('Crop failed:', e);
-          }
-        }
+        // Initialize Session
+        setActiveSession({
+          id: `scan_${Date.now()}`,
+          startTime: Date.now(),
+          detections: [],
+          totalXp: 0
+        });
 
-        return {
-          id: obj.detectionId,
-          name: pred.brickName,
-          type: 'Part',
-          category: 'Bricks',
-          color: pred.brickColorName,
-          partNumber: partId,
-          confidence: pred.identityConfidence,
-          count: 1,
-          image: brickImage,
-          addedAt: Date.now(),
-          bbox: {
-            x: bbox.xMin,
-            y: bbox.yMin,
-            width: bbox.xMax - bbox.xMin,
-            height: bbox.yMax - bbox.yMin,
-          }
-        };
-      }));
-
-      const stored = localStorage.getItem('hellobrick_collection');
-      let existingBricks: any[] = [];
-      if (stored) {
-        try {
-          existingBricks = JSON.parse(stored).bricks || [];
-        } catch { }
+        // Start Detection Loop
+        startDetectionLoop();
       }
-
-      const brickMap = new Map<string, any>();
-      existingBricks.forEach(b => {
-        const key = `${b.name || b.type}-${b.color}-${b.partNumber}`;
-        brickMap.set(key, { ...b });
-      });
-      bricksWithMetaData.forEach(b => {
-        const key = `${b.name}-${b.color}-${b.partNumber}`;
-        if (brickMap.has(key)) {
-          brickMap.get(key).count = (brickMap.get(key).count || 1) + 1;
-        } else {
-          brickMap.set(key, { ...b });
-        }
-      });
-
-      localStorage.setItem('hellobrick_collection', JSON.stringify({
-        bricks: Array.from(brickMap.values()),
-        lastUpdated: Date.now()
-      }));
-
-      usageService.incrementScanCount();
-      import('../services/xpService').then(({ xpHelpers }) => {
-        xpHelpers.scanDetection(bricksToSave.length, bricksToSave.length);
-      });
-
-      window.dispatchEvent(new CustomEvent('hellobrick:collection-updated'));
-      saveCollectionToSupabase(userId, bricksWithMetaData).catch(() => { });
-
-      confetti({
-        particleCount: 150,
-        spread: 70,
-        origin: { y: 0.7 },
-        colors: ['#F59E0B', '#EF4444', '#3B82F6', '#10B981']
-      });
-
-      setSaveSuccess(true);
-      setTimeout(() => onNavigate(Screen.COLLECTION), 2000);
-    } catch (error) {
-      console.warn('Failed to save:', error);
-    } finally {
-      setIsProcessing(false);
+    } catch (err) {
+      console.error('Camera access failed:', err);
+      setCameraError('Please enable camera access in settings to scan bricks.');
     }
   };
 
-  return (
-    <div className="fixed inset-0 bg-black text-white z-50 flex flex-col font-sans">
-      <canvas ref={canvasRef} className="hidden" />
+  const stopScanner = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+    }
+    setIsScanning(false);
+    if (scanIntervalRef.current) clearInterval(scanIntervalRef.current);
+    if (requestRef.current) cancelAnimationFrame(requestRef.current);
+    setShowSummary(true);
+  };
 
-      {/* Top Controls */}
-      <div className="absolute top-[max(env(safe-area-inset-top),16px)] left-0 right-0 px-6 flex justify-between items-center z-50">
-        <div className="flex gap-4">
-          <button onClick={() => onNavigate(Screen.HOME)} className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 text-white shadow-lg active:scale-95 transition-all">
-            <X className="w-5 h-5" />
-          </button>
-          <button 
-            onClick={() => onNavigate(Screen.HOW_TO_SCAN)} 
-            className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 text-white shadow-lg active:scale-95 transition-all"
-          >
-            <span className="text-xl font-black">?</span>
-          </button>
+  const startDetectionLoop = () => {
+    const processFrame = async () => {
+      if (!isScanning || !videoRef.current || !canvasRef.current) return;
+
+      const startTime = performance.now();
+      
+      // 1. Core Detection (Phase 7 CV Pipeline)
+      const rawDetections = await detectBricks(videoRef.current, canvasRef.current);
+      
+      // 2. Magnetic Stabilizer (Smoothing)
+      const stabilized = stabilizerRef.current.stabilize(rawDetections);
+      
+      // 3. Update State
+      setDetections(stabilized);
+      
+      if (stabilized.length > 0) {
+        setSessionStats(prev => ({
+          ...prev,
+          totalBricks: prev.totalBricks + stabilized.length,
+          uniqueBricks: prev.uniqueBricks + new Set(stabilized.map(d => d.label)).size,
+          xpEarned: prev.xpEarned + (stabilized.length * 5)
+        }));
+        setLastDetection(stabilized[0]);
+      }
+
+      // 4. Render Overlay
+      if (overlayRef.current) {
+        processDetectionOverlay(overlayRef.current, stabilized);
+      }
+
+      const endTime = performance.now();
+      const RTT = endTime - startTime;
+      
+      // 5. Adaptive Interval (Dynamic Performance Tuning)
+      const nextInterval = Math.max(150, Math.min(1000, RTT * 1.5));
+      setScanInterval(nextInterval);
+      
+      scanIntervalRef.current = setTimeout(processFrame, nextInterval);
+    };
+
+    processFrame();
+  };
+
+  useEffect(() => {
+    return () => stopScanner();
+  }, []);
+
+  if (showSummary) {
+    return (
+      <div className="flex flex-col h-full bg-[#050A18] text-white font-sans animate-in fade-in duration-500">
+        <div className="px-6 pt-20 pb-10 flex flex-col items-center text-center">
+            <div className="w-24 h-24 bg-orange-500/10 rounded-[32px] flex items-center justify-center mb-6 border border-orange-500/20 shadow-2xl">
+                <Trophy className="w-12 h-12 text-orange-500" />
+            </div>
+            <h2 className="text-3xl font-black mb-2">Scan Complete!</h2>
+            <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">You've reached a new discovery peak</p>
         </div>
-        <button className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/10 shadow-lg active:scale-95 transition-all">
-          <Zap className="w-5 h-5" />
-        </button>
-      </div>
 
-      {/* ─── SCANNING PHASE ─── */}
-      {(phase === 'preview' || phase === 'scanning') && (
-        <div className="relative flex-1 bg-black overflow-hidden">
-          {hasPermission === false && (
-            <div className="absolute inset-0 flex items-center justify-center text-center p-6 z-50 bg-black/80 backdrop-blur-md">
-              <div className="p-8 max-w-sm">
-                <AlertCircle className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
-                <h3 className="text-white font-bold text-lg mb-2">Camera Access Required</h3>
-                <p className="text-slate-300 text-sm mb-4">{qualityAdvice || 'Allow camera access.'}</p>
-                <button onClick={() => window.location.reload()} className="w-full bg-orange-500 text-white font-bold py-3 rounded-lg">Retry</button>
+        <div className="px-6 space-y-4 flex-1">
+            <div className="bg-white/5 border border-white/10 rounded-[40px] p-8 flex justify-between items-center shadow-2xl">
+                <div>
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Bricks</p>
+                    <p className="text-3xl font-black text-white">{sessionStats.totalBricks}</p>
+                </div>
+                <div className="w-[1px] h-10 bg-white/10" />
+                <div>
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">XP Earned</p>
+                    <p className="text-3xl font-black text-orange-500">+{sessionStats.xpEarned}</p>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white/5 border border-white/10 rounded-[32px] p-6 text-center">
+                    <Sparkles className="w-6 h-6 text-blue-400 mx-auto mb-3" />
+                    <p className="text-xl font-black">{sessionStats.uniqueBricks}</p>
+                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Unique</p>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-[32px] p-6 text-center">
+                    <History className="w-6 h-6 text-purple-400 mx-auto mb-3" />
+                    <p className="text-xl font-black">12m</p>
+                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Scan Time</p>
+                </div>
+            </div>
+        </div>
+
+        <div className="p-8 space-y-4">
+            <button 
+                onClick={() => { setShowSummary(false); setSessionStats({ totalBricks: 0, uniqueBricks: 0, xpEarned: 0 }); }}
+                className="w-full h-16 bg-white text-[#050A18] rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl active:scale-95 transition-all"
+            >
+                Scan Again
+            </button>
+            <button 
+                onClick={() => onNavigate(Screen.HOME)}
+                className="w-full h-16 bg-white/5 text-white border border-white/10 rounded-2xl font-black text-sm uppercase tracking-widest active:scale-95 transition-all"
+            >
+                Back to Home
+            </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-full bg-black font-sans overflow-hidden relative">
+      <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover" />
+      <canvas ref={canvasRef} className="hidden" />
+      <canvas ref={overlayRef} className="absolute inset-0 w-full h-full z-10 pointer-events-none" />
+
+      {/* Modern HUD Overlay */}
+      <div className="absolute inset-0 z-20 pointer-events-none flex flex-col justify-between p-6">
+        {/* Top HUD */}
+        <div className="flex justify-between items-start pt-[env(safe-area-inset-top)]">
+           <button 
+             onClick={() => onNavigate(Screen.HOME)} 
+             className="w-12 h-12 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl flex items-center justify-center text-white pointer-events-auto active:scale-90 transition-all shadow-2xl"
+           >
+             <X className="w-6 h-6" />
+           </button>
+           
+           <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-[24px] px-4 py-2 flex items-center gap-3 shadow-2xl">
+              <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+              <div className="flex flex-col">
+                 <span className="text-[10px] font-black text-white uppercase tracking-widest leading-none">Scanning...</span>
+                 <span className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1">{scanInterval.toFixed(0)}ms latency</span>
               </div>
+           </div>
+
+           <button 
+             className="w-12 h-12 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl flex items-center justify-center text-white pointer-events-auto active:scale-90 transition-all shadow-2xl"
+           >
+             <Zap className="w-5 h-5 text-orange-500" />
+           </button>
+        </div>
+
+        {/* Center Target Rect (Subtle Decoration) */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 border border-white/20 rounded-[48px] pointer-events-none">
+            <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-orange-500 rounded-tl-[32px]" />
+            <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-orange-500 rounded-tr-[32px]" />
+            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-orange-500 rounded-bl-[32px]" />
+            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-orange-500 rounded-br-[32px]" />
+        </div>
+
+        {/* Bottom Metadata & Controls */}
+        <div className="space-y-6 pb-[env(safe-area-inset-bottom)]">
+          {lastDetection && (
+            <div className="bg-black/60 backdrop-blur-3xl border border-white/10 rounded-[32px] p-5 flex items-center gap-5 shadow-3xl animate-in slide-in-from-bottom-4 duration-500 pointer-events-auto max-w-[320px] mx-auto">
+               <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center border border-white/10">
+                  <span className="text-3xl">🧱</span>
+               </div>
+               <div className="flex-1">
+                  <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-1">Identified</p>
+                  <h3 className="text-lg font-black text-white leading-tight">{lastDetection.label}</h3>
+                  <div className="flex items-center gap-2 mt-1.5">
+                     <div className="px-2 py-0.5 bg-white/10 rounded-md text-[8px] font-bold text-slate-300 uppercase">Part {lastDetection.partNumber || '3001'}</div>
+                     <div className="text-[8px] font-bold text-emerald-400 uppercase">{Math.round(lastDetection.confidence * 100)}% Match</div>
+                  </div>
+               </div>
+               <ChevronRight className="w-5 h-5 text-slate-500" />
             </div>
           )}
 
-          <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover opacity-90" />
-
-          {/* HUD Overlay */}
-          <div className="absolute top-0 left-0 right-0 p-6 pt-[max(env(safe-area-inset-top),2.5rem)] flex flex-col items-center z-50 pointer-events-none">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-              <span className="text-[14px] font-black text-white/90 uppercase tracking-[0.2em]">{challenge ? 'CHALLENGE ACTIVE' : 'LIVE SCANNER'}</span>
-            </div>
-            {challenge && (
-              <div className="mt-2 bg-orange-500/20 backdrop-blur-md px-4 py-1.5 rounded-full border border-orange-500/30">
-                <span className="text-[10px] font-black text-orange-400 uppercase tracking-widest">GOAL: {challenge.type}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Bounding Boxes */}
-          <div ref={overlayContainerRef} className="absolute inset-0 pointer-events-none overflow-hidden">
-            {detectedObjects.map((obj, i) => {
-              const rect = bboxToRenderBox(obj.geometry.bbox, videoRef.current?.videoWidth || 640, videoRef.current?.videoHeight || 480, overlayContainerRef.current?.clientWidth || 375, overlayContainerRef.current?.clientHeight || 812, 'cover');
-              return (
-                <div key={obj.detectionId || i} className="absolute" style={{ top: `${rect.top}%`, left: `${rect.left}%`, width: `${rect.width}%`, height: `${rect.height}%`, transition: 'all 0.1s ease-out', border: '1.5px solid #3B82F6', borderRadius: '6px', backgroundColor: 'rgba(59, 130, 246, 0.05)' }}>
-                  {/* Label pill */}
-                  <div className="absolute -top-7 left-0 bg-[#3B82F6]/90 backdrop-blur-sm px-2 py-1 rounded-md flex items-center gap-1.5 shadow-lg border border-white/20">
-                    <span className="text-[10px] font-black text-white uppercase tracking-wider">
-                      {brickDetectionService.generationFallbackLabel(obj)}
-                      <span className="ml-1.5 opacity-60 font-medium">{Math.round(obj.prediction.identityConfidence * 100)}%</span>
-                    </span>
-                  </div>
-                  {/* Corners */}
-                  <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-white" />
-                  <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-white" />
-                  <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-white" />
-                  <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-white" />
+          {!isScanning ? (
+            <div className="flex flex-col items-center">
+              {cameraError && (
+                <div className="bg-red-500/20 border border-red-500/30 text-white px-6 py-4 rounded-3xl text-xs font-bold mb-6 text-center backdrop-blur-xl flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 text-red-500" />
+                  {cameraError}
                 </div>
-              );
-            })}
-          </div>
-
-          {/* Capture Button */}
-          <div className="absolute bottom-32 left-0 right-0 flex items-center justify-center z-50">
-            <button
-              onClick={handleCapture}
-              disabled={isProcessing}
-              className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-xl border-4 border-white p-1 hover:scale-105 active:scale-95 transition-all shadow-2xl group"
-            >
-              <div className="w-full h-full rounded-full bg-white flex items-center justify-center group-hover:bg-slate-100 transition-colors">
-                 {isProcessing ? <RefreshCw className="w-8 h-8 text-blue-600 animate-spin" /> : <div className="w-16 h-16 rounded-full border-2 border-black/5" />}
-              </div>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ─── RESULTS PHASE ─── */}
-      {phase === 'results' && (
-        <div className="flex-1 bg-[#050A18] flex flex-col pt-[max(env(safe-area-inset-top),2.5rem)] overflow-hidden">
-          {/* Result Header */}
-          <div className="px-6 pb-6 flex justify-between items-center shrink-0">
-             <div className="flex flex-col">
-               <h2 className="text-2xl font-black text-white italic tracking-tight">SCAN RESULTS</h2>
-               <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mt-1">Found {detectedObjects.length} Parts</p>
-             </div>
-             <button onClick={() => setPhase('scanning')} className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10">
-               <RefreshCw className="w-5 h-5 text-white" />
-             </button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto no-scrollbar px-6 pb-40">
-            <div className="grid grid-cols-2 gap-4">
-              {detectedObjects.map((obj) => (
-                <div 
-                  key={obj.detectionId} 
-                  onClick={() => {
-                    const next = new Set(selectedBricks);
-                    if (next.has(obj.detectionId)) next.delete(obj.detectionId);
-                    else next.add(obj.detectionId);
-                    setSelectedBricks(next);
-                  }}
-                  className={`bg-white/5 rounded-[32px] p-4 border transition-all active:scale-95 ${selectedBricks.has(obj.detectionId) ? 'border-blue-500 bg-blue-500/10' : 'border-white/5'}`}
-                >
-                  <div className="aspect-square rounded-2xl bg-black/40 mb-3 overflow-hidden flex items-center justify-center relative">
-                    <img src={`https://cdn.rebrickable.com/media/parts/elements/${obj.prediction.brickPartNum}.jpg`} className="w-full h-full object-contain p-2" alt="brick" />
-                    {selectedBricks.has(obj.detectionId) && (
-                      <div className="absolute top-2 right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                        <CheckCircle2 className="w-4 h-4 text-white" />
-                      </div>
-                    )}
-                  </div>
-                  <h3 className="text-[13px] font-black text-white leading-tight mb-1 truncate">{obj.prediction.brickColorName} {obj.prediction.brickName}</h3>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{obj.prediction.brickPartNum}</p>
-                </div>
-              ))}
+              )}
+              <button 
+                onClick={startScanner}
+                className="px-12 py-6 bg-orange-500 text-white rounded-[32px] font-black text-sm uppercase tracking-[0.3em] shadow-[0_20px_50px_rgba(249,115,22,0.4)] pointer-events-auto active:scale-95 transition-all flex items-center gap-4"
+              >
+                  <CameraIcon className="w-5 h-5" />
+                  Start Ingest
+              </button>
             </div>
-          </div>
-
-          <div className="absolute bottom-0 left-0 right-0 p-8 pb-[max(env(safe-area-inset-bottom),2rem)] bg-gradient-to-t from-[#050A18] via-[#050A18] to-transparent z-50">
-             <button 
-              onClick={handleSaveSelected}
-              disabled={isProcessing || selectedBricks.size === 0}
-              className="w-full h-16 bg-[#2563EB] text-white rounded-[24px] font-black text-lg shadow-xl shadow-blue-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-             >
-                {isProcessing ? <RefreshCw className="w-6 h-6 animate-spin" /> : <>SAVE TO COLLECTION <span className="opacity-50">· {selectedBricks.size}</span></>}
-             </button>
-             <p className="text-center text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mt-4">Earn +{selectedBricks.size * 10} XP</p>
-          </div>
+          ) : (
+            <div className="flex justify-center">
+              <button 
+                onClick={stopScanner}
+                className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-3xl pointer-events-auto active:scale-90 transition-all group"
+              >
+                <div className="w-8 h-8 bg-[#050A18] rounded-lg group-hover:scale-90 transition-transform" />
+              </button>
+            </div>
+          )}
         </div>
-      )}
-
-      {/* Success Modal */}
-      {saveSuccess && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center px-8">
-           <div className="absolute inset-0 bg-black/80 backdrop-blur-md" />
-           <div className="bg-white rounded-[40px] p-10 flex flex-col items-center text-center relative z-10 animate-in zoom-in-50 duration-300">
-              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6">
-                 <CheckCircle2 className="w-10 h-10 text-green-600" />
-              </div>
-              <h3 className="text-2xl font-black text-slate-900 mb-2">COLLECTION UPDATED!</h3>
-              <p className="text-slate-500 font-bold">Added {selectedBricks.size} new parts to your collection.</p>
-           </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 };

@@ -25,6 +25,11 @@ export interface BoundingBoxXYXY {
     yMin: number;
     xMax: number;
     yMax: number;
+    // Snake case aliases
+    x_min?: number;
+    y_min?: number;
+    x_max?: number;
+    y_max?: number;
 }
 
 export interface DetectionGeometry {
@@ -45,10 +50,20 @@ export interface BrickPrediction {
     brickColorId?: string;
     brickColorName?: string;
 
+    // Snake case aliases for backend compatibility
+    brick_part_id?: string;
+    brick_part_num?: string;
+    brick_name?: string;
+    brick_color_id?: string;
+    brick_color_name?: string;
+    color_name?: string; // Added from ScannerScreen error
+
     identityConfidence: number; // 0..1
     colorConfidence: number; // 0..1
     dimensionConfidence: number; // 0..1
     brandConfidence: number; // 0..1
+    isRecovered?: boolean;
+    studCount?: number;
     detectorConfidence: number; // 0..1
 
     rawModelClass?: string;
@@ -84,6 +99,11 @@ export interface FrameDetection {
     detectionIndex: number;
     trackId?: string;
 
+    // Snake case aliases
+    detection_id?: string;
+    detection_index?: number;
+    confidence?: number; // Added from ScannerScreen error
+
     geometry: DetectionGeometry;
     prediction: BrickPrediction;
     candidates: DetectionCandidate[];
@@ -104,6 +124,14 @@ export interface ScanFrameResponse {
     frameIndex: number;
     frameWidth: number;
     frameHeight: number;
+
+    // Snake case aliases
+    session_id?: string;
+    frame_id?: string;
+    frame_index?: number;
+    frame_width?: number;
+    frame_height?: number;
+
     modelVersion: string;
     detections: FrameDetection[];
     trackedObjects: TrackedObject[];

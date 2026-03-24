@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 import React, { useState } from 'react';
 import { ChevronRight, X, Check, Scan, Smartphone, Move, Sun } from 'lucide-react';
+=======
+import React from 'react';
+import { Scan, ChevronRight, Shield } from 'lucide-react';
+>>>>>>> 7ac4433 (feat: hellobrick v1.4.0 - CV pipeline upgrade & SEO expansion)
 import { Screen } from '../types';
 
 interface HowToScanScreenProps {

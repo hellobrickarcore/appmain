@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
+<<<<<<< HEAD
 import { Settings, Zap, Star, Trophy, Check, Play, Users, History, Activity, ChevronRight, Plus, X, Smile } from 'lucide-react';
+=======
+import { Settings, Zap, Trophy, ChevronRight, X, Star, Smile } from 'lucide-react';
+>>>>>>> 7ac4433 (feat: hellobrick v1.4.0 - CV pipeline upgrade & SEO expansion)
 import { Screen, BadgeType, Achievement } from '../types';
 import { getUserXP, getUserId, getXPLedger, formatXPEvent, getUserStats } from '../services/xpService';
 import { Logo } from '../components/Logo';

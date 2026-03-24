@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirecting to App Store | HelloBrick</title>
+    <meta name="robots" content="noindex, follow">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #FFD600; color: #000; text-align: center; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #000; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+    <script>
+        // REPLACE WITH ACTUAL APP STORE URL ONCE APPROVED
+        const APP_STORE_URL = "https://apps.apple.com/app/hellobrick-id/id6741708234"; 
+        
+        // Track conversion (placeholder for User's analytics)
+        console.log("Tracking download intent...");
+        
+        setTimeout(() => {
+            window.location.href = APP_STORE_URL;
+        }, 800);
+    </script>
+</head>
+<body>
+    <div>
+        <h1>Hold on...</h1>
+        <p>Taking you to the App Store to download HelloBrick.</p>
+        <div class="loader"></div>
+        <p><a href="https://apps.apple.com/app/hellobrick-id/id6741708234">Click here if you are not redirected</a></p>
+    </div>
+</body>
+</html>
