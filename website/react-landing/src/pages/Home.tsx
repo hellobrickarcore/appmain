@@ -1,16 +1,21 @@
 import React from 'react';
-import { Camera, Database, Lightbulb, ShieldCheck, Download, ChevronRight, Apple, ArrowRight, Play, CheckCircle2, Globe, GraduationCap, Building2, Layout } from 'lucide-react';
+import { Camera, Database, Lightbulb, ShieldCheck, Download, ChevronRight, Apple, ArrowRight, Play, CheckCircle2, Globe, GraduationCap, Building2, Layout, Trophy } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { Link } from 'react-router-dom';
 
 const AppStoreButton = ({ primary = false }) => (
-  <button className={`flex items-center gap-3 px-8 py-4 rounded-2xl transition-all group shadow-2xl active:scale-95 ${primary ? 'bg-white text-black hover:bg-white/90' : 'bg-black text-white border border-white/10 hover:bg-slate-900'}`}>
+  <a 
+    href="https://apps.apple.com/gb/app/hellobrick/id6760016096"
+    target="_blank"
+    rel="noopener noreferrer"
+    className={`flex items-center gap-3 px-8 py-4 rounded-2xl transition-all group shadow-2xl active:scale-95 ${primary ? 'bg-white text-black hover:bg-white/90' : 'bg-black text-white border border-white/10 hover:bg-slate-900'}`}
+  >
     <Apple className="w-8 h-8 fill-current" />
     <div className="text-left leading-tight">
       <div className="text-[10px] font-bold uppercase tracking-wider opacity-60">Download on the</div>
       <div className="text-xl font-black">App Store</div>
     </div>
-  </button>
+  </a>
 );
 
 const BenefitCard = ({ title, description, icon: Icon }: { title: string, description: string, icon: any }) => (
