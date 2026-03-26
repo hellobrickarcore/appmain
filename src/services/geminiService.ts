@@ -42,11 +42,12 @@ async function executeGeminiRequest(
 
   console.log(`[Gemini] 🚀 Request Started. Model: ${modelName}, API Version: ${apiVersion}`);
 
-  const model = ai.getGenerativeModel({ model: modelName }, { apiVersion });
+  const model = ai.getGenerativeModel({ 
+    model: modelName,
+    systemInstruction: systemPrompt 
+  }, { apiVersion });
 
   const contents = [
-    { role: 'user', parts: [{ text: `${systemPrompt}\n\nUNDERSTOOD. Ready to suggest builds.` }] },
-    { role: 'model', parts: [{ text: "Grounded. I will suggest 1-3 builds matching your scanned vault." }] },
     ...chatHistory,
     { role: 'user', parts: [{ text: runtimePrompt }] }
   ];
@@ -62,17 +63,20 @@ async function executeGeminiRequest(
       ],
     });
 
-    const text = apiResponse.response.text();
+    let text = apiResponse.response.text();
     console.log('[Gemini] 📥 Raw Response:', text.substring(0, 500));
     
-    // Strict JSON Extraction
+    // Strict JSON Cleaning & Extraction
+    // Remove markdown code blocks if present
+    text = text.replace(/```json\n?|```/g, '').trim();
+    
     try {
       return JSON.parse(text);
     } catch (e) {
-      const match = text.match(/```json\n([\s\S]*?)\n```/) || text.match(/{[\s\S]*}/);
+      const match = text.match(/{[\s\S]*}/);
       if (match) {
         try {
-          return JSON.parse(match[1] || match[0]);
+          return JSON.parse(match[0]);
         } catch (e2) {
           console.error('[Gemini] 🛑 Regex JSON extraction failed');
         }

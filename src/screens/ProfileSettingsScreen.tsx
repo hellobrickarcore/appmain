@@ -221,8 +221,8 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({ on
               <div className="bg-white/5 rounded-[32px] border border-white/5 overflow-hidden">
                 <div className="p-2 space-y-1">
                   {[
-                    { label: 'Privacy Policy', icon: <Shield className="w-5 h-5" />, color: 'text-indigo-400', bg: 'bg-indigo-500/10', url: 'https://hellobrick.netlify.app/privacy' },
-                    { label: 'Terms of Service', icon: <FileText className="w-5 h-5" />, color: 'text-slate-400', bg: 'bg-white/5', url: 'https://hellobrick.netlify.app/terms' },
+                    { label: 'Privacy Policy', icon: <Shield className="w-5 h-5" />, color: 'text-indigo-400', bg: 'bg-indigo-500/10', url: '/privacy-policy.html' },
+                    { label: 'Terms of Service', icon: <FileText className="w-5 h-5" />, color: 'text-slate-400', bg: 'bg-white/5', url: '/terms-of-service.html' },
                     { label: 'Contact Support', icon: <Globe className="w-5 h-5" />, color: 'text-emerald-400', bg: 'bg-emerald-500/10', url: 'mailto:support@hellobrick.app' },
                   ].map((item, i) => (
                     <button 

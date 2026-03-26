@@ -3,8 +3,8 @@
  */
 console.log('--- LLM CONFIG V1.0.5 ACTIVE ---');
 
-export const GEMINI_TEXT_MODEL = "gemini-2.0-flash";
-export const GEMINI_IMAGE_PROMPT_MODEL = "gemini-2.0-flash";
+export const GEMINI_TEXT_MODEL = "gemini-1.5-flash";
+export const GEMINI_IMAGE_PROMPT_MODEL = "gemini-1.5-flash";
 export const GEMINI_API_VERSION = "v1beta"; 
 export const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com";
 
