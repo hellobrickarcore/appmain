@@ -28,11 +28,17 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [onlineCount, setOnlineCount] = useState(342);
+  const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
     // Simulated API Fetch + Local Storage Merge
     const loadFeed = () => {
       const local = JSON.parse(localStorage.getItem('hellobrick_feed_posts') || '[]');
+      
+      // Real daily offsets for a realistic feed
+      const ONE_DAY = 24 * 60 * 60 * 1000;
+      const ONE_HOUR = 60 * 60 * 1000;
+
       const remote = [
         {
           id: '1',
@@ -46,7 +52,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
           bricksUsed: 42,
           likes: 31,
           isLiked: false,
-          timestamp: Date.now() - 3600000,
+          timestamp: Date.now() - (1 * ONE_HOUR), // Real 1 hour ago
         },
         {
           id: '2',
@@ -60,7 +66,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
           bricksUsed: 18,
           likes: 24,
           isLiked: true,
-          timestamp: Date.now() - 7200000,
+          timestamp: Date.now() - ONE_DAY - (2 * ONE_HOUR), // Yesterday
         },
         {
           id: '3',
@@ -74,7 +80,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
           bricksUsed: 25,
           likes: 12,
           isLiked: false,
-          timestamp: Date.now() - 14400000,
+          timestamp: Date.now() - (2 * ONE_DAY) - (5 * ONE_HOUR), // 2 days ago
         }
       ];
 
@@ -93,9 +99,15 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
        setOnlineCount(prev => prev + (Math.random() > 0.5 ? 1 : -1));
     }, 5000);
 
+    // Dynamic "time ago" updater - refreshes every minute
+    const timeUpdater = setInterval(() => {
+      setNow(Date.now());
+    }, 60000);
+
     return () => {
       clearTimeout(timer);
       clearInterval(counterInterval);
+      clearInterval(timeUpdater);
     };
   }, []);
 
@@ -108,7 +120,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
   };
 
   const formatTimeAgo = (timestamp: number) => {
-    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+    const seconds = Math.floor((now - timestamp) / 1000);
     if (seconds < 60) return `${seconds}s ago`;
     const minutes = Math.floor(seconds / 60);
     if (minutes < 60) return `${minutes}m ago`;

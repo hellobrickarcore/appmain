@@ -14,12 +14,6 @@ export const Logo: React.FC<{
     xl: 'w-32 h-32 rounded-[32px]'
   };
 
-  const eyeSize = {
-    sm: 'w-1 h-1',
-    md: 'w-1.5 h-1.5',
-    lg: 'w-2.5 h-2.5',
-    xl: 'w-3 h-3'
-  };
 
   const textSize = {
     sm: 'text-sm font-black',
@@ -30,19 +24,19 @@ export const Logo: React.FC<{
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      {/* The Mascot Mark */}
-      <div className={`${markSize[size]} bg-[#FF7A30] flex items-center justify-center shadow-lg relative overflow-hidden border-2 border-white/10`}>
-         <div className="flex gap-[25%] relative z-10">
-            <div className={`${eyeSize[size]} bg-black rounded-full`} />
-            <div className={`${eyeSize[size]} bg-black rounded-full`} />
+      {/* The Brick Mark: Yellow background, Orange box, two black dots */}
+      <div className={`${markSize[size]} bg-[#FFD600] flex items-center justify-center shadow-lg relative overflow-hidden p-1`}>
+         <div className="w-[85%] h-[85%] bg-[#FF7A30] rounded-[30%] flex items-center justify-center gap-1.5 relative">
+            <div className="w-[18%] h-[18%] bg-black rounded-full" />
+            <div className="w-[18%] h-[18%] bg-black rounded-full" />
          </div>
          {/* Subtle Gloss */}
          <div className="absolute top-0 left-0 w-full h-1/2 bg-white/10" />
       </div>
 
       {showText && (
-        <span className={`${textSize[size]} tracking-tight uppercase ${light ? 'text-white' : 'text-slate-900'}`}>
-          Hello<span className="text-[#FF7A30]">Brick</span>
+        <span className={`${textSize[size]} tracking-tight ${light ? 'text-white' : 'text-[#0A1229]'}`}>
+          HelloBrick
         </span>
       )}
     </div>

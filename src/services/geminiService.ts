@@ -22,9 +22,10 @@ const getAIInstance = (keyIndex = 0) => {
     const keys = getAllKeys();
     const key = keys[keyIndex];
     if (!key) {
-      console.error('[Gemini] 🛑 No API Key found for index', keyIndex);
+      console.warn(`[Gemini] ⚠️ Key [${keyIndex}] is MISSING (Check .env.local)`);
       return null;
     }
+    console.log(`[Gemini] ✅ Key [${keyIndex}] detected: ${key.substring(0, 6)}...`);
     return new GoogleGenerativeAI(key);
 };
 
@@ -44,12 +45,16 @@ async function executeGeminiRequest(
 
   const model = ai.getGenerativeModel({ 
     model: modelName,
-    systemInstruction: systemPrompt 
   }, { apiVersion });
 
   const contents = [
     ...chatHistory,
-    { role: 'user', parts: [{ text: runtimePrompt }] }
+    { 
+      role: 'user', 
+      parts: [
+        { text: `SYSTEM INSTRUCTION:\n${systemPrompt}\n\nUSER REQUEST:\n${runtimePrompt}` }
+      ] 
+    }
   ];
 
   try {
@@ -64,26 +69,32 @@ async function executeGeminiRequest(
     });
 
     let text = apiResponse.response.text();
-    console.log('[Gemini] 📥 Raw Response:', text.substring(0, 500));
+    console.log('[Gemini] 📥 Raw Response:', text.substring(0, 1000));
     
     // Strict JSON Cleaning & Extraction
-    // Remove markdown code blocks if present
     text = text.replace(/```json\n?|```/g, '').trim();
     
     try {
-      return JSON.parse(text);
+      const parsed = JSON.parse(text);
+      console.log('[Gemini] ✅ JSON Parsed Successfully');
+      return parsed;
     } catch (e) {
+      console.warn('[Gemini] ⚠️ Direct parse failed, trying regex...', e);
       const match = text.match(/{[\s\S]*}/);
       if (match) {
         try {
-          return JSON.parse(match[0]);
+          const parsed = JSON.parse(match[0]);
+          console.log('[Gemini] ✅ JSON Extracted via Regex');
+          return parsed;
         } catch (e2) {
-          console.error('[Gemini] 🛑 Regex JSON extraction failed');
+          console.error('[Gemini] 🛑 Regex JSON extraction failed:', match[0]);
         }
       }
+      console.error('[Gemini] 🛑 Full Response for debug:', text);
       throw new Error(IdeasErrorType.INVALID_RESPONSE);
     }
   } catch (error: any) {
+    console.error('[Gemini] 🛑 SDK ERROR:', error);
     const errText = error.message?.toLowerCase() || "";
 
     if (errText.includes("404") || errText.includes("not found") || errText.includes("not supported")) {

@@ -35,8 +35,8 @@ import { subscriptionService } from './services/subscriptionService';
 import { onAuthStateChange, supabase } from './services/supabaseService';
 import { usageService } from './services/usageService';
 
-console.log('🚀 BUILD_VERSION: 1.3.1 - GEMINI_IMAGE_ENGINE_V1');
-console.log('--- APP v1.3.1 ACTIVE ---');
+console.log('🚀 BUILD_VERSION: 1.5.0 - GEMINI_IMAGE_ENGINE_V1');
+console.log('--- APP v1.5.0 ACTIVE ---');
 
 
 const App: React.FC = () => {
