@@ -9,38 +9,28 @@ export const Logo: React.FC<{
   const markSize = {
     sm: 'w-6 h-6 rounded-lg',
     md: 'w-10 h-10 rounded-[12px]',
-    lg: 'w-20 h-20 rounded-[22px]',
-    xl: 'w-32 h-32 rounded-[32px]'
-  };
-
-  const eyeSize = {
-    sm: 'w-1 h-1',
-    md: 'w-1.5 h-1.5',
-    lg: 'w-2.5 h-2.5',
-    xl: 'w-3 h-3'
+    lg: 'w-20 h-20 rounded-[24px]',
+    xl: 'w-32 h-32 rounded-[36px]'
   };
 
   const textSize = {
     sm: 'text-sm font-black',
-    md: 'text-xl font-black',
+    md: 'text-[20px] font-bold',
     lg: 'text-3xl font-black',
     xl: 'text-5xl font-black'
   };
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      {/* The Mascot Mark */}
-      <div className={`${markSize[size]} bg-brand-orange flex items-center justify-center shadow-lg relative overflow-hidden border-2 border-white/10`}>
-         <div className="flex gap-[25%] relative z-10">
-            <div className={`${eyeSize[size]} bg-black rounded-full`} />
-            <div className={`${eyeSize[size]} bg-black rounded-full`} />
-         </div>
+      {/* The Brand Mark: Yellow background with Black 'H' */}
+      <div className={`${markSize[size]} bg-brand-yellow flex items-center justify-center text-black font-black rotate-[-3deg] shadow-[0_0_20px_rgba(255,206,74,0.2)] transition-transform duration-300 hover:rotate-0 relative overflow-hidden`}>
+         <span className={size === 'sm' ? 'text-xs' : size === 'md' ? 'text-2xl pt-0.5' : 'text-5xl'}>H</span>
          {/* Subtle Gloss */}
-         <div className="absolute top-0 left-0 w-full h-1/2 bg-white/10" />
+         <div className="absolute top-0 left-0 w-full h-[30%] bg-white/20" />
       </div>
 
       {showText && (
-        <span className={`${textSize[size]} tracking-tight uppercase ${light ? 'text-white' : 'text-brand-navy'}`}>
+        <span className={`${textSize[size]} tracking-tight font-sans ${light ? 'text-white' : 'text-brand-navy'}`}>
           Hello<span className="text-brand-orange">Brick</span>
         </span>
       )}

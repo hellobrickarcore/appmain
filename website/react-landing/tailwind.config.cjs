@@ -7,8 +7,13 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Nunito"', 'sans-serif'],
-        display: ['"Nunito"', 'sans-serif'], // Use Nunito for display as per app style
+        sans: ['"Inter"', 'sans-serif'],
+        serif: ['"Newsreader"', 'serif'],
+      },
+      fontSize: {
+        'ui-s': ['13px', { lineHeight: '1.2' }],
+        'ui-m': ['18px', { lineHeight: '1.6' }],
+        'ui-l': ['90px', { lineHeight: '0.92' }],
       },
       colors: {
         brand: {
