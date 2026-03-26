@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react';
+<<<<<<< HEAD
 import { Trophy, RefreshCw, Meh, Frown, ChevronDown, ChevronUp, Clock, Target, Lightbulb, Sparkles, Handshake, ShieldCheck } from 'lucide-react';
+=======
+import { Trophy, RefreshCw, Meh, Frown, ChevronDown, ChevronUp, Clock, Target, Lightbulb, Sparkles, Swords, Shield } from 'lucide-react';
+>>>>>>> 7ac4433 (feat: hellobrick v1.4.0 - CV pipeline upgrade & SEO expansion)
 import confetti from 'canvas-confetti';
 import { Screen, BattleResult } from '../types';
 

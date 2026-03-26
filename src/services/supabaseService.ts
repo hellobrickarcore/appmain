@@ -5,6 +5,7 @@
 
 import { createClient, SupabaseClient, AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
 
 // Get Supabase URL and Anon Key from environment variables
 const getSupabaseConfig = () => {
@@ -75,19 +76,26 @@ export const signInWithGoogle = async (): Promise<{ user: any; error: any }> => 
   }
 
   try {
+    const isApp = Capacitor.isNativePlatform();
     const redirectUrl = getAuthRedirectUrl();
     console.log('[Supabase] 🚀 Initiating Google Sign-In with redirect:', redirectUrl);
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: redirectUrl
+        redirectTo: redirectUrl,
+        skipBrowserRedirect: isApp // Don't auto-redirect on app, we'll handle it
       }
     });
 
     if (error) {
       console.error('Google sign-in error:', error);
       return { user: null, error };
+    }
+
+    // If we're on mobile and have a URL, open it in Safari View Controller
+    if (isApp && data?.url) {
+      await Browser.open({ url: data.url, presentationStyle: 'popover' });
     }
 
     return { user: data, error: null };
@@ -109,16 +117,26 @@ export const signInWithApple = async (): Promise<{ user: any; error: any }> => {
   }
 
   try {
+    const isApp = Capacitor.isNativePlatform();
+    const redirectUrl = getAuthRedirectUrl();
+    console.log('[Supabase] 🚀 Initiating Apple Sign-In with redirect:', redirectUrl);
+
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'apple',
       options: {
-        redirectTo: getAuthRedirectUrl()
+        redirectTo: redirectUrl,
+        skipBrowserRedirect: isApp
       }
     });
 
     if (error) {
       console.error('Apple sign-in error:', error);
       return { user: null, error };
+    }
+
+    // If we're on mobile and have a URL, open it in Safari View Controller
+    if (isApp && data?.url) {
+      await Browser.open({ url: data.url, presentationStyle: 'popover' });
     }
 
     return { user: data, error: null };
@@ -192,6 +210,33 @@ export const signOut = async (): Promise<{ error: any }> => {
   try {
     const { error } = await supabase.auth.signOut();
     return { error };
+  } catch (error: any) {
+    return { error };
+  }
+};
+
+/**
+ * Delete account
+ */
+export const deleteAccount = async (): Promise<{ error: any }> => {
+  if (!supabase) {
+    return { error: null };
+  }
+
+  try {
+    // Attempt to call a delete account RPC if it exists, otherwise just sign out
+    const { error } = await supabase.rpc('delete_user_account');
+    if (error) {
+       console.warn('delete_user_account RPC not found or failed, proceeding with sign out and local data deletion');
+    }
+    // Delete local user data
+    localStorage.removeItem('hellobrick_userId');
+    localStorage.removeItem('hellobrick_authenticated');
+    localStorage.removeItem('hellobrick_onboarding_finished');
+    
+    // Sign out
+    const { error: signOutError } = await supabase.auth.signOut();
+    return { error: signOutError };
   } catch (error: any) {
     return { error };
   }

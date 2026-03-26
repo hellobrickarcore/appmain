@@ -58,6 +58,26 @@
 4. Current issues are implementation problems, not model problems ✅
 5. Better suited for real-time AR brick detection ✅
 
+## SEO/AEO/GEO Content Engine
+We will create a series of high-intent, long-tail articles structured for both human readability and AI extraction (ChatGPT/Perplexity/Gemini).
+
+### AI Engine Optimization (AEO) Strategy
+To dominate AI search results (Perplexity, ChatGPT Search, Gemini):
+- **Structured Data**: Implement JSON-LD for "HowTo" and "FAQ" schemas.
+- **Direct Answers**: Use the "BLUF" (Bottom Line Up Front) method—answering the core question in the first paragraph.
+- **Semantic Richness**: Use specific LEGO industry terminology (MOC, SNOT technique, AFOL) to establish authority.
+
+### Target Categories
+1. **Identification**: Solving the "what is this piece" problem.
+2. **Organization**: Sorting systems for large collections.
+3. **Build Ideas**: What to do with "random bricks."
+4. **Comparisons**: Why HelloBrick is the superior alternative to Brickit.
+
+## Technical Implementation
+- **Location**: `/public/articles/`. 
+- **Format**: Static HTML with optimized meta tags and JSON-LD scripts.
+- **Sitemap**: A `sitemap.xml` will be added to `public/` to ensure full indexing.
+
 **Action Items:**
 1. ✅ Verify YOLOv11 exists (DONE)
 2. Run `setup-api-connection.sh` to configure Mac IP

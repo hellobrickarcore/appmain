@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
+<<<<<<< HEAD
 import { Flame, ScanLine, BrainCircuit, Trophy, Gift, Handshake, ChevronLeft, Sparkles } from 'lucide-react';
+=======
+import { Flame, ScanLine, BrainCircuit, Trophy, Gift, Swords, ChevronLeft, Sparkles } from 'lucide-react';
+>>>>>>> 7ac4433 (feat: hellobrick v1.4.0 - CV pipeline upgrade & SEO expansion)
 import { Screen, Quest } from '../types';
 import { getUserXP, getUserId } from '../services/xpService';
 import { getAvailableQuests } from '../services/gamificationService';

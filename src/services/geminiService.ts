@@ -1,23 +1,16 @@
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
-console.log('--- GEMINI SERVICE V2.1 ACTIVE ---');
-
-import { Brick, GPTBuilderResponse } from '../types';
-import { GEMINI_TEXT_MODEL, GEMINI_API_VERSION, IdeasErrorType } from '../config/llm';
-import { normalizeVault } from '../lib/brick/normalizeVault';
-import { getSystemPrompt, buildRuntimePrompt } from '../features/ideas/buildIdeasPrompt';
+import { getAIInstance } from './aiService';
+import { CONFIG } from './configService';
 
 /**
- * Enhanced AI Instance with multi-key support
- * Purges legacy model references or uses centralized config.
+ * Gemini Service - Advanced AI Features (Phase 7 / HelloBrick v1.4.0)
+ * Handles vision analysis, building ideas, and parts identification.
  */
-const getAllKeys = () => {
-  return [
-    import.meta.env.VITE_GEMINI_API_KEY,
-    import.meta.env.VITE_GEMINI_BACKUP_KEY,
-    import.meta.env.VITE_GEMINI_IMAGE_KEY
-  ].filter(Boolean);
-};
 
+<<<<<<< HEAD
+export interface GeminiResponse {
+  content: string;
+  metadata?: Record<string, any>;
+=======
 const getAIInstance = (keyIndex = 0) => {
     const keys = getAllKeys();
     const key = keys[keyIndex];
@@ -106,93 +99,95 @@ async function executeGeminiRequest(
     }
     throw error;
   }
+>>>>>>> stable-recovery-v1.4.0
 }
 
 /**
- * GROUNDED IDEAS GENERATION
- * Main entry point for Ideas screen.
+ * Execute a prompt against Gemini
  */
-export const getConversationalIdeas = async (
-  message: string,
-  bricks: Brick[] = [],
-  history: { role: 'user' | 'assistant', content: string }[] = []
-): Promise<GPTBuilderResponse> => {
-  const primaryAi = getAIInstance(0); // Use index 0 for primary
-  const backupAi = getAIInstance(1); // Use index 1 for backup
-
-  if (!primaryAi) throw new Error(IdeasErrorType.AUTH_ERROR);
-
-  // 1. Vault Loading & Normalization
-  const vault = normalizeVault(bricks);
-  console.log('[IdeasGenerator] ✅ vault loaded & normalized');
-  console.log('[IdeasGenerator] 🛠️ vault summary:', {
-    total: vault.totalBricks,
-    colors: Object.keys(vault.countsByColor),
-    sizes: Object.keys(vault.countsBySize)
-  });
-
-  const systemPrompt = getSystemPrompt();
-  const runtimePrompt = buildRuntimePrompt(message, vault);
-
-  // 2. Chat history cleanup
-  const recentHistory = history.slice(-6).map(h => ({
-    role: h.role === 'user' ? 'user' : 'model',
-    parts: [{ text: h.content }]
-  }));
-
+export const executeGeminiRequest = async (prompt: string, image?: string): Promise<GeminiResponse> => {
   try {
-    // Attempt 1: Primary
-    const result = await executeGeminiRequest(primaryAi, systemPrompt, runtimePrompt, recentHistory);
-    console.log('[IdeasGenerator] ✅ request success');
-    return result;
-  } catch (error: any) {
-    console.warn('[Gemini] ⚠️ Primary failed, checking fallback eligibility...');
+    const ai = getAIInstance();
+    const model = ai.getGenerativeModel({ model: "gemini-1.5-pro" });
 
-    // If it's a model not found or fatal, don't spam backup if it's the same model
-    if (error.message === IdeasErrorType.MODEL_NOT_FOUND) {
-       console.error('[IdeasGenerator] 🛑 Blocking retry due to MODEL_NOT_FOUND');
-       throw error;
+    const contents = [];
+    
+    // Add image if provided (base64)
+    if (image) {
+      const parts = image.split(',');
+      const mime = parts[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+      const data = parts[1];
+      
+      contents.push({
+        inlineData: {
+          mimeType: mime,
+          data: data
+        }
+      });
     }
 
-    if (backupAi && backupAi !== primaryAi) { // Ensure backupAi is distinct and exists
-      try {
-        console.log('[Gemini] 🔄 Retrying with backup service...');
-        const result = await executeGeminiRequest(backupAi, systemPrompt, runtimePrompt, recentHistory);
-        console.log('[IdeasGenerator] ✅ request success (via backup)');
-        return result;
-      } catch (backupError) {
-        console.error('[Gemini] 🛑 Backup also failed');
-      }
-    }
+    contents.push({ text: prompt });
 
-    console.log('[IdeasGenerator] ⚠️ request failed, showing fallback UI');
+    const result = await model.generateContent({
+      contents: [{ role: 'user', parts: contents }]
+    });
+
+    const response = await result.response;
+    const text = response.text();
+
+    return {
+      content: text
+    };
+
+  } catch (error) {
+    console.error('❌ Gemini Request Failed:', error);
     throw error;
   }
 };
 
 /**
- * Phase 26 Hard Fix: Cleaner IdentifyBricks call
+ * Identify a LEGO brick from an image
  */
-export const identifyBricks = async (base64Image: string): Promise<any> => {
-  const ai = getAIInstance();
-  if (!ai) return { items: [] };
+export const identifyBrick = async (imageBase64: string): Promise<GeminiResponse> => {
+  const prompt = `Identify the LEGO brick in this image. Provide the official LEGO part number, color, and name. Match against BrickLink if possible. Return JSON format.`;
+  return executeGeminiRequest(prompt, imageBase64);
+};
 
-  const model = ai.getGenerativeModel({ model: GEMINI_TEXT_MODEL }, { apiVersion: GEMINI_API_VERSION });
-  const base64Data = base64Image.replace(/^data:image\/(png|jpeg|jpg);base64,/, '');
+/**
+ * Generate building ideas from a set of bricks
+ */
+export const suggestBuilds = async (bricks: string[]): Promise<GeminiResponse> => {
+  const prompt = `I have these LEGO bricks: ${bricks.join(', ')}. What cool Mini-MOC can I build? Provide a name, 3-step instructions, and difficulty level.`;
+  return executeGeminiRequest(prompt);
+};
 
+/**
+ * Chat with Gemini about LEGO
+ */
+export const chatWithGemini = async (message: string, history: any[] = []): Promise<GeminiResponse> => {
   try {
-    const apiResponse = await model.generateContent({
-      contents: [{
-        role: 'user',
-        parts: [
-          { inlineData: { data: base64Data, mimeType: 'image/jpeg' } },
-          { text: `Detect LEGO bricks. Return ONLY JSON: {"items": [{"label": "2x2", "color": "yellow", "confidence": 0.9}]}` }
-        ]
-      }]
+    const ai = getAIInstance();
+    const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    // Format history for Gemini API
+    const formattedHistory = history.map(h => ({
+      role: h.role === 'user' ? 'user' : 'model',
+      parts: [{ text: h.content }]
+    }));
+
+    const chat = model.startChat({
+      history: formattedHistory
     });
-    const result = await apiResponse.response;
-    return JSON.parse(result.text());
-  } catch (e) {
-    return { items: [] };
+
+    const result = await chat.sendMessage(message);
+    const response = await result.response;
+    const text = response.text();
+
+    return {
+      content: text
+    };
+  } catch (error) {
+    console.error('❌ Gemini Chat Failed:', error);
+    throw error;
   }
 };

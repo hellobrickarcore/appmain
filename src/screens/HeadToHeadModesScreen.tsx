@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronLeft, Target, Timer, Copy, Zap, Brain, Scale, ArrowRight, Sparkles } from 'lucide-react';
+import { ChevronLeft, Target, Timer, Copy, ArrowRight, Sparkles } from 'lucide-react';
 import { Screen, GameModeId } from '../types';
 
 interface HeadToHeadModesScreenProps {

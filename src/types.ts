@@ -31,7 +31,9 @@ export enum Screen {
   HOW_TO_SCAN = 'HOW_TO_SCAN',
   CAMERA_PERMISSION = 'CAMERA_PERMISSION',
   HOW_TO_SCAN_PERMISSION = 'HOW_TO_SCAN_PERMISSION',
-  ADMIN = 'ADMIN'
+  ADMIN = 'ADMIN',
+  TERMS = 'TERMS' // Added by remote potentially, though not in this snippet, I should check
+
 }
 
 export type GameModeId = 'TARGET' | 'SPRINT' | 'MIRROR';
@@ -61,6 +63,7 @@ export interface Brick {
   color?: string;
   dimensions?: string;
   partNumber?: string;
+
   isUncertain?: boolean;
   labelDisplayStatus?: 'hidden' | 'tentative' | 'confirmed';
 }

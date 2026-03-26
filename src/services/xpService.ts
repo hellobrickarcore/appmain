@@ -43,6 +43,7 @@ export const emitXPEvent = async (event: XPEvent): Promise<XPResponse> => {
       body: JSON.stringify(event),
     });
     return data;
+
   } catch (error) {
     console.error('❌ Exception in emitXPEvent:', error);
     // Ensure we don't log just {}
@@ -59,6 +60,7 @@ export const emitXPEvent = async (event: XPEvent): Promise<XPResponse> => {
 export const getUserXP = async (userId: string): Promise<UserXP & { today_xp?: number }> => {
   try {
     return await apiRequest(`${CONFIG.XP_ME}?user_id=${userId}`);
+
   } catch (error) {
     console.error('❌ Error getting user XP:', error);
     if (typeof error === 'object' && error !== null) {

@@ -1,9 +1,16 @@
 import React, { useState, useMemo, useEffect } from 'react';
+<<<<<<< HEAD
 import { Search, Filter, Box, X, Palette, Brain, ChevronRight, Sparkles, Trash2 } from 'lucide-react';
 import { TopBar } from '../components/TopBar';
 import { ZoomableImageViewer } from '../components/ZoomableImageViewer';
 import { Screen, Brick } from '../types';
 import confetti from 'canvas-confetti';
+=======
+import { Search, Filter, Box, X, Palette, Lightbulb, Brain, ChevronRight, Sparkles } from 'lucide-react';
+import { TopBar } from '../components/TopBar';
+import { ZoomableImageViewer } from '../components/ZoomableImageViewer';
+import { Screen, Brick } from '../types';
+>>>>>>> 7ac4433 (feat: hellobrick v1.4.0 - CV pipeline upgrade & SEO expansion)
 
 interface CollectionScreenProps {
     onNavigate: (screen: Screen, params?: any) => void;
@@ -12,7 +19,11 @@ interface CollectionScreenProps {
 type SortOption = 'name' | 'count' | 'category' | 'newest';
 
 export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }) => {
+<<<<<<< HEAD
     const [activeCategory] = useState('All');
+=======
+    const [activeCategory, _setActiveCategory] = useState('All');
+>>>>>>> 7ac4433 (feat: hellobrick v1.4.0 - CV pipeline upgrade & SEO expansion)
     const [search, setSearch] = useState('');
     const [showFilters, setShowFilters] = useState(false);
     const [sortBy, setSortBy] = useState<SortOption>('count');

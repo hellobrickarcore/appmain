@@ -1,5 +1,5 @@
 import React from 'react';
-import { Camera, ShieldCheck, ChevronRight, Zap, Sparkles } from 'lucide-react';
+import { Camera, ShieldCheck, ChevronRight, Zap } from 'lucide-react';
 import { Screen } from '../types';
 
 interface CameraPermissionScreenProps {

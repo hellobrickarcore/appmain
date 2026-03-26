@@ -1,27 +1,68 @@
-import React, { useState } from 'react';
-import { Check } from 'lucide-react';
-import { signInWithGoogle, signInWithApple } from '../services/supabaseService';
+import React, { useState, useEffect } from 'react';
+<<<<<<< HEAD
+import { Check, Shield, ChevronRight } from 'lucide-react';
+=======
+import { Star, Mail, ChevronRight } from 'lucide-react';
+>>>>>>> 7ac4433 (feat: hellobrick v1.4.0 - CV pipeline upgrade & SEO expansion)
+import { signInWithGoogle, signInWithApple, isSupabaseConfigured } from '../services/supabaseService';
 import { Screen } from '../types';
 import { Logo } from '../components/Logo';
+import { Browser } from '@capacitor/browser';
 
 interface AuthScreenProps {
   onAuthenticate: () => void;
   onNavigate: (screen: Screen) => void;
 }
 
-export const AuthScreen: React.FC<AuthScreenProps> = ({ onNavigate }) => {
+export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticate, onNavigate }) => {
   const [agreed, setAgreed] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [authType, setAuthType] = useState<'google' | 'apple' | null>(null);
+  const supabaseAvailable = isSupabaseConfigured();
+
+  useEffect(() => {
+    const handleNavigate = (e: CustomEvent) => {
+      if (onNavigate && e.detail?.screen) {
+        onNavigate(e.detail.screen as Screen);
+      }
+    };
+    window.addEventListener('navigate' as any, handleNavigate);
+    return () => window.removeEventListener('navigate' as any, handleNavigate);
+  }, [onNavigate]);
 
   const handleSocialAuth = async (platform: 'google' | 'apple') => {
     if (!agreed) return;
-    try {
-      if (platform === 'google') await signInWithGoogle();
-      else await signInWithApple();
-      onNavigate(Screen.NOTIFICATIONS_INTRO);
-    } catch (e) {
-      console.error(e);
-      onNavigate(Screen.NOTIFICATIONS_INTRO);
+    if (!supabaseAvailable) {
+      onAuthenticate(); // Fallback for local dev without supabase
+      return;
     }
+
+    setIsLoading(true);
+    setAuthType(platform);
+    try {
+      const { user, error } = platform === 'google' 
+        ? await signInWithGoogle() 
+        : await signInWithApple();
+      
+      if (user) {
+        // Supabase user returned - this is the "official" path
+        localStorage.setItem('hellobrick_userId', user.id || user.user?.id);
+        localStorage.setItem('hellobrick_authenticated', 'true');
+        onNavigate(Screen.NOTIFICATIONS_INTRO);
+      } else if (error) {
+        console.error(`${platform} sign-in error:`, error);
+        // On mobile, the window stays open or we rely on deep link
+      }
+    } catch (error) {
+      console.error(`${platform} auth exception:`, error);
+    } finally {
+      setIsLoading(false);
+      setAuthType(null);
+    }
+  };
+
+  const openLegal = async (url: string) => {
+    await Browser.open({ url, presentationStyle: 'popover' });
   };
 
   return (
@@ -39,47 +80,127 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onNavigate }) => {
                 Welcome to <span className="text-[#FF7A30]">Hello</span>Brick
             </h1>
 
-            <p className="text-slate-400 text-center text-[15px] font-bold leading-snug mb-10">
-                Detect and Organise Bricks, compete against others, and more on the #1 App for Brick Owners.
-            </p>
+<<<<<<< HEAD
+            <div className="w-full space-y-4 mb-10">
+                <div className="flex items-start gap-3">
+                    <div className="w-5 h-5 bg-orange-500/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Check className="w-3 h-3 text-orange-500" />
+                    </div>
+                    <p className="text-sm font-bold text-slate-300">Identify any LEGO brick instantly</p>
+                </div>
+                <div className="flex items-start gap-3">
+                    <div className="w-5 h-5 bg-orange-500/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Check className="w-3 h-3 text-orange-500" />
+                    </div>
+                    <p className="text-sm font-bold text-slate-300">Catalog your entire collection</p>
+                </div>
+                <div className="flex items-start gap-3">
+                    <div className="w-5 h-5 bg-orange-500/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Check className="w-3 h-3 text-orange-500" />
+                    </div>
+                    <p className="text-sm font-bold text-slate-300">Get AI-powered building ideas</p>
+                </div>
+=======
+        <div className="w-full space-y-4 max-w-sm">
+          {supabaseAvailable && (
+            <>
+              <button
+                onClick={handleGoogleSignIn}
+                disabled={isLoading || !termsAccepted}
+                className="w-full bg-white text-slate-950 font-black py-5 rounded-[28px] text-[11px] uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-3 border border-transparent disabled:opacity-20"
+              >
+                <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" className="w-4 h-4" alt="" />
+                {authType === 'google' ? 'Initializing...' : 'Sign in with Google'}
+              </button>
+              <button
+                onClick={handleAppleSignIn}
+                disabled={isLoading || !termsAccepted}
+                className="w-full bg-white/5 text-white font-black py-5 rounded-[28px] text-[11px] uppercase tracking-[0.2em] shadow-xl border border-white/10 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-20 backdrop-blur-md"
+              >
+                <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" className="w-4 h-4 invert" alt="" />
+                {authType === 'apple' ? 'Initializing...' : 'Sign in with Apple'}
+              </button>
+            </>
+          )}
+
+          <button
+            onClick={() => onNavigate && onNavigate(Screen.EMAIL_SIGNUP)}
+            disabled={!termsAccepted}
+            className="w-full py-5 text-slate-500 font-black text-[11px] uppercase tracking-[0.2em] active:scale-95 transition-all flex items-center justify-center gap-3 hover:text-white disabled:opacity-20"
+          >
+            <Mail className="w-4 h-4" />
+            Use Email Identity
+          </button>
         </div>
 
-        <div className="space-y-4">
-            <button
-                onClick={() => handleSocialAuth('google')}
-                className="w-full bg-white text-black py-5 rounded-[24px] font-black text-lg flex items-center justify-center gap-4 shadow-xl active:scale-[0.98] transition-all"
-            >
-                <img src="https://www.google.com/favicon.ico" className="w-5 h-5" alt="Google" />
-                Continue with Google
-            </button>
+        {/* Terms Protocol */}
+        <div className="mt-16 flex flex-col items-center">
+          <button 
+            onClick={() => setTermsAccepted(!termsAccepted)}
+            className="flex items-center gap-4 group cursor-pointer"
+          >
+            <div className={`w-10 h-10 rounded-[14px] border-2 transition-all flex items-center justify-center shadow-inner ${termsAccepted ? 'bg-orange-500 border-orange-400' : 'bg-white/5 border-white/5'}`}>
+               <div className={`w-2.5 h-2.5 bg-white rounded-full transition-opacity ${termsAccepted ? 'opacity-100' : 'opacity-0'}`} />
+>>>>>>> 7ac4433 (feat: hellobrick v1.4.0 - CV pipeline upgrade & SEO expansion)
+            </div>
 
-            <button
-                onClick={() => handleSocialAuth('apple')}
-                className="w-full bg-black text-white py-5 rounded-[24px] font-black text-lg flex items-center justify-center gap-4 shadow-xl active:scale-[0.98] transition-all border border-white/10"
-            >
-                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M17.05 20.28c-.96.95-2.04 1.72-3.23 1.72-1.17 0-1.55-.72-2.92-.72-1.38 0-1.81.72-2.92.72-1.14 0-2.31-.83-3.27-1.78-1.95-1.93-3.41-5.46-3.41-8.52 0-3.08 1.48-5.74 3.39-5.74 1.05 0 1.93.72 2.68.72.68 0 1.83-.79 3.01-.79 1.25 0 2.41.65 3.1 1.62-2.52 1.43-2.11 4.79.43 5.8 1.1-.56 2.02-1.39 2.52-2.52 1 2.91-.71 6.09-2.68 8.93zM12.03 5.07c0-2.34 1.93-4.24 4.29-4.24.16 2.34-1.93 4.24-4.29 4.24z"/></svg>
-                Continue with Apple
-            </button>
+            <div className="w-full space-y-3 mb-8">
+                <button 
+                  onClick={() => handleSocialAuth('google')}
+                  disabled={isLoading}
+                  className="w-full h-16 bg-white text-[#0A1229] rounded-2xl font-black text-sm uppercase tracking-widest flex items-center px-6 gap-4 active:scale-95 transition-all shadow-xl disabled:opacity-50"
+                >
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
+                    <span className="flex-1 text-center mr-5">{isLoading && authType === 'google' ? 'Connecting...' : 'Continue with Google'}</span>
+                </button>
 
-            <button
-                onClick={() => onNavigate(Screen.EMAIL_LOGIN)}
-                className="w-full bg-white/5 text-slate-400 py-5 rounded-[24px] font-black text-lg active:scale-[0.98] transition-all"
-            >
-                Continue with Email
-            </button>
-        </div>
+                <button 
+                  onClick={() => handleSocialAuth('apple')}
+                  disabled={isLoading}
+                  className="w-full h-16 bg-[#000000] text-white rounded-2xl font-black text-sm uppercase tracking-widest flex items-center px-6 gap-4 active:scale-95 transition-all shadow-xl disabled:opacity-50"
+                >
+                    <svg viewBox="0 0 170 170" className="w-5 h-5 fill-current">
+                        <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.7 3.17-5.22 2.13-9.41 3.24-12.58 3.35-5.52.19-10.51-2.1-14.97-6.85-3.05-3.21-6.72-8.3-10.99-15.28-4.27-6.98-7.39-14.93-9.35-23.83-2.09-9.47-3.14-18.44-3.14-26.89 0-14.89 3.24-27.12 9.71-36.68 5.12-7.56 12.02-11.4 20.7-11.53 4.29 0 9.28 1.18 14.96 3.54 5.68 2.36 10.15 3.54 13.41 3.54 3.05 0 7.82-1.32 14.31-3.97 6.49-2.65 11.83-3.97 16.03-3.97 12 0 21.6 4.3 28.8 12.91-10.33 6.22-15.5 15.35-15.5 27.38 0 9.8 3.19 18 9.58 24.6 3 3.12 6.64 5.53 10.96 7.24.4 1.13.78 2.3 1.15 3.53zM111.4 34.07c-5.29 6.39-12.18 9.76-20.65 10.12-.13-1.07-.19-2.06-.19-2.97 0-9 3.16-17.51 9.47-25.54 5.37-6.83 12.1-10.54 20.2-11.12.19 1.13.28 2.22.28 3.26 0 10.23-4.04 19.33-9.11 26.25z" />
+                    </svg>
+                    <span className="flex-1 text-center mr-5">{isLoading && authType === 'apple' ? 'Connecting...' : 'Continue with Apple'}</span>
+                </button>
 
-        {/* Terms */}
-        <div className="mt-auto mb-10 flex items-center justify-center gap-3">
-            <button 
-                onClick={() => setAgreed(!agreed)}
-                className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${agreed ? 'bg-[#FF7A30]' : 'bg-white/10 border border-white/10'}`}
-            >
-                {agreed && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
-            </button>
-            <p className="text-slate-500 text-[13px] font-bold">
-                I agree to the <span className="text-slate-300 border-b border-slate-700">Terms</span> and <span className="text-slate-300 border-b border-slate-700">Privacy</span>
-            </p>
+                <button 
+                  onClick={() => onNavigate(Screen.EMAIL_AUTH)}
+                  className="w-full py-4 text-slate-500 font-black text-[10px] uppercase tracking-[0.2em] hover:text-white transition-colors"
+                >
+                    Or use email address
+                </button>
+            </div>
+
+            {/* Terms of Use / Privacy */}
+            <div className="flex flex-col items-center gap-4">
+                <button 
+                    onClick={() => setAgreed(!agreed)}
+                    className="flex items-center gap-3 group"
+                >
+                    <div className={`w-5 h-5 rounded-lg border-2 transition-all flex items-center justify-center ${agreed ? 'bg-orange-500 border-orange-500' : 'border-white/10 group-hover:border-white/20'}`}>
+                        {agreed && <Check className="w-3 h-3 text-white" />}
+                    </div>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">I agree to the terms below</p>
+                </button>
+
+                <div className="flex items-center gap-3">
+                    <button 
+                      onClick={() => openLegal('https://hellobrick.app/terms')}
+                      className="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-white"
+                    >
+                      Terms of Use (EULA)
+                    </button>
+                    <div className="w-1 h-1 bg-slate-700 rounded-full" />
+                    <button 
+                      onClick={() => openLegal('https://hellobrick.app/privacy')}
+                      className="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-white"
+                    >
+                      Privacy Policy
+                    </button>
+                </div>
+            </div>
         </div>
       </div>
     </div>
