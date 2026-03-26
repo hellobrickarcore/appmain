@@ -231,7 +231,60 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({ on
                     </div>
                     <ChevronLeft className="w-4 h-4 text-slate-600 rotate-180" />
                   </button>
+<<<<<<< HEAD
                 ))}
+=======
+                </div>
+              </div>
+            </div>
+
+            {/* GROUP: Support & Legal */}
+            <div className="space-y-4">
+              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">Support & Legal</h3>
+              <div className="bg-white/5 rounded-[32px] border border-white/5 overflow-hidden">
+                <div className="p-2 space-y-1">
+                  {[
+                    { label: 'Privacy Policy', icon: <Shield className="w-5 h-5" />, color: 'text-indigo-400', bg: 'bg-indigo-500/10', url: '/privacy-policy.html' },
+                    { label: 'Terms of Service', icon: <FileText className="w-5 h-5" />, color: 'text-slate-400', bg: 'bg-white/5', url: '/terms-of-service.html' },
+                    { label: 'Contact Support', icon: <Globe className="w-5 h-5" />, color: 'text-emerald-400', bg: 'bg-emerald-500/10', url: 'mailto:support@hellobrick.app' },
+                  ].map((item, i) => (
+                    <button 
+                      key={i} 
+                      onClick={() => window.open(item.url, '_blank')}
+                      className="w-full h-16 px-4 flex items-center justify-between hover:bg-white/5 transition-colors rounded-2xl"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={`w-10 h-10 ${item.bg} rounded-xl flex items-center justify-center ${item.color}`}>
+                          {item.icon}
+                        </div>
+                        <p className="text-sm font-bold text-white">{item.label}</p>
+                      </div>
+                      <ChevronLeft className="w-4 h-4 text-slate-600 rotate-180" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Logout Group */}
+            <div className="space-y-4">
+              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">Session</h3>
+              <div className="bg-white/5 rounded-[32px] border border-white/5 overflow-hidden">
+                <div className="p-2">
+                  <button 
+                    onClick={handleLogout}
+                    className="w-full h-16 px-4 flex items-center gap-4 hover:bg-white/10 transition-colors rounded-2xl text-slate-300"
+                  >
+                    <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
+                      <Trash2 className="w-5 h-5" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-bold">Log Out</p>
+                      <p className="text-[10px] text-slate-500 font-medium">Clear local session data</p>
+                    </div>
+                  </button>
+                </div>
+>>>>>>> stable-recovery-v1.4.0
               </div>
             </div>
           </div>

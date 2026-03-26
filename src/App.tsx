@@ -39,7 +39,13 @@ import { subscriptionService } from './services/subscriptionService';
 import { onAuthStateChange, supabase } from './services/supabaseService';
 import { usageService } from './services/usageService';
 
+<<<<<<< HEAD
 console.log('🚀 BUILD_VERSION: 1.4.0 - ADVANCED_CV_PIPELINE');
+=======
+console.log('🚀 BUILD_VERSION: 1.5.0 - GEMINI_IMAGE_ENGINE_V1');
+console.log('--- APP v1.5.0 ACTIVE ---');
+
+>>>>>>> stable-recovery-v1.4.0
 
 const App: React.FC = () => {
   const getInitialScreen = (): Screen => {

@@ -6,9 +6,100 @@ import { CONFIG } from './configService';
  * Handles vision analysis, building ideas, and parts identification.
  */
 
+<<<<<<< HEAD
 export interface GeminiResponse {
   content: string;
   metadata?: Record<string, any>;
+=======
+const getAIInstance = (keyIndex = 0) => {
+    const keys = getAllKeys();
+    const key = keys[keyIndex];
+    if (!key) {
+      console.warn(`[Gemini] ⚠️ Key [${keyIndex}] is MISSING (Check .env.local)`);
+      return null;
+    }
+    console.log(`[Gemini] ✅ Key [${keyIndex}] detected: ${key.substring(0, 6)}...`);
+    return new GoogleGenerativeAI(key);
+};
+
+/**
+ * EXECUTE GEMINI REQUEST with structured output and robust parsing
+ */
+async function executeGeminiRequest(
+  ai: GoogleGenerativeAI,
+  systemPrompt: string,
+  runtimePrompt: string,
+  chatHistory: any[]
+): Promise<GPTBuilderResponse> {
+  const modelName = GEMINI_TEXT_MODEL;
+  const apiVersion = GEMINI_API_VERSION;
+
+  console.log(`[Gemini] 🚀 Request Started. Model: ${modelName}, API Version: ${apiVersion}`);
+
+  const model = ai.getGenerativeModel({ 
+    model: modelName,
+  }, { apiVersion });
+
+  const contents = [
+    ...chatHistory,
+    { 
+      role: 'user', 
+      parts: [
+        { text: `SYSTEM INSTRUCTION:\n${systemPrompt}\n\nUSER REQUEST:\n${runtimePrompt}` }
+      ] 
+    }
+  ];
+
+  try {
+    const apiResponse = await model.generateContent({
+      contents,
+      safetySettings: [
+        { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+        { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+        { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+        { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+      ],
+    });
+
+    let text = apiResponse.response.text();
+    console.log('[Gemini] 📥 Raw Response:', text.substring(0, 1000));
+    
+    // Strict JSON Cleaning & Extraction
+    text = text.replace(/```json\n?|```/g, '').trim();
+    
+    try {
+      const parsed = JSON.parse(text);
+      console.log('[Gemini] ✅ JSON Parsed Successfully');
+      return parsed;
+    } catch (e) {
+      console.warn('[Gemini] ⚠️ Direct parse failed, trying regex...', e);
+      const match = text.match(/{[\s\S]*}/);
+      if (match) {
+        try {
+          const parsed = JSON.parse(match[0]);
+          console.log('[Gemini] ✅ JSON Extracted via Regex');
+          return parsed;
+        } catch (e2) {
+          console.error('[Gemini] 🛑 Regex JSON extraction failed:', match[0]);
+        }
+      }
+      console.error('[Gemini] 🛑 Full Response for debug:', text);
+      throw new Error(IdeasErrorType.INVALID_RESPONSE);
+    }
+  } catch (error: any) {
+    console.error('[Gemini] 🛑 SDK ERROR:', error);
+    const errText = error.message?.toLowerCase() || "";
+
+    if (errText.includes("404") || errText.includes("not found") || errText.includes("not supported")) {
+      console.error(`[Gemini] 🛑 Error Classifed: MODEL_NOT_FOUND (${modelName})`);
+      throw new Error(IdeasErrorType.MODEL_NOT_FOUND);
+    }
+    if (errText.includes("quota") || errText.includes("429")) {
+      throw new Error(IdeasErrorType.QUOTA_ERROR);
+    }
+    throw error;
+  }
+>>>>>>> stable-recovery-v1.4.0
 }
 
 /**

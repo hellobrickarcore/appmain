@@ -8,12 +8,10 @@ export default {
     extend: {
       fontFamily: {
         sans: ['"Inter"', 'sans-serif'],
-        serif: ['"Newsreader"', 'serif'],
       },
       fontSize: {
-        'ui-s': ['13px', { lineHeight: '1.2' }],
-        'ui-m': ['18px', { lineHeight: '1.6' }],
-        'ui-l': ['90px', { lineHeight: '0.92' }],
+        'ui-body': ['18px', { lineHeight: '1.6' }],
+        'ui-header': ['80px', { lineHeight: '1' }],
       },
       colors: {
         brand: {

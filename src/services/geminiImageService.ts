@@ -5,8 +5,7 @@ const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 export async function generateIdeaImage(prompt: string) {
   const models = [
-    "gemini-2.5-flash-image",
-    "gemini-3.1-flash-image-preview"
+    "gemini-1.5-flash"
   ];
 
   for (const model of models) {
