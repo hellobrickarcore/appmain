@@ -30,7 +30,6 @@ import { IdeasGeneratorScreen } from './screens/IdeasGeneratorScreen';
 import { NotificationsIntroScreen } from './screens/NotificationsIntroScreen';
 import { CameraPermissionScreen } from './screens/CameraPermissionScreen';
 import { EmailAuthScreen } from './screens/EmailAuthScreen';
-import { OnboardingScreen } from './screens/OnboardingScreen';
 import { AdminDashboardScreen } from './screens/AdminDashboardScreen';
 import { FeatureIntroScreen } from './screens/FeatureIntroScreen';
 import { BuildingIntroScreen } from './screens/BuildingIntroScreen';
@@ -39,13 +38,8 @@ import { subscriptionService } from './services/subscriptionService';
 import { onAuthStateChange, supabase } from './services/supabaseService';
 import { usageService } from './services/usageService';
 
-<<<<<<< HEAD
-console.log('🚀 BUILD_VERSION: 1.4.0 - ADVANCED_CV_PIPELINE');
-=======
 console.log('🚀 BUILD_VERSION: 1.5.0 - GEMINI_IMAGE_ENGINE_V1');
 console.log('--- APP v1.5.0 ACTIVE ---');
-
->>>>>>> stable-recovery-v1.4.0
 
 const App: React.FC = () => {
   const getInitialScreen = (): Screen => {
@@ -81,7 +75,6 @@ const App: React.FC = () => {
   const [screenParams, setScreenParams] = useState<any>(null);
   const [battleResult, setBattleResult] = useState<BattleResult | null>(null);
   const [selectedMode, setSelectedMode] = useState<GameModeId>('TARGET');
-  const [activeChallenge, setActiveChallenge] = useState<any>(null);
   const [showNav, setShowNav] = useState(true);
 
   // Early Splash Hide
@@ -115,19 +108,30 @@ const App: React.FC = () => {
 
     init();
 
-    // OAuth Deep Link Handler (closes Browser and handles tokens)
+    // Unified Deep Link Handler (Routing + OAuth)
     const setupDeepLinks = async () => {
       CapacitorApp.addListener('appUrlOpen', async (data: any) => {
         console.log('[App] 🔗 Deep link opened:', data.url);
         
-        // 1. Close Safari View Controller if it was open for OAuth
+        // 1. Close Safari if it was open for OAuth or initial landing
         if (data.url.includes('/auth/callback') || data.url.includes('hellobrick')) {
           await Browser.close().catch(console.error);
         }
 
-        // 2. Handle Supabase Tokens
+        // 2. Custom Marketing Routes (TikTok/Google Ads)
+        const url = new URL(data.url);
+        const path = url.pathname || '';
+        
+        if (data.url.includes('//scan') || path.includes('scan')) {
+          handleNavigate(Screen.SCANNER);
+        } else if (data.url.includes('//pro') || path.includes('pro')) {
+          handleNavigate(Screen.SUBSCRIPTION);
+        } else if (data.url.includes('//ideas') || path.includes('ideas')) {
+          handleNavigate(Screen.IDEAS);
+        }
+
+        // 3. Handle Supabase Tokens
         if (data.url.includes('auth/callback')) {
-          const url = new URL(data.url);
           const fragment = url.hash.substring(1);
           const params = new URLSearchParams(fragment || url.search);
           
@@ -214,10 +218,8 @@ const App: React.FC = () => {
        return;
     }
 
-    if (screen === Screen.SCANNER && params?.challenge) {
-      setActiveChallenge(params.challenge);
-    } else if (screen === Screen.SCANNER) {
-      setActiveChallenge(null);
+    if (screen === Screen.SCANNER) {
+      // Logic for scanner entry if needed
     }
 
     if (screen === Screen.H2H_RESULT && params) {
@@ -226,10 +228,6 @@ const App: React.FC = () => {
 
     setCurrentScreen(screen);
     setScreenParams(params || null);
-  };
-
-  const handlePhaseChange = (phase: string) => {
-    setShowNav(phase !== 'results');
   };
 
   const renderScreen = () => {
@@ -261,7 +259,7 @@ const App: React.FC = () => {
       case Screen.HOME:
         return <HomeScreen onNavigate={handleNavigate} />;
       case Screen.SCANNER:
-        return <ScannerScreen onNavigate={handleNavigate} challenge={activeChallenge} onPhaseChange={handlePhaseChange} mode={screenParams?.mode} />;
+        return <ScannerScreen onNavigate={handleNavigate} />;
       case Screen.COLLECTION:
         return <CollectionScreen onNavigate={handleNavigate} />;
       case Screen.PROFILE:

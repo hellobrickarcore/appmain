@@ -59,15 +59,16 @@
         <false/>
     </dict>
     <key>CFBundleURLTypes</key>
-    <array>
-        <dict>
-            <key>CFBundleURLName</key>
-            <string>com.hellobrick.app</string>
-            <key>CFBundleURLSchemes</key>
-            <array>
-                <string>com.hellobrick.app</string>
-            </array>
-        </dict>
-    </array>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.hellobrick.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.hellobrick.app</string>
+				<string>hellobrick</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
