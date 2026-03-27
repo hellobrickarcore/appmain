@@ -1,26 +1,16 @@
-import { getAIInstance } from './aiService';
-import { CONFIG } from './configService';
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
+import { GPTBuilderResponse, Brick } from '../types';
+import { getAIInstance, getAllKeys, GEMINI_TEXT_MODEL, GEMINI_API_VERSION } from './aiService';
 
 /**
  * Gemini Service - Advanced AI Features (Phase 7 / HelloBrick v1.4.0)
  * Handles vision analysis, building ideas, and parts identification.
  */
 
-<<<<<<< HEAD
 export interface GeminiResponse {
   content: string;
   metadata?: Record<string, any>;
-=======
-const getAIInstance = (keyIndex = 0) => {
-    const keys = getAllKeys();
-    const key = keys[keyIndex];
-    if (!key) {
-      console.warn(`[Gemini] ⚠️ Key [${keyIndex}] is MISSING (Check .env.local)`);
-      return null;
-    }
-    console.log(`[Gemini] ✅ Key [${keyIndex}] detected: ${key.substring(0, 6)}...`);
-    return new GoogleGenerativeAI(key);
-};
+}
 
 /**
  * EXECUTE GEMINI REQUEST with structured output and robust parsing
@@ -31,8 +21,8 @@ async function executeGeminiRequest(
   runtimePrompt: string,
   chatHistory: any[]
 ): Promise<GPTBuilderResponse> {
-  const modelName = GEMINI_TEXT_MODEL;
-  const apiVersion = GEMINI_API_VERSION;
+  const modelName = GEMINI_TEXT_MODEL || "gemini-1.5-flash";
+  const apiVersion = GEMINI_API_VERSION || "v1beta";
 
   console.log(`[Gemini] 🚀 Request Started. Model: ${modelName}, API Version: ${apiVersion}`);
 
@@ -41,7 +31,10 @@ async function executeGeminiRequest(
   }, { apiVersion });
 
   const contents = [
-    ...chatHistory,
+    ...chatHistory.map(h => ({
+      role: h.role === 'user' ? 'user' : 'model',
+      parts: [{ text: h.content }]
+    })),
     { 
       role: 'user', 
       parts: [
@@ -62,7 +55,7 @@ async function executeGeminiRequest(
     });
 
     let text = apiResponse.response.text();
-    console.log('[Gemini] 📥 Raw Response:', text.substring(0, 1000));
+    console.log('[Gemini] 📥 Raw Response:', text.substring(0, 500));
     
     // Strict JSON Cleaning & Extraction
     text = text.replace(/```json\n?|```/g, '').trim();
@@ -83,111 +76,80 @@ async function executeGeminiRequest(
           console.error('[Gemini] 🛑 Regex JSON extraction failed:', match[0]);
         }
       }
-      console.error('[Gemini] 🛑 Full Response for debug:', text);
-      throw new Error(IdeasErrorType.INVALID_RESPONSE);
+      throw new Error("Invalid response format from AI");
     }
   } catch (error: any) {
     console.error('[Gemini] 🛑 SDK ERROR:', error);
-    const errText = error.message?.toLowerCase() || "";
-
-    if (errText.includes("404") || errText.includes("not found") || errText.includes("not supported")) {
-      console.error(`[Gemini] 🛑 Error Classifed: MODEL_NOT_FOUND (${modelName})`);
-      throw new Error(IdeasErrorType.MODEL_NOT_FOUND);
-    }
-    if (errText.includes("quota") || errText.includes("429")) {
-      throw new Error(IdeasErrorType.QUOTA_ERROR);
-    }
     throw error;
   }
->>>>>>> stable-recovery-v1.4.0
 }
 
 /**
- * Execute a prompt against Gemini
+ * Main entry point for conversational building ideas
  */
-export const executeGeminiRequest = async (prompt: string, image?: string): Promise<GeminiResponse> => {
-  try {
-    const ai = getAIInstance();
-    const model = ai.getGenerativeModel({ model: "gemini-1.5-pro" });
+export const getConversationalIdeas = async (
+  query: string,
+  bricks: Brick[],
+  history: any[] = []
+): Promise<GPTBuilderResponse> => {
+  const ai = getAIInstance();
+  if (!ai) throw new Error("AI Instance not initialized");
 
-    const contents = [];
+  const inventoryStr = bricks.map(b => `${b.count}x ${b.color} ${b.name}`).join(', ');
+  
+  const systemPrompt = `
+    You are the HelloBrick AI Build Master. 
+    The user has these LEGO bricks: ${inventoryStr}.
     
-    // Add image if provided (base64)
-    if (image) {
-      const parts = image.split(',');
-      const mime = parts[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
-      const data = parts[1];
-      
-      contents.push({
-        inlineData: {
-          mimeType: mime,
-          data: data
+    Your goal is to suggest 1-3 cool things they can build using ONLY or MOSTLY these pieces.
+    Respond in STRICT JSON format:
+    {
+      "assistantMessage": "A creative greeting and summary of what they can build.",
+      "topIdeas": [
+        {
+          "ideaName": "Name of Build",
+          "difficulty": "Ready|Almost|Master",
+          "estimatedBrickUse": 10,
+          "whyItFitsYourVault": "Why this is good for their specific pieces",
+          "imagePrompt": "A detailed DALL-E prompt for a LEGO build of this item",
+          "buildSteps": ["Step 1...", "Step 2..."]
         }
-      });
+      ],
+      "suggestedQuickReplies": ["Tell me more", "Another idea?"]
     }
+  `;
 
-    contents.push({ text: prompt });
-
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: contents }]
-    });
-
-    const response = await result.response;
-    const text = response.text();
-
-    return {
-      content: text
-    };
-
-  } catch (error) {
-    console.error('❌ Gemini Request Failed:', error);
-    throw error;
-  }
+  return executeGeminiRequest(ai, systemPrompt, query, history);
 };
 
-/**
- * Identify a LEGO brick from an image
- */
-export const identifyBrick = async (imageBase64: string): Promise<GeminiResponse> => {
-  const prompt = `Identify the LEGO brick in this image. Provide the official LEGO part number, color, and name. Match against BrickLink if possible. Return JSON format.`;
-  return executeGeminiRequest(prompt, imageBase64);
-};
-
-/**
- * Generate building ideas from a set of bricks
- */
-export const suggestBuilds = async (bricks: string[]): Promise<GeminiResponse> => {
-  const prompt = `I have these LEGO bricks: ${bricks.join(', ')}. What cool Mini-MOC can I build? Provide a name, 3-step instructions, and difficulty level.`;
-  return executeGeminiRequest(prompt);
-};
-
-/**
- * Chat with Gemini about LEGO
- */
 export const chatWithGemini = async (message: string, history: any[] = []): Promise<GeminiResponse> => {
-  try {
-    const ai = getAIInstance();
-    const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-    // Format history for Gemini API
-    const formattedHistory = history.map(h => ({
+  const ai = getAIInstance();
+  if (!ai) throw new Error("AI Instance not initialized");
+  
+  const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const chat = model.startChat({
+    history: history.map(h => ({
       role: h.role === 'user' ? 'user' : 'model',
       parts: [{ text: h.content }]
-    }));
+    }))
+  });
 
-    const chat = model.startChat({
-      history: formattedHistory
-    });
+  const result = await chat.sendMessage(message);
+  const response = await result.response;
+  return { content: response.text() };
+};
 
-    const result = await chat.sendMessage(message);
-    const response = await result.response;
-    const text = response.text();
-
-    return {
-      content: text
-    };
-  } catch (error) {
-    console.error('❌ Gemini Chat Failed:', error);
-    throw error;
-  }
+export const identifyBrick = async (imageBase64: string): Promise<GeminiResponse> => {
+  const prompt = `Identify the LEGO brick in this image. Return JSON with part number and name.`;
+  // Simple implementation for now
+  const ai = getAIInstance();
+  const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const parts = imageBase64.split(',');
+  const data = parts[1];
+  
+  const result = await model.generateContent([
+    prompt,
+    { inlineData: { mimeType: "image/jpeg", data } }
+  ]);
+  return { content: result.response.text() };
 };

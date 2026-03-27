@@ -171,6 +171,7 @@ export interface DetectedBrick {
   box: [number, number, number, number];
   bbox?: { x: number, y: number, width: number, height: number };
   color?: string;
+  partNumber?: string;
 }
 
 export interface BrickDetectionResult {
@@ -206,10 +207,12 @@ export interface GameSession {
   id: string;
   mode?: GameModeId;
   questId?: string;
-  score: number;
+  score?: number;
   startTime: number;
   endTime?: number;
   bricksFound?: DetectedBrick[];
+  detections?: DetectedBrick[]; // alias for compatibility
+  totalXp?: number;
   completed?: boolean;
   xpEarned?: number;
 }

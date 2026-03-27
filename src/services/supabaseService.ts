@@ -371,3 +371,91 @@ export const getSubscription = async (
     return null;
   }
 };
+
+/**
+ * Record a brick scan event
+ */
+export const recordScan = async (
+  brickCount: number,
+  detectedTypes: string[] = [],
+  confidence: number = 0,
+  durationMs: number = 0
+): Promise<void> => {
+  if (!supabase) return;
+
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase.from('scans').insert({
+      user_id: user.id,
+      bricks_detected_count: brickCount,
+      detected_types: detectedTypes,
+      confidence_avg: confidence,
+      scan_duration_ms: durationMs
+    });
+
+    if (error) console.error('Failed to record scan:', error);
+    else console.log('✅ Scan recorded to Product Brain');
+  } catch (error) {
+    console.error('Error recording scan:', error);
+  }
+};
+
+/**
+ * Alias for recordScan to support legacy calls
+ */
+export const saveScanSession = recordScan;
+
+/**
+ * Record a build idea generation event
+ */
+export const recordIdea = async (
+  type: string,
+  title: string
+): Promise<void> => {
+  if (!supabase) return;
+
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase.from('ideas').insert({
+      user_id: user.id,
+      idea_type: type,
+      title: title
+    });
+
+    if (error) console.error('Failed to record idea:', error);
+    else console.log('✅ Idea recorded to Product Brain');
+  } catch (error) {
+    console.error('Error recording idea:', error);
+  }
+};
+
+/**
+ * Record or update a user session heartbeat
+ */
+export const recordSessionHeartbeat = async (): Promise<void> => {
+  if (!supabase) return;
+
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const session_id = localStorage.getItem('hellobrick_active_session_id') || `sess_${Date.now()}`;
+    localStorage.setItem('hellobrick_active_session_id', session_id);
+
+    const { error } = await supabase.from('sessions').upsert({
+      id: session_id,
+      user_id: user.id,
+      start_time: new Date(parseInt(session_id.split('_')[1] || Date.now().toString())).toISOString(),
+      last_heartbeat: new Date().toISOString(),
+      platform: 'web' // Will be 'ios' or 'android' on native
+    }, { onConflict: 'id' });
+
+    if (error) console.error('Failed to record heartbeat:', error);
+  } catch (error) {
+    console.error('Error recording heartbeat:', error);
+  }
+};
