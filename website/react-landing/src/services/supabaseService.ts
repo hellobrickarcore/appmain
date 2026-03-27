@@ -1,11 +1,9 @@
 /**
- * Supabase Service for Authentication & Subscription Data
- * Handles Google OAuth, auth state management, and subscription persistence
+ * Supabase Service for Web (Admin Dashboard & Landing Page)
+ * Pure web implementation - removed Capacitor dependencies
  */
 
 import { createClient, SupabaseClient, AuthChangeEvent, Session } from '@supabase/supabase-js';
-import { Capacitor } from '@capacitor/core';
-import { Browser } from '@capacitor/browser';
 
 // Get Supabase URL and Anon Key from environment variables
 const getSupabaseConfig = () => {
@@ -37,31 +35,8 @@ export const getSupabaseClient = () => supabase;
  * Helper to get the correct redirect URL based on environment
  */
 const getAuthRedirectUrl = () => {
-  const platform = Capacitor.getPlatform();
-  const isApp = Capacitor.isNativePlatform();
-  const protocol = window.location.protocol;
-  const hostname = window.location.hostname;
-
-  console.log('[Supabase] 🛡️ Redirect Detection:', { platform, isApp, protocol, hostname });
-
-  // If we are on iOS or Android, we definitely want the custom scheme
-  if (platform === 'ios' || platform === 'android' || isApp) {
-    console.log('[Supabase] 📱 Native platform detected, using deep link scheme');
-    return 'com.hellobrick.app://auth/callback';
-  }
-
-  // If protocol is capacitor:, we are definitely in an app
-  if (protocol === 'capacitor:') {
-    console.log('[Supabase] ⚡ capacitor: protocol detected, using deep link scheme');
-    return 'com.hellobrick.app://auth/callback';
-  }
-
-  // Fallback for web
   const baseUrl = import.meta.env.VITE_AUTH_REDIRECT_URL || window.location.origin;
-  const finalUrl = `${baseUrl}/auth/callback`;
-  
-  console.log('[Supabase] 🌐 Web platform detected, using:', finalUrl);
-  return finalUrl;
+  return `${baseUrl}/auth/callback`;
 };
 
 /**
@@ -71,31 +46,22 @@ export const signInWithGoogle = async (): Promise<{ user: any; error: any }> => 
   if (!supabase) {
     return {
       user: null,
-      error: new Error('Supabase not configured. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env.local')
+      error: new Error('Supabase not configured.')
     };
   }
 
   try {
-    const isApp = Capacitor.isNativePlatform();
     const redirectUrl = getAuthRedirectUrl();
-    console.log('[Supabase] 🚀 Initiating Google Sign-In with redirect:', redirectUrl);
-
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: redirectUrl,
-        skipBrowserRedirect: isApp // Don't auto-redirect on app, we'll handle it
+        redirectTo: redirectUrl
       }
     });
 
     if (error) {
       console.error('Google sign-in error:', error);
       return { user: null, error };
-    }
-
-    // If we're on mobile and have a URL, open it in Safari View Controller
-    if (isApp && data?.url) {
-      await Browser.open({ url: data.url, presentationStyle: 'popover' });
     }
 
     return { user: data, error: null };
@@ -112,31 +78,22 @@ export const signInWithApple = async (): Promise<{ user: any; error: any }> => {
   if (!supabase) {
     return {
       user: null,
-      error: new Error('Supabase not configured. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env.local')
+      error: new Error('Supabase not configured.')
     };
   }
 
   try {
-    const isApp = Capacitor.isNativePlatform();
     const redirectUrl = getAuthRedirectUrl();
-    console.log('[Supabase] 🚀 Initiating Apple Sign-In with redirect:', redirectUrl);
-
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'apple',
       options: {
-        redirectTo: redirectUrl,
-        skipBrowserRedirect: isApp
+        redirectTo: redirectUrl
       }
     });
 
     if (error) {
       console.error('Apple sign-in error:', error);
       return { user: null, error };
-    }
-
-    // If we're on mobile and have a URL, open it in Safari View Controller
-    if (isApp && data?.url) {
-      await Browser.open({ url: data.url, presentationStyle: 'popover' });
     }
 
     return { user: data, error: null };
@@ -216,33 +173,6 @@ export const signOut = async (): Promise<{ error: any }> => {
 };
 
 /**
- * Delete account
- */
-export const deleteAccount = async (): Promise<{ error: any }> => {
-  if (!supabase) {
-    return { error: null };
-  }
-
-  try {
-    // Attempt to call a delete account RPC if it exists, otherwise just sign out
-    const { error } = await supabase.rpc('delete_user_account');
-    if (error) {
-       console.warn('delete_user_account RPC not found or failed, proceeding with sign out and local data deletion');
-    }
-    // Delete local user data
-    localStorage.removeItem('hellobrick_userId');
-    localStorage.removeItem('hellobrick_authenticated');
-    localStorage.removeItem('hellobrick_onboarding_finished');
-    
-    // Sign out
-    const { error: signOutError } = await supabase.auth.signOut();
-    return { error: signOutError };
-  } catch (error: any) {
-    return { error };
-  }
-};
-
-/**
  * Get current user
  */
 export const getCurrentUser = async () => {
@@ -296,78 +226,4 @@ export const onAuthStateChange = (
 
   const { data: { subscription } } = supabase.auth.onAuthStateChange(callback);
   return () => subscription.unsubscribe();
-};
-
-// ─── Subscription Data Persistence ──────────────────────────────
-
-export interface SubscriptionRecord {
-  is_pro: boolean;
-  is_active: boolean;
-  product_id: string | null;
-  expiration_date: string | null;
-  revenuecat_user_id: string | null;
-  updated_at: string;
-}
-
-/**
- * Upsert (insert or update) subscription state for a user.
- * Creates the row if it doesn't exist, updates it if it does.
- */
-export const upsertSubscription = async (
-  userId: string,
-  data: SubscriptionRecord
-): Promise<void> => {
-  if (!supabase) {
-    console.warn('Supabase not configured — skipping subscription sync');
-    return;
-  }
-
-  try {
-    const { error } = await supabase
-      .from('subscriptions')
-      .upsert(
-        { user_id: userId, ...data },
-        { onConflict: 'user_id' }
-      );
-
-    if (error) {
-      console.error('Failed to upsert subscription:', error);
-    } else {
-      console.log('✅ Subscription synced to Supabase');
-    }
-  } catch (error) {
-    console.error('Error upserting subscription:', error);
-  }
-};
-
-/**
- * Get subscription state for a user
- */
-export const getSubscription = async (
-  userId: string
-): Promise<SubscriptionRecord | null> => {
-  if (!supabase) {
-    return null;
-  }
-
-  try {
-    const { data, error } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
-
-    if (error) {
-      // PGRST116 = row not found, which is fine for new users
-      if (error.code !== 'PGRST116') {
-        console.error('Failed to get subscription:', error);
-      }
-      return null;
-    }
-
-    return data as SubscriptionRecord;
-  } catch (error) {
-    console.error('Error getting subscription:', error);
-    return null;
-  }
 };
