@@ -42,7 +42,9 @@ export const AdminLogin: React.FC = () => {
         setError('Access denied. This email is not authorized to access the admin portal.');
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to sign in');
+      console.error('Login attempt failed:', err);
+      const detail = err.status ? `[Error ${err.status}: ${err.code}] ` : '';
+      setError(`${detail}${err.message || 'Failed to sign in'}`);
     } finally {
       setLoading(false);
     }
