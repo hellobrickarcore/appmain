@@ -36,11 +36,11 @@ export const Scans: React.FC = () => {
 
         // Calculate stats
         const { count: totalScans } = await supabase.from('scans').select('*', { count: 'exact', head: true });
-        const { data: confidenceData } = await supabase.from('scans').select('confidence').limit(100);
+        const { data: confidenceData } = await supabase.from('scans').select('confidence_avg').limit(100);
         
         const avgConf = confidenceData && confidenceData.length > 0
-          ? Math.round((confidenceData.reduce((acc, s) => acc + (s.confidence || 0), 0) / confidenceData.length) * 100)
-          : 92;
+          ? Math.round((confidenceData.reduce((acc, s) => acc + (s.confidence_avg || 0), 0) / confidenceData.length) * 100)
+          : 0;
 
         setScans(data || []);
         setStats({
@@ -116,12 +116,12 @@ export const Scans: React.FC = () => {
                       <span className="text-sm font-medium text-brand-text-dim">{scan.profiles?.email || 'Anonymous'}</span>
                     </td>
                     <td className="px-8 py-5">
-                      <span className="px-3 py-1 bg-white/5 rounded-lg text-[11px] font-black text-white">{scan.brick_count || 0} pcs</span>
+                      <span className="px-3 py-1 bg-white/5 rounded-lg text-[11px] font-black text-white">{scan.bricks_detected_count || 0} pcs</span>
                     </td>
                     <td className="px-8 py-5">
                        <div className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-brand-yellow" />
-                        <span className="text-sm font-bold text-white">{(scan.confidence * 100).toFixed(0)}%</span>
+                        <span className="text-sm font-bold text-white">{(scan.confidence_avg * 100).toFixed(0)}%</span>
                        </div>
                     </td>
                     <td className="px-8 py-5">

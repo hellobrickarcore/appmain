@@ -20,13 +20,13 @@ export const Users: React.FC = () => {
       try {
         const { data: profiles, error } = await supabase
           .from('profiles')
-          .select('*, subscriptions(is_pro, is_active)')
+          .select('*')
           .order('created_at', { ascending: false });
 
         if (error) throw error;
 
         const totalUsers = profiles?.length || 0;
-        const proUsers = profiles?.filter(u => u.subscriptions?.is_pro).length || 0;
+        const proUsers = profiles?.filter(u => u.is_pro).length || 0;
 
         setUsers(profiles || []);
         setStats({
@@ -96,7 +96,7 @@ export const Users: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-8 py-5">
-                      {u.subscriptions?.is_pro ? (
+                      {u.is_pro ? (
                         <div className="flex items-center gap-2 text-brand-yellow">
                           <Crown className="w-3.5 h-3.5" />
                           <span className="text-[11px] font-black uppercase tracking-wider">Pro Elite</span>

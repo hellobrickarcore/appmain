@@ -67,22 +67,21 @@ export const Dashboard: React.FC = () => {
           .from('ideas')
           .select('*', { count: 'exact', head: true });
 
-        // 4. Avg Bricks per scan
         const { data: scanData } = await supabase
           .from('scans')
-          .select('brick_count')
+          .select('bricks_detected_count')
           .limit(100);
         
         const avg = scanData && scanData.length > 0
-          ? Math.round(scanData.reduce((acc, s) => acc + (s.brick_count || 0), 0) / scanData.length)
+          ? Math.round(scanData.reduce((acc, s) => acc + (s.bricks_detected_count || 0), 0) / scanData.length)
           : 0;
 
         setStats({
-          installs: userCount || 1240, // Fallback for demo if no users yet
-          activeUsers: Math.floor((userCount || 1240) * 0.42), // Simulated DAU ratio
+          installs: userCount || 0,
+          activeUsers: userCount ? Math.floor(userCount * 0.42) : 0,
           scansToday: scanCount || 0,
-          avgBricks: avg || 28, // Fallback to 28 if no data
-          ideasGenerated: ideaCount || 42
+          avgBricks: avg || 0,
+          ideasGenerated: ideaCount || 0
         });
       } catch (error) {
         console.error('Failed to fetch admin stats:', error);
