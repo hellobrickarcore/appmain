@@ -133,7 +133,7 @@ export const Dashboard: React.FC = () => {
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 chart-container">
             <ChartCard 
               title="Scan Activity (Last 7 Days)" 
               data={MOCK_SCANS_DATA} 
@@ -144,22 +144,26 @@ export const Dashboard: React.FC = () => {
             />
           </div>
           <div className="space-y-6">
-            <ChartCard 
-              title="Installs vs. Ideas" 
-              data={MOCK_INSTALLS_DATA} 
-              dataKey="installs" 
-              xAxisKey="name" 
-              color="#F97316"
-              height={130}
-            />
-            <ChartCard 
-              title="Retention Index" 
-              data={MOCK_INSTALLS_DATA} 
-              dataKey="ideas" 
-              xAxisKey="name" 
-              color="#FFF"
-              height={130}
-            />
+            <div className="chart-container !min-h-[130px]">
+              <ChartCard 
+                title="Installs vs. Ideas" 
+                data={MOCK_INSTALLS_DATA} 
+                dataKey="installs" 
+                xAxisKey="name" 
+                color="#F97316"
+                height={130}
+              />
+            </div>
+            <div className="chart-container !min-h-[130px]">
+              <ChartCard 
+                title="Retention Index" 
+                data={MOCK_INSTALLS_DATA} 
+                dataKey="ideas" 
+                xAxisKey="name" 
+                color="#FFF"
+                height={130}
+              />
+            </div>
           </div>
         </div>
 
