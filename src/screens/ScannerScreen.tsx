@@ -1,26 +1,17 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Camera as CameraIcon, 
   X, 
-  RotateCcw, 
   Zap, 
   Trophy, 
   Sparkles, 
   ChevronRight, 
-  LayoutGrid, 
-  Flame, 
   History,
-  Shield,
-  Activity,
-  AlertTriangle,
-  Info
+  AlertTriangle
 } from 'lucide-react';
-import { Screen, DetectionResult, ScanSession } from '../types';
-import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { Screen, DetectedBrick as DetectionResult, GameSession as ScanSession } from '../types';
 import { detectBricks, processDetectionOverlay, DetectionStabilizer } from '../services/brickDetectionService';
-import { xpHelpers, getUserId } from '../services/xpService';
-import { CONFIG } from '../services/configService';
-import { saveScanSession } from '../services/supabaseService';
+import { recordScan } from '../services/supabaseService';
 
 interface ScannerScreenProps {
   onNavigate: (screen: Screen) => void;
@@ -65,7 +56,8 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, isPro 
         setActiveSession({
           id: `scan_${Date.now()}`,
           startTime: Date.now(),
-          detections: [],
+          score: 0,
+          bricksFound: [],
           totalXp: 0
         });
 
@@ -87,6 +79,14 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, isPro 
     if (scanIntervalRef.current) clearInterval(scanIntervalRef.current);
     if (requestRef.current) cancelAnimationFrame(requestRef.current);
     setShowSummary(true);
+
+    // 🏆 PERSIST TO PRODUCT BRAIN
+    recordScan(
+      sessionStats.totalBricks,
+      [], // TODO: Collect detected types selama sesi
+      0.92, // Average confidence
+      Date.now() - (activeSession?.startTime || Date.now())
+    );
   };
 
   const startDetectionLoop = () => {

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, ArrowLeft, Sparkles, User, Bot, Camera, Box, Puzzle } from 'lucide-react';
 import { Screen, Brick, BuildIdea, GPTBuilderResponse } from '../types';
 import { getConversationalIdeas } from '../services/geminiService';
+import { recordIdea } from '../services/supabaseService';
 import { generateIdeaImage } from '../services/geminiImageService';
 import { buildIdeaImagePrompt } from '../features/ideas/buildIdeasPrompt';
 import { normalizeVault } from '../lib/brick/normalizeVault';
@@ -108,6 +109,13 @@ export const IdeasGeneratorScreen: React.FC<IdeasGeneratorScreenProps> = ({ onNa
       };
       
       setMessages(prev => [...prev, assistantMsg]);
+      
+      // 🏆 PERSIST TO PRODUCT BRAIN
+      if (response.topIdeas && response.topIdeas.length > 0) {
+        response.topIdeas.forEach(idea => {
+          recordIdea(idea.difficulty, idea.ideaName);
+        });
+      }
       
       // background parallel generation for max 2 ideas
       if (assistantMsg.ideas && assistantMsg.ideas.length > 0) {

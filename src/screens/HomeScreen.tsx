@@ -3,6 +3,7 @@ import { ScanLine, Lightbulb, Users, Puzzle, ArrowRight, Box, ChevronRight, Brai
 import { TopBar } from '../components/TopBar';
 import { Screen, GameModeId } from '../types';
 import { LobbyNotification } from '../components/LobbyNotification';
+import { recordSessionHeartbeat } from '../services/supabaseService';
 
 interface HomeScreenProps {
     onNavigate: (screen: Screen, params?: any) => void;
@@ -12,6 +13,9 @@ interface HomeScreenProps {
 export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
     const [totalBricks, setTotalBricks] = React.useState(0);
     React.useEffect(() => {
+        // Initial Heartbeat
+        recordSessionHeartbeat();
+
         const stored = localStorage.getItem('hellobrick_collection');
         if (stored) {
             try {
@@ -19,6 +23,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
                 setTotalBricks(parsed.bricks?.length || 0);
             } catch (e) { }
         }
+
+        // Recurring Heartbeat every 2 minutes
+        const interval = setInterval(recordSessionHeartbeat, 2 * 60 * 1000);
+        return () => clearInterval(interval);
     }, []);
 
     const handleJoinGame = (modeId: GameModeId) => {
