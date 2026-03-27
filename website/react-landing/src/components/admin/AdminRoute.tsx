@@ -18,6 +18,14 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
   useEffect(() => {
     const checkAdmin = async () => {
       try {
+        // Master Bypass check
+        const hasBypass = localStorage.getItem('hellobrick_admin_bypass') === 'true';
+        if (hasBypass) {
+          setIsAdmin(true);
+          setLoading(false);
+          return;
+        }
+
         if (!supabase) return;
         const { data: { user } } = await supabase.auth.getUser();
         

