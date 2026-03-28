@@ -1,27 +1,21 @@
-import { Capacitor } from '@capacitor/core';
+
 
 /**
  * Granular API configuration for HelloBrick
+ * 
+ * ALL API calls go through https://hellobrick.app → Netlify proxy → Digital Ocean.
+ * No localhost fallback. No local server. Digital Ocean only.
  */
 
-const PROD_API_BASE = 'https://api.keydesignmedia.xyz';
+const PROD_API_BASE = 'https://hellobrick.app';
 
 /**
- * Resolves a central API URL based on platform.
- * Dev on web uses relative paths (Vite proxy).
- * Mobile/Native uses absolute paths to the production server or configured backend.
+ * Always returns an absolute production URL.
+ * Detection calls use the DO server via Netlify proxy (/api/* → 174.138.93.172:3003).
  */
 export const getApiUrl = (path: string): string => {
-  // Always use absolute URL for native platforms or in explicit production mode
-  if (Capacitor.isNativePlatform() || import.meta.env.PROD) {
-    const cleanPath = path.startsWith('/') ? path : `/${path}`;
-    // Remove /api from base if it exists to avoid duplication
-    const baseUrl = PROD_API_BASE.endsWith('/api') ? PROD_API_BASE.slice(0, -4) : PROD_API_BASE;
-    return `${baseUrl}${cleanPath}`;
-  }
-  
-  // Local web dev uses relative paths (handled by vite.config.ts proxy)
-  return path.startsWith('/') ? path : `/${path}`;
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${PROD_API_BASE}${cleanPath}`;
 };
 
 export const CONFIG = {
