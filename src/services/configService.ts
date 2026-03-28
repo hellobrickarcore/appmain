@@ -3,15 +3,17 @@
 /**
  * Granular API configuration for HelloBrick
  * 
- * ALL API calls go through https://hellobrick.app → Netlify proxy → Digital Ocean.
- * No localhost fallback. No local server. Digital Ocean only.
+ * General API calls go through https://hellobrick.app → Netlify proxy → Digital Ocean.
+ * Detection calls hit Digital Ocean DIRECTLY over HTTP (ATS exception in Info.plist).
+ * This removes the Netlify proxy dependency for the camera scanner.
  */
 
 const PROD_API_BASE = 'https://hellobrick.app';
+const DO_DIRECT = 'http://174.138.93.172:3003';
 
 /**
  * Always returns an absolute production URL.
- * Detection calls use the DO server via Netlify proxy (/api/* → 174.138.93.172:3003).
+ * Detection uses the DO server directly - all other calls go via Netlify proxy.
  */
 export const getApiUrl = (path: string): string => {
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
@@ -51,8 +53,8 @@ export const CONFIG = {
     COLLECTION_GET: getApiUrl('/api/dataset/collection/get'),
     COLLECTION_SAVE: getApiUrl('/api/dataset/collection/save'),
 
-    // Detection
-    DETECT_IMAGE: getApiUrl('/api/detect'),
+    // Detection — calls Digital Ocean DIRECTLY (bypasses Netlify proxy entirely)
+    DETECT_IMAGE: `${DO_DIRECT}/api/detect`,
 
     // Webhooks
     SUBSCRIPTION_WEBHOOK: getApiUrl('/api/webhooks/revenuecat'),
