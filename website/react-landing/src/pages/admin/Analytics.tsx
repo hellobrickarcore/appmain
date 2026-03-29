@@ -7,9 +7,12 @@ import { supabase } from '../../services/supabaseService';
 
 const COLORS = ['#FFD600', '#F97316', '#FFF', '#333', '#111'];
 
+
 export const Analytics: React.FC = () => {
   const [brickStats, setBrickStats] = useState<any[]>([]);
   const [ideaStats, setIdeaStats] = useState<any[]>([]);
+  const [colorDistribution, setColorDistribution] = useState<any[]>([]);
+  const [retentionData, setRetentionData] = useState<any[]>([]);
   const [duration, setDuration] = useState('0s');
   const [loading, setLoading] = useState(true);
 
@@ -18,36 +21,119 @@ export const Analytics: React.FC = () => {
       if (!supabase) return;
       
       try {
-        // 1. Idea Distribution
+        // 1. Idea Distribution (Live)
         const { data: ideaData } = await supabase.from('ideas').select('idea_type');
         const ideaCounts = (ideaData || []).reduce((acc: any, curr: any) => {
           acc[curr.idea_type] = (acc[curr.idea_type] || 0) + 1;
           return acc;
         }, {});
 
-        setIdeaStats([
-          { name: 'Mini Builds', value: ideaCounts['MINI'] || 45 },
-          { name: 'Master Builds', value: ideaCounts['MASTER'] || 25 },
-          { name: 'MOCs', value: ideaCounts['MOC'] || 30 }
-        ]);
+        const ideaStatsMapped = [
+          { name: 'Mini Builds', value: ideaCounts['MINI'] || 0 },
+          { name: 'Master Builds', value: ideaCounts['MASTER'] || 0 },
+          { name: 'MOCs', value: ideaCounts['MOC'] || 0 }
+        ];
+        setIdeaStats(ideaStatsMapped);
 
-        // 2. Scan Duration
-        const { data: scanDurations } = await supabase.from('scans').select('scan_duration_ms').limit(50);
-        if (scanDurations && scanDurations.length > 0) {
-           const avg = scanDurations.reduce((acc, s) => acc + (s.scan_duration_ms || 0), 0) / scanDurations.length;
-           setDuration(`${(avg / 1000).toFixed(1)}s`);
+        // 2. Scan Duration & Brick Intelligence (Live)
+        const { data: scanData } = await supabase.from('scans').select('scan_duration_ms, detected_types').limit(200);
+        const { data: collectionData } = await supabase.from('user_collections').select('bricks, updated_at').limit(100);
+        
+        const colors: Record<string, { count: number, hex: string }> = {
+            'White': { count: 0, hex: '#FFFFFF' },
+            'Black': { count: 0, hex: '#000000' },
+            'Red': { count: 0, hex: '#EF4444' },
+            'Blue': { count: 0, hex: '#3B82F6' },
+            'Yellow': { count: 0, hex: '#FFD600' },
+        };
+
+        if (scanData && scanData.length > 0) {
+            const avg = scanData.reduce((acc, s) => acc + (s.scan_duration_ms || 0), 0) / scanData.length;
+            setDuration(`${(avg / 1000).toFixed(1)}s`);
+
+            scanData.forEach(s => {
+              const types = s.detected_types ? (typeof s.detected_types === 'string' ? JSON.parse(s.detected_types) : s.detected_types) : [];
+              types.forEach((type: string) => {
+                 Object.keys(colors).forEach(c => {
+                   if (type.toLowerCase().includes(c.toLowerCase())) {
+                     colors[c].count++;
+                   }
+                 });
+              });
+            });
+        } else if (collectionData && collectionData.length > 0) {
+            // Fallback to collections data for color intelligence
+            setDuration('N/A (Collections-only)');
+            collectionData.forEach(c => {
+               const bricks = c.bricks ? (typeof c.bricks === 'string' ? JSON.parse(c.bricks) : c.bricks) : [];
+               bricks.forEach((brick: any) => {
+                  const brickColor = (brick.color || '').toLowerCase();
+                  Object.keys(colors).forEach(colorName => {
+                     if (brickColor.includes(colorName.toLowerCase())) {
+                        colors[colorName].count++;
+                     }
+                  });
+               });
+            });
         } else {
-           setDuration('8.4s');
+            setDuration('0.0s');
         }
 
-        // 3. Brick Types (Simulated from JSONB if available, otherwise mock)
-        setBrickStats([
-          { name: 'Bricks', value: 45 },
-          { name: 'Plates', value: 25 },
-          { name: 'Technic', value: 15 },
-          { name: 'Slopes', value: 10 },
-          { name: 'Others', value: 5 },
-        ]);
+        setColorDistribution(Object.entries(colors).map(([name, data]) => ({
+          name,
+          count: data.count,
+          color: data.hex
+        })).sort((a, b) => b.count - a.count).filter(c => c.count > 0));
+
+        // 3. Retention Calculation (Self-Contained Live Session Logic)
+        // Since 'profiles' table is missing, we use first-session as the 'join date'
+        const { data: sessionData } = await supabase.from('sessions').select('user_id, start_time');
+
+        if (sessionData && sessionData.length > 0) {
+          // Group by user
+          const sessionsByUser: Record<string, string[]> = {};
+          sessionData.forEach(s => {
+             if (!sessionsByUser[s.user_id]) sessionsByUser[s.user_id] = [];
+             sessionsByUser[s.user_id].push(s.start_time);
+          });
+
+          const calculateRetention = (days: number) => {
+            let cohortCount = 0;
+            let retainedCount = 0;
+
+            Object.entries(sessionsByUser).forEach(([uid, times]) => {
+               const sortedTimes = times.map(t => new Date(t).getTime()).sort((a, b) => a - b);
+               const firstSession = sortedTimes[0];
+               const now = Date.now();
+               
+               // Is this user older than 'days'?
+               if (now - firstSession >= days * 86400000) {
+                  cohortCount++;
+                  // Did they return at or after 'days'?
+                  const isRetained = sortedTimes.some(t => (t - firstSession) >= days * 86400000);
+                  if (isRetained) retainedCount++;
+               }
+            });
+
+            return cohortCount === 0 ? 0 : Math.round((retainedCount / cohortCount) * 100);
+          };
+
+          setRetentionData([
+            { name: 'Day 1', value: calculateRetention(1) },
+            { name: 'Day 3', value: calculateRetention(3) },
+            { name: 'Day 7', value: calculateRetention(7) },
+            { name: 'Day 14', value: calculateRetention(14) },
+            { name: 'Day 30', value: calculateRetention(30) },
+          ]);
+        } else {
+          setRetentionData([
+            { name: 'Day 1', value: 0 },
+            { name: 'Day 3', value: 0 },
+            { name: 'Day 7', value: 0 },
+            { name: 'Day 14', value: 0 },
+            { name: 'Day 30', value: 0 },
+          ]);
+        }
 
       } catch (err) {
         console.error('Analytics fetch error:', err);
@@ -59,26 +145,11 @@ export const Analytics: React.FC = () => {
     fetchAnalytics();
   }, []);
 
-  const COLOR_DISTRIBUTION = [
-    { name: 'White', count: 1240, color: '#FFFFFF' },
-    { name: 'Black', count: 980, color: '#000000' },
-    { name: 'Red', count: 850, color: '#EF4444' },
-    { name: 'Blue', count: 720, color: '#3B82F6' },
-    { name: 'Yellow', count: 640, color: '#FFD600' },
-  ];
-
-  const RETENTION_DATA = [
-    { name: 'Day 1', value: 65 },
-    { name: 'Day 3', value: 45 },
-    { name: 'Day 7', value: 32 },
-    { name: 'Day 14', value: 24 },
-    { name: 'Day 30', value: 18 },
-  ];
-
   return (
     <AdminLayout title="Data Moat & Analytics">
       <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-24">
         
+
         {/* Section 1: Brick Intelligence */}
         <section className="space-y-6">
           <div className="flex items-center justify-between">
@@ -93,7 +164,7 @@ export const Analytics: React.FC = () => {
             <div className="bg-[#111] border border-white/5 rounded-[32px] p-8">
               <h3 className="text-[14px] font-bold text-white mb-8 tracking-tight uppercase">Most Common Colors Detected</h3>
               <div className="space-y-6">
-                {COLOR_DISTRIBUTION.map((color, i) => (
+                {colorDistribution.length > 0 ? colorDistribution.map((color: any, i: number) => (
                   <div key={i} className="flex items-center gap-4 group">
                     <div 
                       className="w-10 h-10 rounded-xl border border-white/10 shadow-lg shadow-black/40 transition-transform group-hover:scale-110" 
@@ -107,12 +178,14 @@ export const Analytics: React.FC = () => {
                       <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                         <div 
                           className="h-full bg-brand-yellow rounded-full transition-all duration-1000" 
-                          style={{ width: `${(color.count / 1240) * 100}%` }} 
+                          style={{ width: colorDistribution[0]?.count ? `${(color.count / colorDistribution[0].count) * 100}%` : '0%' }} 
                         />
                       </div>
                     </div>
                   </div>
-                ))}
+                )) : (
+                   <div className="w-full text-center text-white/20 py-8 italic">Analyzing colors...</div>
+                )}
               </div>
             </div>
             
@@ -130,7 +203,7 @@ export const Analytics: React.FC = () => {
                       paddingAngle={8}
                       dataKey="value"
                     >
-                      {ideaStats.map((entry, index) => (
+                      {ideaStats.map((entry: any, index: number) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
@@ -141,7 +214,7 @@ export const Analytics: React.FC = () => {
                 </ResponsiveContainer>
               </div>
               <div className="grid grid-cols-3 gap-x-8 gap-y-4 mt-4 w-full px-8">
-                {ideaStats.map((entry, i) => (
+                {ideaStats.map((entry: any, i: number) => (
                   <div key={i} className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                     <span className="text-[11px] font-bold text-brand-text-dim truncate">{entry.name}</span>
@@ -162,7 +235,7 @@ export const Analytics: React.FC = () => {
               <div className="lg:col-span-2">
                 <ChartCard 
                   title="Cohort Retention Index (LTV)" 
-                  data={RETENTION_DATA} 
+                  data={retentionData} 
                   dataKey="value" 
                   xAxisKey="name" 
                   type="area" 

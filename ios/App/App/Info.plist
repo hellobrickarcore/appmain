@@ -53,11 +53,30 @@
     <string>We need permission to save photos of your brick builds to your library.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>We need microphone access for video recording and analysis.</string>
-    <key>NSAppTransportSecurity</key>
-    <dict>
-        <key>NSAllowsArbitraryLoads</key>
-        <false/>
-    </dict>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<false/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<!-- Digital Ocean YOLO Detection Server - HTTP allowed for direct API calls -->
+			<key>174.138.93.172</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSIncludesSubdomains</key>
+				<false/>
+			</dict>
+			<!-- Pollinations AI - for ideas image generation -->
+			<key>image.pollinations.ai</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<false/>
+				<key>NSIncludesSubdomains</key>
+				<false/>
+			</dict>
+		</dict>
+	</dict>
     <key>CFBundleURLTypes</key>
 	<array>
 		<dict>

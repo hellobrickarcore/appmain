@@ -537,11 +537,11 @@ async def detect(
         
         # C2: NMS
         refined = []
+        # Slightly less aggressive NMS for better recall
+        nms_threshold = 0.30 if mode == 'mass_capture' else 0.45
         if len(valid_proposals) > 0:
             boxes_t = torch.tensor([p['box'] for p in valid_proposals])
             scores_t = torch.tensor([p['conf'] for p in valid_proposals])
-            # Slightly less aggressive NMS for better recall
-            nms_threshold = 0.30 if mode == 'mass_capture' else 0.45
             keep = nms(boxes_t, scores_t, nms_threshold)
             refined = [valid_proposals[i] for i in keep]
         
@@ -849,4 +849,4 @@ async def health():
 if __name__ == '__main__':
     import uvicorn
     initialize_yolo()
-    uvicorn.run(app, host='0.0.0.0', port=3001)
+    uvicorn.run(app, host='0.0.0.0', port=3003)

@@ -13,28 +13,74 @@ export const Leaderboard: React.FC = () => {
       if (!supabase) return;
       
       try {
-        // Fetch users and their scan counts
-        // Note: In a production app, we'd use a dedicated 'rankings' table or an RPC
-        // For now, we'll fetch the top profiles and their subscription status
-        const { data, error } = await supabase
+        setLoading(true);
+        // 1. Fetch profiles
+        const { data: profiles, error: profileError } = await supabase
           .from('profiles')
-          .select('id, full_name, email, created_at, subscriptions(is_pro)')
-          .limit(10);
+          .select('id, display_name, email, created_at, is_pro');
 
-        if (error) throw error;
+        if (profileError) {
+          // If profiles table is still missing, we'll use unique user_ids from collections as a fallback
+          console.warn('Profiles table missing, using collections fallback');
+        }
 
-        // Mocking the 'count' because counting across the whole scans table for every user
-        // might be expensive for a simple dashboard fetch without an index/sum table.
-        // We'll use the profile data and attach a simulated 'score' based on age for demo,
-        // unless we have a real 'total_scans' field.
-        const ranked = data?.map((u, i) => ({
-          ...u,
-          scans: 1500 - (i * 120), // Simulated for hierarchy
-          level: Math.floor(Math.random() * 50) + 10,
-          rank: i + 1
-        })) || [];
+        // 2. Fetch aggregate collection totals (the real data)
+        const { data: collections, error: collError } = await supabase
+          .from('user_collections')
+          .select('user_id, total_count, updated_at');
 
-        setTopUsers(ranked);
+        if (collError) throw collError;
+
+        // Map collection counts to user IDs
+        const collectionMap = (collections || []).reduce((acc: any, item: any) => {
+          acc[item.user_id] = (acc[item.user_id] || 0) + (item.total_count || 0);
+          return acc;
+        }, {});
+
+        // 3. Merge data and Sort
+        // Handle anonymous user IDs (strings) vs Auth IDs (UUIDs)
+        const collectionUserIds = Array.from(new Set((collections || []).map(c => c.user_id)));
+        
+        const userList = (profiles && profiles.length > 0)
+          ? profiles
+            : collectionUserIds.map(id => ({ 
+              id, 
+              email: `${id}@anon`, 
+              display_name: id.startsWith('user_') ? 'Guest Builder' : 'Builder', 
+              created_at: new Date().toISOString(),
+              is_pro: false
+            }));
+
+        // Add any users from collections that aren't in profiles (for hybrid mode)
+        if (profiles && profiles.length > 0) {
+          const profileIds = new Set(profiles.map(p => p.id));
+          collectionUserIds.forEach(id => {
+            if (!profileIds.has(id)) {
+              userList.push({
+                id,
+                email: `${id}@anon`,
+                display_name: id.startsWith('user_') ? 'Guest Builder' : 'Builder',
+                created_at: new Date().toISOString(),
+                is_pro: false
+              });
+            }
+          });
+        }
+
+        const ranked = userList.map((user: any) => {
+          const totalBricks = collectionMap[user.id] || 0;
+          return {
+            ...user,
+            scans: totalBricks,
+            level: Math.max(1, Math.floor(totalBricks / 50) + 1), // Standard level progression
+            rank: 0
+          };
+        }).sort((a: any, b: any) => b.scans - a.scans);
+
+        // Add ranks
+        const finalized = ranked.map((u, i) => ({ ...u, rank: i + 1 }));
+
+        setTopUsers(finalized);
       } catch (err) {
         console.error('Error fetching leaderboard:', err);
       } finally {
@@ -67,7 +113,7 @@ export const Leaderboard: React.FC = () => {
               </div>
               <div className="bg-[#111] border border-white/5 rounded-t-3xl p-6 text-center h-48 flex flex-col justify-center relative shadow-2xl">
                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-zinc-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-tighter">2nd Place</div>
-                 <h3 className="text-white font-black tracking-tight truncate">{podium[1].full_name || podium[1].email.split('@')[0]}</h3>
+                 <h3 className="text-white font-black tracking-tight truncate">{podium[1].display_name || podium[1].email.split('@')[0]}</h3>
                  <p className="text-brand-text-dim text-[11px] font-bold uppercase tracking-widest mt-1">{podium[1].scans} Bricks</p>
                  <div className="mt-4 flex items-center justify-center gap-1.5 text-brand-yellow">
                     <Star className="w-3 h-3 fill-current" />
@@ -90,7 +136,7 @@ export const Leaderboard: React.FC = () => {
               </div>
               <div className="bg-[#111] border border-brand-yellow/20 rounded-t-[40px] p-8 text-center h-64 flex flex-col justify-center relative shadow-2xl scale-110">
                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-brand-yellow text-black text-[12px] font-black px-4 py-1.5 rounded-full uppercase tracking-tighter shadow-lg">Grand Champion</div>
-                 <h3 className="text-2xl text-white font-black tracking-tighter truncate">{podium[0].full_name || podium[0].email.split('@')[0]}</h3>
+                 <h3 className="text-2xl text-white font-black tracking-tighter truncate">{podium[0].display_name || podium[0].full_name || podium[0].email.split('@')[0]}</h3>
                  <p className="text-brand-yellow text-[13px] font-black uppercase tracking-widest mt-2">{podium[0].scans} Bricks</p>
                  <div className="mt-6 flex items-center justify-center gap-2">
                     <div className="px-4 py-1.5 bg-brand-yellow/10 rounded-xl border border-brand-yellow/10">
@@ -114,7 +160,7 @@ export const Leaderboard: React.FC = () => {
               </div>
               <div className="bg-[#111] border border-white/5 rounded-t-3xl p-6 text-center h-40 flex flex-col justify-center relative shadow-2xl">
                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-700 text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-tighter">3rd Place</div>
-                 <h3 className="text-white font-black tracking-tight truncate">{podium[2].full_name || podium[2].email.split('@')[0]}</h3>
+                 <h3 className="text-white font-black tracking-tight truncate">{podium[2].display_name || podium[2].full_name || podium[2].email.split('@')[0]}</h3>
                  <p className="text-brand-text-dim text-[11px] font-bold uppercase tracking-widest mt-1">{podium[2].scans} Bricks</p>
               </div>
             </div>
@@ -140,8 +186,8 @@ export const Leaderboard: React.FC = () => {
                          </div>
                          <div className="flex flex-col">
                             <span className="text-md font-black text-white leading-none mb-1.5 flex items-center gap-2">
-                              {user.full_name || user.email.split('@')[0]}
-                              {user.subscriptions?.is_pro && <Crown className="w-3.5 h-3.5 text-brand-yellow" />}
+                              {user.display_name || user.email.split('@')[0]}
+                              {user.is_pro && <Crown className="w-3.5 h-3.5 text-brand-yellow" />}
                             </span>
                             <span className="text-[11px] font-bold text-brand-text-dim uppercase tracking-widest leading-none">Joined {new Date(user.created_at).toLocaleDateString()}</span>
                          </div>

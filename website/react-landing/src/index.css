@@ -30,3 +30,14 @@
 .glass-dark {
   @apply bg-black/40 backdrop-blur-2xl border border-white/5 shadow-2xl;
 }
+/* Fix for Recharts ResponsiveContainer dimensions */
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 250px;
+}
+
+.recharts-responsive-container {
+  min-height: inherit;
+}
