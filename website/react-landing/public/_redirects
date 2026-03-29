@@ -1,2 +1,12 @@
-/api/*  http://174.138.93.172:3003/api/:splat  200!
-/*  /index.html  200
+# HelloBrick Multi-Port Proxy Rules (DigitalOcean Hard-Lock)
+
+# Auth & User Services (Port 3007)
+/api/auth/*          http://174.138.93.172:3007/api/auth/:splat        200!
+/api/user/*          http://174.138.93.172:3007/api/user/:splat        200!
+/api/notifications/*  http://174.138.93.172:3007/api/notifications/:splat 200!
+
+# Detection & XP Services (Port 3003)
+/api/*               http://174.138.93.172:3003/api/:splat             200!
+
+# SPA Routing
+/*                   /index.html                                       200
