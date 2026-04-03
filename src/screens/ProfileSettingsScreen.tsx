@@ -101,11 +101,11 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({ on
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#050A18] font-sans text-white relative overflow-hidden">
+    <div className="flex flex-col h-full bg-[#050A18] font-sans text-white relative overflow-hidden">
       <div className="fixed top-0 left-0 right-0 h-64 bg-gradient-to-b from-blue-600/5 via-blue-500/0 to-transparent pointer-events-none z-0" />
 
       {/* Header */}
-      <div className="relative z-10 px-6 pt-[max(env(safe-area-inset-top),3.5rem)] pb-4 flex items-center justify-between border-b border-white/5 backdrop-blur-xl bg-[#050A18]/80 sticky top-0">
+      <div className="relative z-[20] px-6 pt-[max(env(safe-area-inset-top),3.5rem)] pb-4 flex items-center justify-between border-b border-white/5 backdrop-blur-xl bg-[#050A18]/80 sticky top-0">
         <button
           onClick={() => onNavigate(Screen.PROFILE)}
           className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10 hover:bg-white/10 transition-colors"
@@ -116,7 +116,7 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({ on
         <div className="w-10" />
       </div>
 
-      <div className="relative z-10 flex-1 overflow-y-auto no-scrollbar pb-[max(env(safe-area-inset-bottom),140px)]">
+      <div className="flex-1 overflow-y-auto no-scrollbar pb-[max(env(safe-area-inset-bottom),220px)] relative z-10 transition-all touch-pan-y">
         {/* Profile Card */}
         <div className="px-6 py-10 flex flex-col items-center">
           <input
@@ -231,60 +231,7 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({ on
                     </div>
                     <ChevronLeft className="w-4 h-4 text-slate-600 rotate-180" />
                   </button>
-<<<<<<< HEAD
                 ))}
-=======
-                </div>
-              </div>
-            </div>
-
-            {/* GROUP: Support & Legal */}
-            <div className="space-y-4">
-              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">Support & Legal</h3>
-              <div className="bg-white/5 rounded-[32px] border border-white/5 overflow-hidden">
-                <div className="p-2 space-y-1">
-                  {[
-                    { label: 'Privacy Policy', icon: <Shield className="w-5 h-5" />, color: 'text-indigo-400', bg: 'bg-indigo-500/10', url: '/privacy-policy.html' },
-                    { label: 'Terms of Service', icon: <FileText className="w-5 h-5" />, color: 'text-slate-400', bg: 'bg-white/5', url: '/terms-of-service.html' },
-                    { label: 'Contact Support', icon: <Globe className="w-5 h-5" />, color: 'text-emerald-400', bg: 'bg-emerald-500/10', url: 'mailto:support@hellobrick.app' },
-                  ].map((item, i) => (
-                    <button 
-                      key={i} 
-                      onClick={() => window.open(item.url, '_blank')}
-                      className="w-full h-16 px-4 flex items-center justify-between hover:bg-white/5 transition-colors rounded-2xl"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 ${item.bg} rounded-xl flex items-center justify-center ${item.color}`}>
-                          {item.icon}
-                        </div>
-                        <p className="text-sm font-bold text-white">{item.label}</p>
-                      </div>
-                      <ChevronLeft className="w-4 h-4 text-slate-600 rotate-180" />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Logout Group */}
-            <div className="space-y-4">
-              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">Session</h3>
-              <div className="bg-white/5 rounded-[32px] border border-white/5 overflow-hidden">
-                <div className="p-2">
-                  <button 
-                    onClick={handleLogout}
-                    className="w-full h-16 px-4 flex items-center gap-4 hover:bg-white/10 transition-colors rounded-2xl text-slate-300"
-                  >
-                    <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
-                      <Trash2 className="w-5 h-5" />
-                    </div>
-                    <div className="text-left">
-                      <p className="text-sm font-bold">Log Out</p>
-                      <p className="text-[10px] text-slate-500 font-medium">Clear local session data</p>
-                    </div>
-                  </button>
-                </div>
->>>>>>> stable-recovery-v1.4.0
               </div>
             </div>
           </div>

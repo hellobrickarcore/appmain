@@ -8,6 +8,17 @@
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
       gtag('config', 'G-19NTJ70M5E');
+
+      // Conversion Event: App Download / CTA Click
+      function trackConversion(label) {
+        gtag('event', 'conversion', {
+          'send_to': 'G-19NTJ70M5E/conversion',
+          'event_label': label,
+          'value': 1.0,
+          'currency': 'USD'
+        });
+        console.log('🎯 Conversion Tracked:', label);
+      }
     </script>
     <!-- HelloBrick build trigger: 2026-03-29T10:37:06Z -->
 

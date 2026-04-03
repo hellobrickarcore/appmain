@@ -17,6 +17,19 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, Optional
 import os
+from supabase import create_client, Client
+
+# Supabase Configuration
+SUPABASE_URL = os.getenv('VITE_SUPABASE_URL', 'https://tlcqiixlpmpguixzbbxj.supabase.co')
+SUPABASE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+supabase: Client = None
+
+if SUPABASE_KEY:
+    try:
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        print("✅ Supabase Bridge Active (Auth)")
+    except Exception as e:
+        print(f"❌ Supabase init error: {e}")
 
 app = Flask(__name__)
 CORS(app)
@@ -191,6 +204,18 @@ def signup():
         
         # Generate token (in production, use JWT)
         token = generate_token()
+
+        # --- PHASE 8: SUPABASE USER SYNC ---
+        if supabase:
+            try:
+                supabase.table('profiles').insert({
+                    'id': user_id,
+                    'email': email,
+                    'is_pro': False
+                }).execute()
+                print(f"📡 User Synced to Supabase: {email}")
+            except Exception as e:
+                print(f"⚠ User sync error: {e}")
         
         return jsonify({
             'userId': user_id,

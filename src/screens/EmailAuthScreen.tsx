@@ -1,11 +1,6 @@
 import React, { useState } from 'react';
-<<<<<<< HEAD
-import { Mail, Lock, Eye, EyeOff, ChevronLeft, Shield, Zap, ArrowRight, Sparkles } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ChevronLeft, ArrowRight, Shield } from 'lucide-react';
 import { signUpWithEmail, signInWithEmail, resetPassword } from '../services/supabaseService';
-=======
-import { ChevronLeft, Mail, Lock, Eye, EyeOff, Shield, Zap, ArrowRight } from 'lucide-react';
-import { signUpWithEmail, signInWithEmail } from '../services/supabaseService';
->>>>>>> 7ac4433 (feat: hellobrick v1.4.0 - CV pipeline upgrade & SEO expansion)
 import { Screen } from '../types';
 import { Logo } from '../components/Logo';
 
@@ -15,7 +10,7 @@ interface EmailAuthScreenProps {
   mode: 'login' | 'signup';
 }
 
-export const EmailAuthScreen: React.FC<EmailAuthScreenProps> = ({ onNavigate, onAuthenticate, mode: initialMode }) => {
+export const EmailAuthScreen: React.FC<EmailAuthScreenProps> = ({ onNavigate, mode: initialMode }) => {
   const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -55,8 +50,9 @@ export const EmailAuthScreen: React.FC<EmailAuthScreenProps> = ({ onNavigate, on
             setError(signUpError.message);
         } else if (user) {
             localStorage.setItem('hellobrick_userId', user.id);
+            localStorage.setItem('hellobrick_userEmail', email);
             localStorage.setItem('hellobrick_authenticated', 'true');
-            onNavigate(Screen.NOTIFICATIONS_INTRO);
+            onNavigate(Screen.HOME);
         }
       } else {
         const { user, error: signInError } = await signInWithEmail(email, password);
@@ -64,8 +60,9 @@ export const EmailAuthScreen: React.FC<EmailAuthScreenProps> = ({ onNavigate, on
             setError(signInError.message);
         } else if (user) {
             localStorage.setItem('hellobrick_userId', user.id);
+            localStorage.setItem('hellobrick_userEmail', email);
             localStorage.setItem('hellobrick_authenticated', 'true');
-            onNavigate(Screen.NOTIFICATIONS_INTRO);
+            onNavigate(Screen.HOME);
         }
       }
     } catch (err: any) {

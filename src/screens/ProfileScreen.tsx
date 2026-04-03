@@ -1,21 +1,14 @@
 import React, { useState, useEffect } from 'react';
-<<<<<<< HEAD
-import { Settings, Zap, Star, Trophy, Check, Play, Users, History, Activity, ChevronRight, Plus, X, Smile } from 'lucide-react';
-=======
-import { Settings, Zap, Trophy, ChevronRight, X, Star, Smile } from 'lucide-react';
->>>>>>> 7ac4433 (feat: hellobrick v1.4.0 - CV pipeline upgrade & SEO expansion)
-import { Screen, BadgeType, Achievement } from '../types';
-import { getUserXP, getUserId, getXPLedger, formatXPEvent, getUserStats } from '../services/xpService';
+import { Settings, Zap, Star, Trophy, Check, Activity } from 'lucide-react';
+import { Screen } from '../types';
+import { getUserXP, getUserId, getXPLedger, formatXPEvent, getDailyStats } from '../services/xpService';
 import { Logo } from '../components/Logo';
-import { CONFIG } from '../services/configService';
 
 interface ProfileScreenProps {
     onNavigate: (screen: Screen) => void;
 }
 
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
-    const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);
-    const [selectedBadge, setSelectedBadge] = useState<BadgeType | null>(null);
     const [userStats, setUserStats] = useState({ 
       streak: 0, 
       xp: 0, 
@@ -27,36 +20,52 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
       nextLevelXp: 1000
     });
     const [ledger, setLedger] = useState<any[]>([]);
-    const [profileName, setProfileName] = useState(localStorage.getItem('hellobrick_profile_name') || 'Builder');
-    const [badges, setBadges] = useState<BadgeType[]>([]);
-    const [achievements, setAchievements] = useState<Achievement[]>([]);
-    const [profileImage, setProfileImage] = useState<string>(localStorage.getItem('hellobrick_profile_image') || '');
+    
+    // We only access these values for rendering now
+    const profileName = localStorage.getItem('hellobrick_profile_name') || 'Builder';
+    const profileImage = localStorage.getItem('hellobrick_profile_image') || '';
 
     useEffect(() => {
         const loadUserData = async () => {
             try {
                 const userId = getUserId();
                 const xpData = await getUserXP(userId);
-                const stats = await getUserStats(userId);
+                const stats = await getDailyStats(userId);
                 
+                // Progressive level thresholds — attainable early on
+                const levelThresholds = [0, 50, 150, 300, 500, 800, 1200, 1800, 2500, 3500, 5000, 7000, 10000, 15000, 20000, 30000, 50000];
+                const xp = xpData.xp_total || 0;
+                let level = 1;
+                let xpForCurrentLevel = 0;
+                let xpForNextLevel = 50;
+                for (let i = 1; i < levelThresholds.length; i++) {
+                  if (xp >= levelThresholds[i]) {
+                    level = i + 1;
+                    xpForCurrentLevel = levelThresholds[i];
+                    xpForNextLevel = (i + 1 < levelThresholds.length) ? levelThresholds[i + 1] : levelThresholds[i] + 10000;
+                  }
+                }
+                const xpInLevel = xp - xpForCurrentLevel;
+                const xpNeeded = xpForNextLevel - xpForCurrentLevel;
+
                 let league = 'Bronze';
-                if (xpData.xp_total > 50000) league = 'Diamond';
-                else if (xpData.xp_total > 25000) league = 'Platinum';
-                else if (xpData.xp_total > 10000) league = 'Gold';
-                else if (xpData.xp_total > 5000) league = 'Silver';
+                if (xp >= 10000) league = 'Diamond';
+                else if (xp >= 5000) league = 'Platinum';
+                else if (xp >= 2000) league = 'Gold';
+                else if (xp >= 500) league = 'Silver';
 
                 setUserStats({
                     streak: stats.streak || 0,
-                    xp: xpData.xp_total || 0,
-                    todayXp: xpData.xp_today || 0,
+                    xp: xp,
+                    todayXp: xpData.today_xp || 0,
                     setsCompleted: stats.setsCompleted || 0,
-                    level: xpData.level || 1,
+                    level: level,
                     league: league,
-                    xpInLevel: xpData.xp_current_level || 0,
-                    nextLevelXp: xpData.xp_to_next || 1000
+                    xpInLevel: xpInLevel,
+                    nextLevelXp: xpNeeded
                 });
 
-                const ledgerData = getXPLedger();
+                const ledgerData = await getXPLedger(userId);
                 setLedger(ledgerData.slice(0, 5));
             } catch (err) {
                 console.error('Failed to load profile data:', err);
@@ -67,7 +76,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
     }, []);
 
     return (
-        <div className="flex flex-col h-screen bg-[#050A18] font-sans text-white relative overflow-hidden">
+        <div className="flex flex-col h-full bg-[#050A18] font-sans text-white relative overflow-hidden">
             <div className="fixed top-0 left-0 right-0 h-64 bg-gradient-to-b from-blue-600/5 via-blue-500/0 to-transparent pointer-events-none z-0" />
 
             {/* Header */}
@@ -84,7 +93,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
                 </button>
             </div>
 
-            <div className="relative z-10 flex-1 overflow-y-auto no-scrollbar overscroll-contain pb-[max(env(safe-area-inset-bottom),140px)]">
+            <div className="relative z-10 flex-1 overflow-y-auto no-scrollbar overscroll-contain pb-[max(env(safe-area-inset-bottom),180px)] touch-pan-y">
                 {/* Profile Hero */}
                 <div className="px-6 pt-10 pb-8 flex flex-col items-center">
                     <div className="w-24 h-24 rounded-[32px] bg-gradient-to-br from-orange-500 to-orange-600 p-1 shadow-2xl shadow-orange-500/20 relative group">
@@ -151,6 +160,36 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
                     </div>
                 </div>
 
+                {/* Quick Actions — Train AI & Leaderboard */}
+                <div className="px-6 mb-10 space-y-3">
+                    <button 
+                      onClick={() => onNavigate(Screen.TRAINING)}
+                      className="w-full p-5 bg-white/5 rounded-[28px] border border-white/10 flex items-center gap-4 active:scale-[0.98] transition-all hover:bg-white/10"
+                    >
+                        <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center">
+                            <Zap className="w-6 h-6 text-emerald-400" />
+                        </div>
+                        <div className="text-left flex-1">
+                            <p className="text-sm font-black text-white uppercase tracking-widest">Train Your AI</p>
+                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Help improve brick detection</p>
+                        </div>
+                        <Activity className="w-5 h-5 text-slate-600" />
+                    </button>
+                    <button 
+                      onClick={() => onNavigate(Screen.LEADERBOARD)}
+                      className="w-full p-5 bg-white/5 rounded-[28px] border border-white/10 flex items-center gap-4 active:scale-[0.98] transition-all hover:bg-white/10"
+                    >
+                        <div className="w-12 h-12 bg-yellow-500/10 rounded-2xl flex items-center justify-center">
+                            <Trophy className="w-6 h-6 text-yellow-400" />
+                        </div>
+                        <div className="text-left flex-1">
+                            <p className="text-sm font-black text-white uppercase tracking-widest">Leaderboard</p>
+                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">See where you rank globally</p>
+                        </div>
+                        <Star className="w-5 h-5 text-slate-600" />
+                    </button>
+                </div>
+
                 {/* Recent Activity */}
                 <div className="px-6">
                     <div className="flex items-center justify-between mb-6 px-2">
@@ -174,6 +213,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
                                 </div>
                             </div>
                         ))}
+                        {ledger.length === 0 && (
+                            <div className="text-center py-8 text-slate-600">
+                                <p className="text-[10px] font-black uppercase tracking-widest">No activity yet</p>
+                                <p className="text-[10px] font-bold mt-1">Start scanning bricks to earn XP!</p>
+                            </div>
+                        )}
                     </div>
                     <button 
                       onClick={() => onNavigate(Screen.REWARDS)}
@@ -182,7 +227,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
                       View All Activity
                     </button>
                     <div className="mt-12 text-center">
-                        <p className="text-[10px] font-black text-slate-700 uppercase tracking-[0.2em]">HelloBrick v1.4.0</p>
+                        <p className="text-[10px] font-black text-slate-700 uppercase tracking-[0.2em]">HelloBrick v1.6.1</p>
                     </div>
                 </div>
             </div>

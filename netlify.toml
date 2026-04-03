@@ -1,7 +1,21 @@
 [build]
   base = "website/react-landing"
   publish = "dist"
-  command = "npm install && npm run build"
+  command = "npm run build"
+  environment = { NODE_VERSION = "20" }
+
+[[redirects]]
+  # API Proxying - Specific to General
+  from = "/api/auth/*"
+  to = "http://174.138.93.172:3007/api/auth/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/user/*"
+  to = "http://174.138.93.172:3007/api/user/:splat"
+  status = 200
+  force = true
 
 [[redirects]]
   from = "/api/detect"
@@ -23,7 +37,7 @@
 
 [[redirects]]
   # Support Single Page Application (SPA) routing: 
-  # Redirect all requests to index.html if the file doesn't exist
+  # Redirect all non-file requests to index.html
   from = "/*"
   to = "/index.html"
   status = 200

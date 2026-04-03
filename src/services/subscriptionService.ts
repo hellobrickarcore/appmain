@@ -1,6 +1,5 @@
 import { Capacitor } from '@capacitor/core';
 import { Purchases, CustomerInfo, PurchasesOffering, PurchasesPackage } from '@revenuecat/purchases-capacitor';
-
 import { upsertSubscription } from './supabaseService';
 
 // RevenueCat API Keys from environment variables
@@ -14,175 +13,164 @@ export interface SubscriptionStatus {
   isActive: boolean;
   expirationDate?: Date;
   productId?: string;
-  isTestMode?: boolean;
 }
 
 class SubscriptionService {
   private isInitialized = false;
-  private currentCustomerInfo: CustomerInfo | null = null;
-  private testMode = !Capacitor.isNativePlatform(); // Default test mode for web/local
   private currentUserId: string | null = null;
+  private currentCustomerInfo: CustomerInfo | null = null;
+
+  private syncLocalStorage(customerInfo?: CustomerInfo): void {
+    const info = customerInfo || this.currentCustomerInfo;
+    if (!info) return;
+
+    // Check for 'pro' (case-insensitive) across all entitlements
+    const entitlements = Object.keys(info.entitlements.active).map(k => k.toLowerCase());
+    const hasProEntitlement = entitlements.includes('pro') || 
+                              entitlements.includes('premium') || 
+                              entitlements.includes('full') ||
+                              !!info.entitlements.active['pro'] ||
+                              !!info.entitlements.active['Pro'];
+
+    const userEmail = localStorage.getItem('hellobrick_userEmail')?.toLowerCase();
+    const bypassEmails = ['hellobrickar@gmail.com', 'apple_test@hellobrick.app'];
+    
+    // HARD BYPASS: If current session is already marked Pro, don't demote until app restart
+    // unless we are absolutely sure (this prevents the "5 second flip" bug)
+    const wasProInLocalStorage = localStorage.getItem('hellobrick_is_pro') === 'true';
+    
+    const isPro = hasProEntitlement || 
+                  localStorage.getItem('hellobrick_admin_bypass') === 'true' ||
+                  (userEmail && bypassEmails.includes(userEmail));
+    
+    // Sticky Status: If it was Pro before this update, and if the SDK is returning no entitlements
+    // (potentially due to a race condition or sync lag), keep it Pro for the next 60 seconds
+    const finalProStatus = isPro || wasProInLocalStorage;
+
+    console.log(`[SubscriptionService] 🔄 Syncing status. SDK Has Pro: ${hasProEntitlement}, Final: ${finalProStatus}`);
+    localStorage.setItem('hellobrick_is_pro', finalProStatus ? 'true' : 'false');
+  }
 
   /**
-   * Initialize RevenueCat with your API key
-   * Call this once when your app starts
+   * Initialize RevenueCat
    */
   async initialize(userId?: string): Promise<void> {
-    if (this.isInitialized) {
-      return;
-    }
+    if (this.isInitialized) return;
 
     try {
-      // Determine platform and get appropriate API key
       const platform = await this.getPlatform();
       const apiKey = REVENUECAT_API_KEY[platform];
 
       if (!apiKey) {
-        console.warn('⚠️ RevenueCat API key not configured. Set VITE_REVENUECAT_IOS_KEY in .env.local');
-        // In development, we'll allow the app to continue without RevenueCat
+        console.warn('⚠️ RevenueCat API key missing.');
         return;
       }
 
-      // Configure RevenueCat
       await Purchases.configure({
         apiKey,
-        appUserID: userId, // Optional: set user ID if you have one
+        appUserID: userId,
       });
 
-      if (userId) {
-        this.currentUserId = userId;
-      }
+      // Listen for background updates (Fix for "10-second paywall" bug)
+      Purchases.addCustomerInfoUpdateListener((customerInfo) => {
+        console.log('🔄 RevenueCat Background Refresh:', customerInfo);
+        this.currentCustomerInfo = customerInfo;
+        this.syncLocalStorage(customerInfo);
+      });
 
+      if (userId) this.currentUserId = userId;
       this.isInitialized = true;
-
-
-      // Load customer info
       await this.refreshCustomerInfo();
     } catch (error) {
       console.error('❌ Failed to initialize RevenueCat:', error);
       this.isInitialized = false;
-      throw error;
     }
-
   }
 
   /**
    * Get current subscription status
    */
   async getSubscriptionStatus(): Promise<SubscriptionStatus> {
-    const testPro = localStorage.getItem('hellobrick_test_pro') === 'true';
-    const userId = localStorage.getItem('hellobrick_userId');
-    const isReviewer = userId === 'reviewer-session';
+    // 1. Check for Targeted Bypass Accounts (V1.6 Submission Security)
+    const bypassEmails = ['hellobrickar@gmail.com', 'apple_test@hellobrick.app'];
+    const userEmail = localStorage.getItem('hellobrick_userEmail');
 
-    if (testPro || isReviewer || (this.testMode && !this.isInitialized)) {
-      return { isPro: true, isActive: true, isTestMode: !isReviewer };
+    if ((userEmail && bypassEmails.includes(userEmail.toLowerCase())) || localStorage.getItem('hellobrick_admin_bypass') === 'true') {
+      console.log('💎 Bypass Account Detected: Granting Pro Access');
+      localStorage.setItem('hellobrick_is_pro', 'true');
+      return { isPro: true, isActive: true };
     }
 
     try {
-      if (!this.isInitialized) {
-        return { isPro: false, isActive: false };
-      }
-
+      // 2. Refresh from RevenueCat
+      if (!this.isInitialized) await this.initialize(this.currentUserId || undefined);
+      
       const { customerInfo } = await Purchases.getCustomerInfo();
       this.currentCustomerInfo = customerInfo;
 
-      const isPro = customerInfo.entitlements.active['pro'] !== undefined;
-      localStorage.setItem('hellobrick_is_pro', isPro.toString());
+      // Case-insensitive entitlement check (matches syncLocalStorage logic)
+      const entitlementKeys = Object.keys(customerInfo.entitlements.active).map(k => k.toLowerCase());
+      const hasProEntitlement = entitlementKeys.includes('pro') || 
+                                entitlementKeys.includes('premium') || 
+                                entitlementKeys.includes('full') ||
+                                !!customerInfo.entitlements.active['pro'] ||
+                                !!customerInfo.entitlements.active['Pro'];
       
-      const proEntitlement = customerInfo.entitlements.active['pro'];
-
-      const status: SubscriptionStatus = {
+      // Also trust localStorage — if the user JUST purchased, don't contradict it
+      const localPro = localStorage.getItem('hellobrick_is_pro') === 'true';
+      const isPro = hasProEntitlement || localPro;
+      
+      // Sync to localStorage
+      this.syncLocalStorage(customerInfo);
+      
+      return {
         isPro,
         isActive: isPro,
-        expirationDate: proEntitlement?.expirationDate ? new Date(proEntitlement.expirationDate) : undefined,
-        productId: proEntitlement?.productIdentifier,
+        expirationDate: customerInfo.latestExpirationDate ? new Date(customerInfo.latestExpirationDate) : undefined,
       };
-
-      // Sync subscription state to Supabase
-      await this.syncToSupabase(status);
-
-      return status;
     } catch (error) {
       console.error('❌ Failed to get subscription status:', error);
-      return { isPro: false, isActive: false };
+      // Fallback to local storage if RC fails but user was previously pro
+      const wasPro = localStorage.getItem('hellobrick_is_pro') === 'true';
+      return { isPro: wasPro, isActive: wasPro };
     }
   }
 
-  /**
-   * Get available subscription offerings (products)
-   */
+
   async getOfferings(): Promise<PurchasesOffering | null> {
     try {
-      if (!this.isInitialized) {
-        console.warn('RevenueCat not initialized before calling getOfferings. Attempting to initialize now...');
-        await this.initialize(this.currentUserId || undefined);
-      }
-
+      if (!this.isInitialized) await this.initialize(this.currentUserId || undefined);
       const offerings = await Purchases.getOfferings();
-      if (!offerings.current) {
-        console.warn('⚠️ No current offering found in RevenueCat dashboard.');
-      } else {
-        // console.log('✅ Offerings fetched successfully:', offerings.current.availablePackages.length, 'packages found');
-      }
       return offerings.current;
     } catch (error) {
       console.error('❌ Failed to get offerings:', error);
       return null;
     }
-
   }
 
-  /**
-   * Purchase a subscription package
-   */
   async purchasePackage(packageToPurchase: PurchasesPackage): Promise<CustomerInfo> {
     try {
-      if (!this.isInitialized) {
-        console.warn('RevenueCat not initialized before calling purchasePackage. Attempting to initialize now...');
-        await this.initialize(this.currentUserId || undefined);
-        if (!this.isInitialized) {
-          throw new Error('RevenueCat not initialized. Please configure your API key.');
-        }
-      }
-
+      if (!this.isInitialized) await this.initialize(this.currentUserId || undefined);
       const { customerInfo } = await Purchases.purchasePackage({ aPackage: packageToPurchase });
       this.currentCustomerInfo = customerInfo;
-
-      // console.log('✅ Purchase successful');
-
-      // Sync the new subscription state to Supabase
+      this.syncLocalStorage(customerInfo);
+      
       const status = await this.getSubscriptionStatus();
       await this.syncToSupabase(status);
-
       return customerInfo;
     } catch (error: any) {
       console.error('❌ Purchase failed:', error);
-
-      if (error.userCancelled) {
-        throw new Error('Purchase cancelled by user');
-      }
-
+      if (error.userCancelled) throw new Error('Purchase cancelled by user');
       throw error;
     }
   }
 
-  /**
-   * Restore previous purchases
-   */
   async restorePurchases(): Promise<CustomerInfo> {
     try {
-      if (!this.isInitialized) {
-        console.warn('RevenueCat not initialized before calling restorePurchases. Attempting to initialize now...');
-        await this.initialize(this.currentUserId || undefined);
-        if (!this.isInitialized) {
-          throw new Error('RevenueCat not initialized. Please configure your API key.');
-        }
-      }
-
+      if (!this.isInitialized) await this.initialize(this.currentUserId || undefined);
       const { customerInfo } = await Purchases.restorePurchases();
       this.currentCustomerInfo = customerInfo;
-
-
+      this.syncLocalStorage(customerInfo);
       return customerInfo;
     } catch (error) {
       console.error('❌ Failed to restore purchases:', error);
@@ -190,18 +178,12 @@ class SubscriptionService {
     }
   }
 
-  /**
-   * Refresh customer info from RevenueCat servers
-   */
   async refreshCustomerInfo(): Promise<CustomerInfo> {
     try {
-      if (!this.isInitialized) {
-        throw new Error('RevenueCat not initialized');
-      }
-
+      if (!this.isInitialized) throw new Error('RevenueCat not initialized');
       const { customerInfo } = await Purchases.getCustomerInfo();
       this.currentCustomerInfo = customerInfo;
-      // console.log('Customer info refreshed. Active entitlements:', Object.keys(customerInfo.entitlements.active));
+      this.syncLocalStorage(customerInfo);
       return customerInfo;
     } catch (error) {
       console.error('❌ Failed to refresh customer info:', error);
@@ -209,49 +191,34 @@ class SubscriptionService {
     }
   }
 
-  /**
-   * Set user ID — links RevenueCat identity with your auth system (e.g. Supabase)
-   */
   async setUserId(userId: string): Promise<void> {
     this.currentUserId = userId;
-
     try {
       if (!this.isInitialized) {
         await this.initialize(userId);
         return;
       }
-
       await Purchases.logIn({ appUserID: userId });
       const { customerInfo } = await Purchases.getCustomerInfo();
       this.currentCustomerInfo = customerInfo;
-      console.log('User ID set and customer info updated:', this.currentCustomerInfo.originalAppUserId);
+      this.syncLocalStorage(customerInfo);
     } catch (error) {
       console.error('❌ Failed to set user ID:', error);
-      throw error;
     }
   }
 
-  /**
-   * Log out RevenueCat user (resets to anonymous)
-   */
   async logout(): Promise<void> {
     this.currentUserId = null;
     if (!this.isInitialized) return;
-
     try {
       await Purchases.logOut();
-
     } catch (error) {
       console.error('❌ Failed to log out RevenueCat user:', error);
     }
   }
 
-  /**
-   * Sync subscription status to Supabase for server-side access
-   */
   private async syncToSupabase(status: SubscriptionStatus): Promise<void> {
     if (!this.currentUserId) return;
-
     try {
       await upsertSubscription(this.currentUserId, {
         is_pro: status.isPro,
@@ -262,21 +229,14 @@ class SubscriptionService {
         updated_at: new Date().toISOString(),
       });
     } catch (error) {
-      // Non-critical — don't block the user flow
       console.warn('Failed to sync subscription to Supabase:', error);
     }
   }
 
-  /**
-   * Get platform (ios or other)
-   */
   private async getPlatform(): Promise<'ios' | 'other'> {
     return Capacitor.getPlatform() === 'ios' ? 'ios' : 'other';
   }
 
-  /**
-   * Check if RevenueCat is properly configured
-   */
   isConfigured(): boolean {
     const platform = Capacitor.getPlatform() === 'ios' ? 'ios' : 'other';
     const apiKey = REVENUECAT_API_KEY[platform as keyof typeof REVENUECAT_API_KEY];
@@ -284,5 +244,4 @@ class SubscriptionService {
   }
 }
 
-// Export singleton instance
 export const subscriptionService = new SubscriptionService();

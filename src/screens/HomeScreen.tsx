@@ -37,16 +37,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
         <div className="flex flex-col h-full bg-[#050A18] font-sans overflow-hidden">
             <TopBar currentScreen={Screen.HOME} onNavigate={onNavigate} />
             
-            {localStorage.getItem('hellobrick_is_pro') === 'true' && (
-                <div className="flex justify-center -mt-2 mb-4 relative z-50">
-                    <div className="bg-white/5 backdrop-blur-md px-4 py-1.5 rounded-xl border border-amber-500/30 shadow-lg shadow-amber-500/5 flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                        <span className="text-[11px] font-black uppercase tracking-wider text-white">
-                            Hello<span className="text-[#FF7A30]">Brick</span> <span className="text-amber-500">Pro</span>
-                        </span>
-                    </div>
-                </div>
-            )}
+
 
             <div className="relative z-40">
                 <LobbyNotification onJoin={handleJoinGame} />
@@ -134,25 +125,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
                         <ChevronRight className="w-5 h-5 text-slate-700" />
                     </button>
 
-                    {/* How to Scan Section */}
-                    <button
-                        onClick={() => onNavigate(Screen.HOW_TO_SCAN)}
-                        className="col-span-2 bg-gradient-to-r from-emerald-500/10 to-emerald-500/5 p-6 rounded-[28px] border border-emerald-500/20 flex items-center justify-between active:scale-[0.98] transition-all"
-                    >
-                        <div className="flex items-center gap-5">
-                            <div className="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400">
-                                <ScanLine className="w-6 h-6" />
-                            </div>
-                            <div className="text-left">
-                                <h3 className="font-bold text-white text-lg leading-none">Pro Tips</h3>
-                                <p className="text-xs text-emerald-500/60 mt-1.5 font-bold">Master the art of the perfect scan</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-1 text-emerald-400">
-                            <span className="text-[10px] font-black uppercase tracking-wider">Start</span>
-                            <ChevronRight className="w-4 h-4" />
-                        </div>
-                    </button>
 
                     {/* Train the AI Section */}
                     <button

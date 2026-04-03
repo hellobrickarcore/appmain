@@ -1,9 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-<<<<<<< HEAD
 import { Users, Handshake, Zap, ChevronLeft, Sparkles } from 'lucide-react';
-=======
-import { Users, ShieldCheck, Zap, ChevronLeft, Sparkles } from 'lucide-react';
->>>>>>> 7ac4433 (feat: hellobrick v1.4.0 - CV pipeline upgrade & SEO expansion)
 import { Screen, GameModeId } from '../types';
 import { multiplayerService, Lobby } from '../services/multiplayerService';
 import { getCurrentUser } from '../services/supabaseService';

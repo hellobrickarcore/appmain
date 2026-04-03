@@ -40,6 +40,10 @@ web/.next/
 **/.next/
 out/
 
-# 5. Whitelist everything else
+# 5. Tool Specific Configurations
+.claude/settings.local.json
+.claude/hooks.local.json
+
+# 6. Whitelist everything else
 # (Git includes by default unless ignored above)
 dist/

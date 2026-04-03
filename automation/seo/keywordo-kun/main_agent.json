@@ -1,0 +1,64 @@
+{
+  "name": "Articollo Agent - Keywordo-kun",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0d95f36f-5e06-4c33-b781-bb7219797386",
+              "name": "firecrawl_api_key",
+              "value": "<<YOUR API KEY>>",
+              "type": "string"
+            },
+            {
+              "id": "8c50130c-d388-4bee-8f89-0de9df0ffd11",
+              "name": "Message",
+              "value": "={{ $json.Message || $json.content.parts[0].text }}",
+              "type": "string"
+            },
+            {
+              "id": "983616ae-b2d4-45f6-a1b7-b28586725d1e",
+              "name": "cf_connecting_ip",
+              "value": "={{ $('Webhook').first().json.headers['cf-connecting-ip'] }}",
+              "type": "string"
+            },
+            {
+              "id": "5a1e610c-b197-4e66-bf4d-1df3a55b302f",
+              "name": "country",
+              "value": "={{ $('Webhook').item.json.body.country }}",
+              "type": "string"
+            },
+            {
+              "id": "edeecdd9-6300-41d5-a418-11584e32da46",
+              "name": "language",
+              "value": "={{ $('Webhook').item.json.body.language }}",
+              "type": "string"
+            },
+            {
+              "id": "2e30846d-56fc-48fb-91c9-e9569c0d2c5f",
+              "name": "dataforseo_language_code",
+              "value": "={{ $('Code').item.json.language_code }}",
+              "type": "string"
+            },
+            {
+              "id": "5a571335-7364-4930-a103-29d15ee74c95",
+              "name": "dataforseo_location_code",
+              "value": "={{ $('Code').item.json.location_code }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        864,
+        -64
+      ],
+      "id": "b8601b95-a298-484c-aa16-0a9ebfaaedac",
+      "name": "🦺 Set Data"
+    }
+  ]
+}

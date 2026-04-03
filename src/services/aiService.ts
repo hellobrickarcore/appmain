@@ -4,7 +4,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
  * AI Service - Centralized LLM Configuration
  */
 
-export const GEMINI_TEXT_MODEL = "gemini-1.5-flash";
+export const GEMINI_TEXT_MODEL = "gemini-2.0-flash";
 export const GEMINI_API_VERSION = "v1beta";
 
 /**

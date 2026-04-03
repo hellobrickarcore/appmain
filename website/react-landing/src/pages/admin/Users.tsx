@@ -36,11 +36,11 @@ export const Users: React.FC = () => {
         const profileIds = new Set(userList.map(p => p.id));
         
         collectionUserIds.forEach(id => {
-          if (!profileIds.has(id)) {
+          if (!profileIds.has(id) && id !== 'anonymous' && id !== 'undefined' && id !== 'null') {
             userList.push({
               id,
-              email: id.includes('@') ? id : 'anonymous@hellobrick.app',
-              display_name: 'Anonymous Builder',
+              email: id.includes('@') ? id : 'unregistered-builder@hellobrick.app',
+              display_name: 'Unregistered Builder',
               created_at: new Date().toISOString(),
               is_pro: false
             });

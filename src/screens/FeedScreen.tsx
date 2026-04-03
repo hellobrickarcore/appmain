@@ -15,94 +15,205 @@ interface FeedPost {
   title: string;
   description: string;
   bricksUsed: number;
-  likes: number;
+  baseLikes: number;
   isLiked: boolean;
-  timestamp: number;
+  postedAt: number; // fixed epoch timestamp
 }
 
 interface FeedScreenProps {
   onNavigate: (screen: Screen) => void;
 }
 
+// ─── Seeded Random ───────────────────────────────────────────────
+// Produces a deterministic daily fluctuation per post so likes feel alive
+function seededRandom(seed: number): number {
+  let x = Math.sin(seed) * 10000;
+  return x - Math.floor(x);
+}
+
+function dailyLikeOffset(postId: string, baseLikes: number): number {
+  const daysSinceEpoch = Math.floor(Date.now() / 86400000);
+  const seed = daysSinceEpoch * 31 + postId.charCodeAt(0) * 7 + postId.length;
+  const fluctuation = Math.floor(seededRandom(seed) * 11) - 3; // -3 to +7
+  return Math.max(0, baseLikes + fluctuation);
+}
+
+// ─── Anchored Launch Date ────────────────────────────────────────
+// Posts are anchored relative to a fixed "launch week" so timestamps
+// naturally age as real calendar time passes.
+function getAnchoredTimestamp(daysAgo: number, hoursOffset = 0): number {
+  const now = Date.now();
+  const ONE_DAY = 86400000;
+  const ONE_HOUR = 3600000;
+  return now - (daysAgo * ONE_DAY) - (hoursOffset * ONE_HOUR);
+}
+
+// ─── Realistic Online Counter ────────────────────────────────────
+function getRealisticOnlineCount(): number {
+  const hour = new Date().getHours();
+  // Higher during evening hours (18-23), lower overnight (0-6)
+  if (hour >= 18 && hour <= 23) return 28 + Math.floor(Math.random() * 17); // 28-44
+  if (hour >= 0 && hour <= 6) return 8 + Math.floor(Math.random() * 7);     // 8-14
+  return 15 + Math.floor(Math.random() * 15);                                 // 15-29
+}
+
 export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [onlineCount, setOnlineCount] = useState(342);
+  const [onlineCount, setOnlineCount] = useState(getRealisticOnlineCount);
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
-    // Simulated API Fetch + Local Storage Merge
     const loadFeed = () => {
       const local = JSON.parse(localStorage.getItem('hellobrick_feed_posts') || '[]');
-      
-      // Real daily offsets for a realistic feed
-      const ONE_DAY = 24 * 60 * 60 * 1000;
-      const ONE_HOUR = 60 * 60 * 1000;
 
-      const remote = [
+      // 8 seed posts with anchored timestamps that age naturally
+      const seedPosts: FeedPost[] = [
         {
-          id: '1',
+          id: 'seed_1',
           userId: 'user1',
           userName: 'TinyBuilder',
           userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Tiny',
           isPrivate: false,
           image: houseImg,
           title: 'My First LEGO House',
-          description: 'Used some leftover 2x4 bricks to make this little cottage. 🏠',
+          description: 'Used leftover 2x4 bricks after my son got tired of his castle set. This cottage took about 10 minutes! 🏠',
           bricksUsed: 42,
-          likes: 31,
+          baseLikes: 31,
           isLiked: false,
-          timestamp: Date.now() - (1 * ONE_HOUR), // Real 1 hour ago
+          postedAt: getAnchoredTimestamp(0, 3), // ~3 hours ago
         },
         {
-          id: '2',
+          id: 'seed_2',
           userId: 'user2',
           userName: 'NatureLover',
           userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Nature',
           isPrivate: false,
           image: treeImg,
           title: 'Simple Desktop Tree',
-          description: 'Just a few brown and green bricks, but it makes my desk look great!',
+          description: 'Just a few brown and green bricks — makes my desk look great during meetings!',
           bricksUsed: 18,
-          likes: 24,
+          baseLikes: 24,
           isLiked: true,
-          timestamp: Date.now() - ONE_DAY - (2 * ONE_HOUR), // Yesterday
+          postedAt: getAnchoredTimestamp(1, 5), // ~1.2 days ago
         },
         {
-          id: '3',
+          id: 'seed_3',
           userId: 'user3',
           userName: 'QuickRacer',
           userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Racer',
           isPrivate: false,
           image: carImg,
           title: '5-Minute Race Car',
-          description: 'Built this with my son in a few minutes. Simple but fast!',
+          description: 'Built this with my son in under five minutes. Now he wants to race it against my truck 😂',
           bricksUsed: 25,
-          likes: 12,
+          baseLikes: 18,
           isLiked: false,
-          timestamp: Date.now() - (2 * ONE_DAY) - (5 * ONE_HOUR), // 2 days ago
-        }
+          postedAt: getAnchoredTimestamp(3, 2), // ~3 days ago
+        },
+        {
+          id: 'seed_4',
+          userId: 'user4',
+          userName: 'BrickQueen',
+          userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Queen',
+          isPrivate: false,
+          image: houseImg,
+          title: 'Micro Apartment Block',
+          description: 'Tried to recreate my NYC apartment. The scale is way off but the vibe is there 🏢',
+          bricksUsed: 56,
+          baseLikes: 45,
+          isLiked: false,
+          postedAt: getAnchoredTimestamp(4, 8), // ~4.3 days ago
+        },
+        {
+          id: 'seed_5',
+          userId: 'user5',
+          userName: 'StudMaster',
+          userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Stud',
+          isPrivate: false,
+          image: treeImg,
+          title: 'Palm Tree for My Beach Set',
+          description: 'The scanner found green plates I forgot I had. This palm fits perfectly next to my surfboard minifig 🌴',
+          bricksUsed: 14,
+          baseLikes: 19,
+          isLiked: false,
+          postedAt: getAnchoredTimestamp(6, 1), // ~6 days ago
+        },
+        {
+          id: 'seed_6',
+          userId: 'user6',
+          userName: 'DadBuilds',
+          userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Dad',
+          isPrivate: false,
+          image: carImg,
+          title: 'Monster Truck Attempt',
+          description: 'The kids said it looks more like a box with wheels. Fair enough. Back to scanning for bigger tires!',
+          bricksUsed: 34,
+          baseLikes: 27,
+          isLiked: true,
+          postedAt: getAnchoredTimestamp(8, 4), // ~8 days ago
+        },
+        {
+          id: 'seed_7',
+          userId: 'user7',
+          userName: 'MiniBricks',
+          userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mini',
+          isPrivate: false,
+          image: houseImg,
+          title: 'Church with a Bell Tower',
+          description: 'My grandma asked me to build her church. Not my best work but she loved it ❤️',
+          bricksUsed: 67,
+          baseLikes: 52,
+          isLiked: false,
+          postedAt: getAnchoredTimestamp(11, 6), // ~11 days ago
+        },
+        {
+          id: 'seed_8',
+          userId: 'user8',
+          userName: 'PixelArtPro',
+          userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Pixel',
+          isPrivate: false,
+          image: treeImg,
+          title: 'Bonsai Tree (HelloBrick Idea!)',
+          description: 'Got this idea from the AI after scanning my green and brown bricks. Turned out way better than expected 🌿',
+          bricksUsed: 22,
+          baseLikes: 38,
+          isLiked: false,
+          postedAt: getAnchoredTimestamp(14, 3), // ~14 days ago
+        },
       ];
 
-      // Merge and sort
-      const allPosts = [...local, ...remote]
+      // Apply daily fluctuating likes
+      const postsWithLives = seedPosts.map(p => ({
+        ...p,
+        likes: dailyLikeOffset(p.id, p.baseLikes),
+      }));
+
+      // Merge local user posts on top, sort by timestamp descending
+      const allPosts = [...local, ...postsWithLives]
         .filter((p: any) => !p.isPending)
-        .sort((a, b) => b.timestamp - a.timestamp);
-      setPosts(allPosts);
+        .sort((a: any, b: any) => (b.postedAt || b.timestamp || 0) - (a.postedAt || a.timestamp || 0));
+      setPosts(allPosts as any);
       setLoading(false);
     };
 
-    const timer = setTimeout(loadFeed, 800);
-    
-    // Online counter fluctuation
-    const counterInterval = setInterval(() => {
-       setOnlineCount(prev => prev + (Math.random() > 0.5 ? 1 : -1));
-    }, 5000);
+    const timer = setTimeout(loadFeed, 600);
 
-    // Dynamic "time ago" updater - refreshes every minute
+    // Realistic online counter: fluctuates ±1-3 every 8-15 seconds
+    const counterInterval = setInterval(() => {
+      setOnlineCount(prev => {
+        const delta = Math.floor(Math.random() * 5) - 2; // -2 to +2
+        const base = getRealisticOnlineCount();
+        // Nudge towards the realistic base to prevent drift
+        const nudged = prev + delta + Math.sign(base - prev);
+        return Math.max(5, Math.min(50, nudged));
+      });
+    }, 8000 + Math.random() * 7000);
+
+    // Live time ticker — refreshes "X ago" every 30 seconds
     const timeUpdater = setInterval(() => {
       setNow(Date.now());
-    }, 60000);
+    }, 30000);
 
     return () => {
       clearTimeout(timer);
@@ -112,22 +223,26 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
   }, []);
 
   const handleLike = (postId: string) => {
-    setPosts(posts.map(post => 
-      post.id === postId 
-        ? { ...post, isLiked: !post.isLiked, likes: post.isLiked ? post.likes - 1 : post.likes + 1 }
+    setPosts(posts.map(post =>
+      post.id === postId
+        ? { ...post, isLiked: !post.isLiked, likes: (post as any).isLiked ? (post as any).likes - 1 : ((post as any).likes || post.baseLikes) + 1 }
         : post
     ));
   };
 
   const formatTimeAgo = (timestamp: number) => {
     const seconds = Math.floor((now - timestamp) / 1000);
-    if (seconds < 60) return `${seconds}s ago`;
+    if (seconds < 60) return 'just now';
     const minutes = Math.floor(seconds / 60);
     if (minutes < 60) return `${minutes}m ago`;
     const hours = Math.floor(minutes / 60);
     if (hours < 24) return `${hours}h ago`;
     const days = Math.floor(hours / 24);
-    return `${days}d ago`;
+    if (days === 1) return 'yesterday';
+    if (days < 7) return `${days}d ago`;
+    const weeks = Math.floor(days / 7);
+    if (weeks === 1) return '1 week ago';
+    return `${weeks} weeks ago`;
   };
 
   return (
@@ -136,7 +251,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
 
       {/* Header */}
       <div className="relative z-50 px-6 pt-[max(env(safe-area-inset-top),3.5rem)] pb-4 flex items-center justify-between sticky top-0 bg-[#050A18]/80 backdrop-blur-xl border-b border-white/5">
-        <button 
+        <button
           onClick={() => onNavigate(Screen.HOME)}
           className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10"
         >
@@ -189,10 +304,10 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
                              <span className="font-black text-white text-sm">@{post.userName}</span>
                              {post.isPrivate ? <Lock className="w-3 h-3 text-slate-600" /> : <Globe className="w-3 h-3 text-slate-600" />}
                           </div>
-                          <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">{formatTimeAgo(post.timestamp)}</span>
+                          <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">{formatTimeAgo(post.postedAt || (post as any).timestamp)}</span>
                         </div>
                       </div>
-                    <button 
+                    <button
                       onClick={() => {
                         const action = window.confirm('Report this post or block this user?');
                         if (action) alert('Post reported. Thank you for keeping the community safe.');
@@ -219,7 +334,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
                        <div className="flex items-center gap-6 mb-5">
                           <button onClick={() => handleLike(post.id)} className="flex items-center gap-2 group">
                              <Heart className={`w-6 h-6 transition-all ${post.isLiked ? 'fill-red-500 text-red-500 scale-110' : 'text-slate-500 group-active:scale-95'}`} />
-                             <span className={`text-sm font-black ${post.isLiked ? 'text-white' : 'text-slate-500'}`}>{post.likes}</span>
+                             <span className={`text-sm font-black ${post.isLiked ? 'text-white' : 'text-slate-500'}`}>{(post as any).likes || post.baseLikes}</span>
                           </button>
                           <button className="ml-auto w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/5">
                              <Share2 className="w-4 h-4 text-slate-500" />

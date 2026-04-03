@@ -72,14 +72,16 @@ export const buildIdeaImagePrompt = (idea: { ideaName: string; imagePrompt?: str
   const nBricks = idea.estimatedBrickUse || Math.max(3, Math.min(20, Math.round(vault.totalBricks * 0.6)));
 
   /**
-   * NEW IMAGE PROMPT FORMAT:
-   * “Clean cartoon render of a small LEGO brick build only, built from approximately {N} bricks, 
-   * using only {COLORS}, using only {SIZES}, simple toy build, isolated on plain light background, 
-   * visible interlocking studs, no extra objects, no scenery, no people, no text, build is a {SPECIFIC BUILD}.”
+   * NEW IMAGE PROMPT FORMAT (Phase 28 Vector Style):
+   * “A clean isometric pixel-perfect 2D vector technical drawing of a small LEGO build. 
+   * Highly detailed flat cel-shaded style with black outlines. Solid vibrant colors. 
+   * Pure white background. No text, no fonts, no letters, no extra scenery, no realistic lighting. 
+   * Just a clean architectural drawing of {SPECIFIC BUILD} built from approximately {N} bricks, 
+   * using only {COLORS}, using only {SIZES}.”
    */
   const buildTarget = dynContent.toLowerCase().startsWith('a ') || dynContent.toLowerCase().startsWith('an ') 
     ? dynContent 
     : `a ${dynContent}`;
 
-  return `Clean cartoon render of a small LEGO brick build only, built from approximately ${nBricks} bricks, using only ${colors}, using only ${sizes}, simple toy build, isolated on plain light background, visible interlocking studs, no extra objects, no scenery, no people, no text, build is ${buildTarget}`;
+  return `A clean isometric pixel-perfect 2D vector technical drawing of a small LEGO build. Highly detailed flat cel-shaded style with black outlines. Solid vibrant colors. Pure white background. No text, no fonts, no letters, no extra scenery, no realistic lighting. Just a clean architectural drawing of ${buildTarget} built from approximately ${nBricks} bricks, using only ${colors}, using only ${sizes}.`;
 };
