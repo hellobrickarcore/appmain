@@ -27,7 +27,7 @@ export const Dashboard: React.FC = () => {
   const [isBypassOnly, setIsBypassOnly] = useState(false);
 
   useEffect(() => {
-    console.log('🛡️ ADMIN DASHBOARD: CODE SYNCED AT 2026-03-28 04:10');
+    console.log('🛡️ ADMIN DASHBOARD: V3.0 CLOUD-SYNC VERIFIED AT 2026-04-03 19:30');
     const fetchStats = async () => {
       try {
         if (!supabase) {
@@ -185,7 +185,7 @@ export const Dashboard: React.FC = () => {
     const checkDoBackend = async () => {
       try {
         // Use a relative path or an environment variable for the backend health check
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://174.138.93.172:3003';
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || '/api';
         const resp = await fetch(`${backendUrl}/api/health`);
         if (resp.ok) {
            console.log('✅ BACKEND ONLINE');
