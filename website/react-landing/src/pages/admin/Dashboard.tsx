@@ -186,7 +186,7 @@ export const Dashboard: React.FC = () => {
       try {
         // Use a relative path or an environment variable for the backend health check
         const backendUrl = import.meta.env.VITE_BACKEND_URL || '/api';
-        const resp = await fetch(`${backendUrl}/api/health`);
+        const resp = await fetch(`${backendUrl}/health`);
         if (resp.ok) {
            console.log('✅ BACKEND ONLINE');
         }

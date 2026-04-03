@@ -75,7 +75,7 @@ const App: React.FC = () => {
       <Route path="/admin/login" element={<AdminLogin />} />
 
       {/* Protected Admin Dashboard */}
-      <Route path="/admin" element={<AdminRoute><AdminLayout title="LIVE PRODUCTION HUB (V2.1)"><Dashboard /></AdminLayout></AdminRoute>} />
+      <Route path="/admin" element={<AdminRoute><AdminLayout title="LIVE PRODUCTION HUB (V3.0)"><Dashboard /></AdminLayout></AdminRoute>} />
       <Route path="/admin/scans" element={<AdminRoute><Scans /></AdminRoute>} />
       <Route path="/admin/users" element={<AdminRoute><Users /></AdminRoute>} />
       <Route path="/admin/leaderboard" element={<AdminRoute><Leaderboard /></AdminRoute>} />
