@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
+import { Capacitor } from '@capacitor/core';
 import { Screen, BattleResult, GameModeId } from './types';
 import { HomeScreen } from './screens/HomeScreen';
 import { ScannerScreen } from './screens/ScannerScreen';
@@ -169,8 +170,31 @@ const App: React.FC = () => {
       }
     });
 
+    // 💓 SESSION HEARTBEAT: Keep the Admin "Live Active" light green
+    const recordHeartbeat = async () => {
+      try {
+        const userId = localStorage.getItem('hellobrick_userId') || 'anonymous_mobile';
+        const DO_IP = '174.138.93.172';
+        const heartbeatUrl = `http://${DO_IP}:3003/api/sessions/heartbeat`;
+        
+        await fetch(heartbeatUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId, platform: Capacitor.getPlatform() })
+        });
+        console.log('[Heartbeat] 💓 Ping Success');
+      } catch (err) {
+        // Silent fail for heartbeat
+      }
+    };
+
+    // Initial and Recurring (5 mins)
+    recordHeartbeat();
+    const heartbeatInterval = setInterval(recordHeartbeat, 5 * 60 * 1000);
+
     return () => {
       unsubscribeAuth();
+      clearInterval(heartbeatInterval);
     };
   }, []);
 

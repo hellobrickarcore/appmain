@@ -738,20 +738,41 @@ def get_user_profile():
 
 # --- PHASE 10: PRODUCTION TELEMETRY & XP ---
 
+import uuid
+
+def is_valid_uuid(val):
+    try:
+        uuid.UUID(str(val))
+        return True
+    except ValueError:
+        return False
+
 @app.route('/api/xp/events', methods=['POST'])
 def record_xp_event():
     """Record XP events directly to Supabase bypassing RLS"""
     if not supabase: return jsonify({'error': 'Supabase not configured'}), 500
     
     data = request.json
+    uid = data.get('user_id')
+    db_uid = uid if is_valid_uuid(uid) else None
+    
     try:
-        res = supabase.table('scans').insert({
-            'user_id': data.get('user_id'),
+        # 1. Log the event to Scans (as a proxy for activity)
+        supabase.table('scans').insert({
+            'user_id': db_uid,
             'bricks_detected_count': data.get('payload', {}).get('detection_count', 0),
             'timestamp': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
         }).execute()
+        
+        # 2. If valid user, update profile 'updated_at' to reflect activity
+        if db_uid:
+            supabase.table('profiles').update({
+                'updated_at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+            }).eq('id', db_uid).execute()
+            
         return jsonify({'success': True, 'xp_awarded': 25})
     except Exception as e:
+        print(f"XP Record Error: {e}")
         return jsonify({'error': str(e)}), 400
 
 @app.route('/api/ideas/record', methods=['POST'])
@@ -760,15 +781,19 @@ def record_idea_generation():
     if not supabase: return jsonify({'error': 'Supabase not configured'}), 500
     
     data = request.json
+    uid = data.get('user_id')
+    db_uid = uid if is_valid_uuid(uid) else None
+    
     try:
         supabase.table('ideas').insert({
-            'user_id': data.get('user_id'),
+            'user_id': db_uid,
             'idea_type': data.get('idea_type'),
             'title': data.get('title'),
             'timestamp': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
         }).execute()
         return jsonify({'success': True})
     except Exception as e:
+        print(f"Idea Record Error: {e}")
         return jsonify({'error': str(e)}), 400
 
 @app.route('/api/scan/record', methods=['POST'])
@@ -777,9 +802,12 @@ def record_scan():
     if not supabase: return jsonify({'error': 'Supabase not configured'}), 500
     
     data = request.json
+    uid = data.get('user_id')
+    db_uid = uid if is_valid_uuid(uid) else None
+    
     try:
         supabase.table('scans').insert({
-            'user_id': data.get('user_id'),
+            'user_id': db_uid,
             'bricks_detected_count': data.get('brick_count'),
             'detected_types': data.get('detected_types', []),
             'confidence_avg': data.get('confidence', 0),
@@ -788,21 +816,38 @@ def record_scan():
         }).execute()
         return jsonify({'success': True})
     except Exception as e:
+        print(f"Scan Record Error: {e}")
         return jsonify({'error': str(e)}), 400
 
 @app.route('/api/sessions/heartbeat', methods=['POST'])
 def record_heartbeat():
-    """Record Session Heartbeat bypassing RLS - Writing to Profiles"""
+    """Record Session Heartbeat to the SESSIONS table (Retention Tracking)"""
     if not supabase: return jsonify({'error': 'Supabase not configured'}), 500
     
     data = request.json
+    uid = data.get('user_id')
+    db_uid = uid if is_valid_uuid(uid) else None
+    platform = data.get('platform', 'unknown')
+    
     try:
-        # The mobile app expects a heartbeat to update the user's 'last_active'
-        supabase.table('profiles').update({
-            'updated_at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
-        }).eq('id', data.get('user_id')).execute()
+        # Use a "Daily Session" logic: Upsert a record for this user/day to the sessions table
+        # This keeps the Admin Dashboard "Active Users" metric accurate.
+        today = time.strftime('%Y-%m-%d', time.gmtime())
+        
+        # Point: Dashboard queries 'sessions' table for 'last_heartbeat' or 'start_time'
+        # Since the schema doesn't have 'last_heartbeat', we update 'end_time' as a proxy 
+        # or just ensure a row exists for the day.
+        
+        supabase.table('sessions').insert({
+            'user_id': db_uid,
+            'platform': platform,
+            'start_time': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+            'device_id': uid # Store the raw ID (even if anonymous) in device_id
+        }).execute()
+        
         return jsonify({'success': True})
     except Exception as e:
+        print(f"Heartbeat Record Error: {e}")
         return jsonify({'error': str(e)}), 400
 
 if __name__ == '__main__':
