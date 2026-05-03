@@ -52,6 +52,18 @@ export const ConnectScreen: React.FC<ConnectScreenProps> = ({ onNavigate, isPro 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showNewPostOptions, setShowNewPostOptions] = useState(false);
   const [followedUsers, setFollowedUsers] = useState<Set<string>>(new Set());
+  const [onlineCount, setOnlineCount] = useState(482);
+
+  // Fluctuating online counter
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setOnlineCount(prev => {
+        const change = Math.floor(Math.random() * 5) - 2; // -2 to +2
+        return Math.max(450, prev + change);
+      });
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Load posts from backend or localStorage
   useEffect(() => {
@@ -72,13 +84,50 @@ export const ConnectScreen: React.FC<ConnectScreenProps> = ({ onNavigate, isPro 
 
         // Fallback to localStorage
         const stored = localStorage.getItem('hellobrick_feed_posts');
-        if (stored) {
-          const allPosts = JSON.parse(stored);
-          // Only show approved posts (or pending if admin)
-          setPosts(allPosts.filter((p: FeedPost) => p.status === 'approved' || !p.status));
-        } else {
-          setPosts([]);
+        let allPosts = stored ? JSON.parse(stored) : [];
+        
+        // FAKE ACTIVITY GENERATOR
+        if (allPosts.length < 15) {
+          const fakeNames = ["BrickMaster99", "LegoMom_Sarah", "AFOL_Dave", "BuildItBetter", "CreativeBlocks", "CityBuilder"];
+          const fakeCaptions = ["Just finished scanning my messy pile and built this!", "Can't believe the app found the exact pieces for this MOC.", "Weekend project complete 🔥", "My kids are obsessed with this scanner app.", "No sorting required, pure magic!"];
+          const legoImages = [
+            "https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?w=800&q=80",
+            "https://images.unsplash.com/photo-1472457897821-70d3819a0e24?w=800&q=80",
+            "https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=800&q=80",
+            "https://images.unsplash.com/photo-1558008258-3256797b43f3?w=800&q=80",
+            "https://images.unsplash.com/photo-1611145100085-f5e27a6f2eb5?w=800&q=80",
+            "https://images.unsplash.com/photo-1606760227091-3dd870d97f1d?w=800&q=80",
+            "https://images.unsplash.com/photo-1518331647614-7a1f04cd34ce?w=800&q=80",
+            "https://images.unsplash.com/photo-1533022137081-3bd426c19f5e?w=800&q=80"
+          ];
+          
+          for (let i = allPosts.length; i < 15; i++) {
+            const randomName = fakeNames[Math.floor(Math.random() * fakeNames.length)];
+            const randomCaption = fakeCaptions[Math.floor(Math.random() * fakeCaptions.length)];
+            const randomImage = legoImages[Math.floor(Math.random() * legoImages.length)];
+            const randomTime = Date.now() - (Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000));
+            
+            allPosts.push({
+              id: `fake_post_${Date.now()}_${i}`,
+              userId: `fake_user_${i}`,
+              userName: randomName,
+              userAvatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${randomName}`,
+              image: randomImage,
+              caption: randomCaption,
+              likes: Math.floor(Math.random() * 150) + 12,
+              comments: Math.floor(Math.random() * 30) + 2,
+              timestamp: randomTime,
+              liked: false,
+              status: 'approved',
+              commentList: []
+            });
+          }
+          
+          allPosts.sort((a: any, b: any) => b.timestamp - a.timestamp);
+          localStorage.setItem('hellobrick_feed_posts', JSON.stringify(allPosts));
         }
+
+        setPosts(allPosts.filter((p: FeedPost) => p.status === 'approved' || !p.status));
       } catch (error) {
         console.error('Failed to load posts:', error);
         setPosts([]);
@@ -371,7 +420,13 @@ export const ConnectScreen: React.FC<ConnectScreenProps> = ({ onNavigate, isPro 
       {/* Header - Sticky */}
       <div className="bg-white/90 backdrop-blur-md sticky top-0 z-30 px-6 pt-[max(env(safe-area-inset-top),3.5rem)] pb-4 border-b border-slate-100">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-black text-slate-900">Feed</h1>
+          <div>
+             <h1 className="text-2xl font-black text-slate-900">Feed</h1>
+             <div className="flex items-center gap-1.5 mt-1">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{onlineCount} Online Now</span>
+             </div>
+          </div>
           <div className="flex gap-3">
             <button
               onClick={() => setShowSearch(!showSearch)}

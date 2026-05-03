@@ -59,6 +59,28 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ onNavigate
           console.warn('[Leaderboard] API fetch failed, using local data:', apiErr);
         }
 
+        // --- FAKE COMPETITOR SEEDING ---
+        if (entries.length < 20) {
+          const fakeNames = ["MasterBuilder", "BrickNinja", "AFOL_Dave", "LegoMom", "CreativeBlocks", "CityBuilder", "TechnicFan", "PieceFinder", "MOC_Master", "BlockHead", "StudShooter", "PlasticArchitect", "BrickWhisperer", "MinifigKing", "BaseplateBoss"];
+          const numToAdd = 20 - entries.length;
+          
+          for (let i = 0; i < numToAdd; i++) {
+            const randomName = fakeNames[i % fakeNames.length] + Math.floor(Math.random() * 99);
+            // Bias XP towards 500-15000 range
+            const randomXP = Math.floor(Math.pow(Math.random(), 2) * 14500) + 500; 
+            
+            entries.push({
+              rank: 0,
+              name: randomName,
+              avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${randomName}`,
+              xp: randomXP,
+              isCurrentUser: false,
+              streak: Math.floor(Math.random() * 10)
+            });
+          }
+        }
+        // -------------------------------
+
         // Always ensure the current user appears on the leaderboard
         const myXp = await getUserXP(userId).catch(() => ({ xp_total: 0, streak_count: 0 }));
         const meInList = entries.find(e => e.isCurrentUser);

@@ -40,7 +40,10 @@ const PRO_SCREENS: Screen[] = [
   Screen.H2H_BATTLE,
   Screen.QUESTS,
   Screen.PUZZLES,
-  Screen.TRAINING
+  Screen.TRAINING,
+  Screen.COLLECTION,
+  Screen.IDEAS,
+  Screen.FEED
 ];
 
 type Listener = (snapshot: AppStateSnapshot) => void;
