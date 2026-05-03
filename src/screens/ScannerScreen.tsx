@@ -1,6 +1,6 @@
 import { detectBricks, DetectionStabilizer, brickDetectionService } from '../services/brickDetectionService';
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { X, AlertCircle, Zap, ShieldCheck, ShieldAlert, Shield, Share2 } from 'lucide-react';
+import { X, AlertCircle, Zap, ShieldCheck, ShieldAlert, Shield } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Screen } from '../types';
 import { FrameDetection, ScanFrameResponse, bboxToRenderBox } from '../types/detection';
@@ -203,12 +203,8 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
   const streamRef = useRef<MediaStream | null>(null);
   const isDetectingRef = useRef(false);
   const overlayContainerRef = useRef<HTMLDivElement>(null);
-  const frameDimsRef = useRef({ w: 1080, h: 1920 });
-  const autoCaptureTriggeredRef = useRef(false);
 
   // State
-  const [shouldAutoCapture, setShouldAutoCapture] = useState(false);
-  const [phase, setPhase] = useState<'preview' | 'scanning' | 'results'>(mode === 'scan' ? 'scanning' : 'preview');
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [detectedObjects, setDetectedObjects] = useState<FrameDetection[]>([]);
   const [lastResponse, setLastResponse] = useState<ScanFrameResponse | null>(null);
@@ -217,10 +213,14 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [qualityAdvice, setQualityAdvice] = useState<string | null>(mode === 'h2h' ? 'Position opponent QR code' : null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [phase, setPhase] = useState<'preview' | 'scanning' | 'results'>('preview');
+
   // Multi-pass state
   const [multiPassActive, setMultiPassActive] = useState(false);
   const [passNumber, setPassNumber] = useState(0);
   const [laserDirection, setLaserDirection] = useState<'horizontal' | 'vertical' | null>(null);
+  // Store the captured frame dimensions so overlays map correctly when <video> is unmounted
+  const frameDimsRef = useRef<{ w: number; h: number }>({ w: 1280, h: 720 });
 
   useEffect(() => {
     onPhaseChange?.(phase);
@@ -339,11 +339,6 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
           setDetectedObjects(stabilizedDetections);
           setLastResponse(response);
 
-          if (stabilizedDetections.length >= 3 && !multiPassActive && !autoCaptureTriggeredRef.current) {
-             autoCaptureTriggeredRef.current = true;
-             setShouldAutoCapture(true);
-          }
-
           if (challenge) {
             const target = challenge.target?.toLowerCase() || '';
             const goalMet = response.detections.some(obj => {
@@ -376,12 +371,6 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
       if (timeoutId) clearTimeout(timeoutId);
     };
   }, [phase, hasPermission, isProcessing, challenge, saveSuccess, multiPassActive]);
-
-  useEffect(() => {
-    if (phase === 'scanning') {
-      autoCaptureTriggeredRef.current = false;
-    }
-  }, [phase]);
 
   const captureImage = useCallback((): string | null => {
     if (!videoRef.current) return null;
@@ -583,13 +572,6 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
     }, 100);
   }, [captureImage, detectedObjects, multiPassActive]);
 
-  useEffect(() => {
-    if (shouldAutoCapture) {
-      setShouldAutoCapture(false);
-      handleCapture();
-    }
-  }, [shouldAutoCapture, handleCapture]);
-
   const handleSaveSelected = async () => {
     const bricksToSave = detectedObjects.filter(obj => selectedBricks.has(obj.detectionId));
     if (bricksToSave.length === 0) return;
@@ -706,9 +688,22 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
                     <span className="text-[14px] font-black text-white/90 uppercase tracking-[0.15em]">
-                      {multiPassActive ? `SCANNING PILE ${passNumber}/3` : 'LOOKING FOR BRICKS...'}
+                      {multiPassActive ? `DEEP SCAN ${passNumber}/3` : 'LIVE SCANNER'}
                     </span>
                   </div>
+                </div>
+                {/* AI Connection Health */}
+                <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/5 pointer-events-auto">
+                    {apiStatus === 'connected' ? (
+                      <ShieldCheck className="w-3.5 h-3.5 text-green-400" />
+                    ) : apiStatus === 'error' ? (
+                      <ShieldAlert className="w-3.5 h-3.5 text-red-400" />
+                    ) : (
+                      <Shield className="w-3.5 h-3.5 text-white/20 animate-pulse" />
+                    )}
+                    <span className={`text-[9px] font-black uppercase tracking-widest ${apiStatus === 'connected' ? 'text-green-400/80' : apiStatus === 'error' ? 'text-red-400/80' : 'text-white/30'}`}>
+                      {apiStatus === 'connected' ? 'DO: ENCRYPTED' : apiStatus === 'error' ? 'DO: OFFLINE' : 'DO: SYNCING...'}
+                    </span>
                 </div>
             </div>
 
@@ -787,7 +782,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
               <div className="bg-black/60 backdrop-blur-xl px-6 py-3 rounded-2xl border border-white/10 flex items-center gap-3">
                 <div className="w-5 h-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
                 <span className="text-sm font-black text-white uppercase tracking-wider">
-                  Finding what you can build... Pass {passNumber}/3
+                  Deep Scanning — Pass {passNumber}/3
                 </span>
               </div>
               <div className="flex gap-1.5">
@@ -809,94 +804,48 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
       )}
 
       {phase === 'results' && (
-        <div className="absolute inset-0 bg-[#0A0F1C] z-50 overflow-hidden flex flex-col">
-          {/* Top Navbar */}
-          <div className="absolute top-[max(env(safe-area-inset-top),16px)] left-0 right-0 px-6 flex justify-between items-center z-50">
-            <button onClick={() => setPhase('scanning')} className="w-10 h-10 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white active:scale-95 transition-all">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Epic Hero Image Area */}
-          <div className="relative h-[40%] min-h-[300px] w-full bg-black/50">
-            {capturedImage && (
-              <img src={capturedImage} className="absolute inset-0 w-full h-full object-cover opacity-80 mix-blend-screen" alt="Scanned Pile" />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0A0F1C] via-[#0A0F1C]/50 to-transparent" />
-            
-            {/* Overlay the detected boxes on the hero image */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Compact image preview — just enough to see the photo, rest is for brick list */}
+          <div className="relative flex-[2] bg-black overflow-hidden min-h-[140px]">
+            {capturedImage && <img id="captured-result-image" src={capturedImage} className="absolute inset-0 w-full h-full object-contain" alt="Captured" />}
             <div className="absolute inset-0 pointer-events-none">
               {detectedObjects.map((obj, i) => {
                 const img = document.getElementById('captured-result-image') as HTMLImageElement;
                 if (!img?.parentElement) return null;
-                const sourceW = lastResponse?.frameWidth || frameDimsRef.current.w;
-                const sourceH = lastResponse?.frameHeight || frameDimsRef.current.h;
-                const renderBox = bboxToRenderBox(obj.geometry.bbox, sourceW, sourceH, img.parentElement.clientWidth, img.parentElement.clientHeight, 'cover');
+                const renderBox = bboxToRenderBox(obj.geometry.bbox, lastResponse?.frameWidth || frameDimsRef.current.w, lastResponse?.frameHeight || frameDimsRef.current.h, img.parentElement.clientWidth, img.parentElement.clientHeight, 'contain');
                 const isSelected = selectedBricks.has(obj.detectionId);
                 return (
-                  <div key={obj.detectionId || i} className="absolute border-[1.5px] rounded-sm transition-all" style={{ top: `${renderBox.top}%`, left: `${renderBox.left}%`, width: `${renderBox.width}%`, height: `${renderBox.height}%`, borderColor: isSelected ? '#3B82F6' : 'rgba(255,255,255,0.2)', opacity: isSelected ? 1 : 0.4 }} />
+                  <div key={obj.detectionId || i} className="absolute border-2 rounded-md" style={{ top: `${renderBox.top}%`, left: `${renderBox.left}%`, width: `${renderBox.width}%`, height: `${renderBox.height}%`, borderColor: isSelected ? COLORS[i % COLORS.length] : `${COLORS[i % COLORS.length]}50`, opacity: isSelected ? 1 : 0.4 }} />
                 );
               })}
-              {/* Dummy img to trigger sizing */}
-              {capturedImage && <img id="captured-result-image" src={capturedImage} className="hidden" alt="hidden" />}
-            </div>
-
-            <div className="absolute bottom-6 left-6 right-6">
-               <div className="inline-flex items-center gap-2 bg-blue-500/20 border border-blue-500/30 px-3 py-1.5 rounded-full mb-2">
-                  <Zap className="w-4 h-4 text-blue-400" />
-                  <span className="text-[10px] font-black uppercase text-blue-400 tracking-widest">Scan Complete</span>
-               </div>
-               <h1 className="text-4xl font-black text-white leading-tight">
-                  <span className="text-blue-400">{detectedObjects.length}</span> Bricks<br />Detected
-               </h1>
             </div>
           </div>
-
-          {/* Premium Bottom Sheet */}
-          <div className="flex-1 bg-[#0A0F1C] px-6 pt-4 pb-8 flex flex-col">
-            <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center justify-between">
-              <span>Ready to Build?</span>
-              <span className="text-blue-500">{selectedBricks.size} selected</span>
-            </h2>
-
-            {/* List of Bricks */}
-            <div className="flex-1 overflow-y-auto space-y-2 no-scrollbar pb-6">
+          {/* Brick list — maximized space for 5-6 rows visible */}
+          <div className="flex-[6] bg-slate-900 border-t border-white/10 rounded-t-[24px] -mt-4 px-4 pt-4 pb-2 flex flex-col overflow-hidden">
+            <h2 className="text-base font-black text-white mb-2">{detectedObjects.length} Bricks Found</h2>
+            <div className="flex-1 overflow-y-auto space-y-1.5">
               {detectedObjects.map((obj, i) => {
                 const isSelected = selectedBricks.has(obj.detectionId);
                 const partNum = obj.prediction.brickPartNum || '3001';
                 return (
-                  <div key={obj.detectionId || i} onClick={() => { const s = new Set(selectedBricks); isSelected ? s.delete(obj.detectionId) : s.add(obj.detectionId); setSelectedBricks(s); }} className={`flex items-center gap-4 p-3 rounded-2xl border transition-all cursor-pointer ${isSelected ? 'bg-blue-600/10 border-blue-500/50' : 'bg-white/5 border-white/5'}`}>
-                    <div className="relative w-12 h-12 bg-slate-800 rounded-xl overflow-hidden border border-white/10 p-1 flex items-center justify-center">
-                      <img src={(obj as any).snippet || `https://cdn.rebrickable.com/media/parts/elements/${partNum}.jpg`} className="w-full h-full object-contain" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-bold text-sm text-white">{brickDetectionService.generationFallbackLabel(obj)}</p>
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{Math.round(obj.prediction.identityConfidence * 100)}% match</p>
-                    </div>
-                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-blue-500 bg-blue-500' : 'border-white/20'}`}>
-                      {isSelected && <div className="w-2.5 h-2.5 bg-white rounded-full" />}
+                  <div key={obj.detectionId || i} onClick={() => { const s = new Set(selectedBricks); isSelected ? s.delete(obj.detectionId) : s.add(obj.detectionId); setSelectedBricks(s); }} className={`flex gap-2.5 p-2 rounded-lg border cursor-pointer ${isSelected ? 'bg-orange-500/10 border-orange-500/50' : 'bg-white/5 border-white/10'}`}>
+                    <img src={(obj as any).snippet || `https://cdn.rebrickable.com/media/parts/elements/${partNum}.jpg`} className="w-10 h-10 object-contain bg-white rounded-md p-0.5" />
+                    <div className="flex-1 min-w-0 flex items-center justify-between">
+                      <div className="min-w-0">
+                        <p className="font-bold text-[13px] text-white truncate">{brickDetectionService.generationFallbackLabel(obj)}</p>
+                        <p className="text-[9px] text-slate-500">{Math.round(obj.prediction.identityConfidence * 100)}% match</p>
+                      </div>
+                      <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${isSelected ? 'border-orange-500 bg-orange-500' : 'border-white/20'}`}>
+                        {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
+                      </div>
                     </div>
                   </div>
                 );
               })}
             </div>
-
-            {/* Big Dopamine CTAs */}
-            <div className="pt-4 flex gap-3">
-               <button 
-                  onClick={async () => {
-                    if (navigator.share) {
-                      try { await navigator.share({ title: 'HelloBrick', text: `I just scanned my pile and found ${detectedObjects.length} bricks!`, url: 'https://hellobrick.app' }); } catch (e) {}
-                    } else { alert('Sharing not supported on this device'); }
-                  }} 
-                  className="w-14 h-14 flex-shrink-0 flex items-center justify-center rounded-2xl bg-white/10 text-white active:scale-95 transition-all"
-                >
-                  <Share2 className="w-6 h-6" />
-                </button>
-               <button onClick={handleSaveSelected} className="flex-1 h-14 rounded-2xl bg-blue-600 text-white font-black text-lg shadow-[0_0_20px_rgba(37,99,235,0.4)] active:scale-95 transition-all flex items-center justify-center gap-2">
-                 <span>Save & Build</span>
-                 <Zap className="w-5 h-5 fill-current" />
-               </button>
+            <div className="pt-3 pb-[max(env(safe-area-inset-bottom),8rem)] flex gap-3">
+              <button onClick={() => setPhase('scanning')} className="flex-1 py-3 rounded-2xl bg-white/5 text-white font-bold text-sm">Rescan</button>
+              <button onClick={handleSaveSelected} className="flex-[2] py-3 rounded-2xl bg-orange-500 text-white font-bold text-sm">Add {selectedBricks.size} to Collection</button>
             </div>
           </div>
         </div>
