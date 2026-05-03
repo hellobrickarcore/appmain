@@ -45,9 +45,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
 
             <main className="flex-1 min-h-0 px-6 relative pb-[max(env(safe-area-inset-bottom),120px)] overflow-y-auto no-scrollbar overscroll-contain">
                 <div className="mt-10 text-center space-y-3 mb-12">
-                    <h1 className="text-4xl font-black text-white tracking-tight">Let's sort your bricks</h1>
+                    <h1 className="text-4xl font-black text-white tracking-tight">Turn your LEGO pile into builds</h1>
                     <p className="text-slate-400 max-w-[280px] mx-auto leading-tight font-medium text-base">
-                        Find new life in your pile. Scan to discover builds.
+                        Messy piles welcome. Scan your bricks and see what you can make instantly.
                     </p>
                 </div>
 
@@ -67,6 +67,22 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
 
                 {/* Action Grid */}
                 <div className="grid grid-cols-2 gap-4 mb-5 relative z-10">
+                    <button
+                        onClick={() => onNavigate(Screen.IDEAS)}
+                        className="col-span-2 bg-gradient-to-r from-orange-500/20 to-amber-500/10 p-6 rounded-[28px] border border-orange-500/20 flex items-center justify-between active:scale-[0.98] transition-all"
+                    >
+                        <div className="flex items-center gap-5">
+                            <div className="w-12 h-12 bg-orange-500/20 rounded-xl flex items-center justify-center text-orange-400">
+                                <ScanLine className="w-6 h-6" />
+                            </div>
+                            <div className="text-left">
+                                <h3 className="font-bold text-white text-lg leading-none">Daily Build Challenge</h3>
+                                <p className="text-xs text-orange-500/60 mt-1.5 font-bold">New build ideas every 24 hours</p>
+                            </div>
+                        </div>
+                        <div className="bg-orange-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">NEW</div>
+                    </button>
+
                     <button
                         onClick={() => onNavigate(Screen.HEAD_TO_HEAD)}
                         className="col-span-2 bg-gradient-to-r from-indigo-600/20 to-indigo-600/10 p-6 rounded-[28px] border border-indigo-500/20 flex items-center justify-between active:scale-[0.98] transition-all"

@@ -11,9 +11,57 @@ export const Home: React.FC = () => {
   return (
     <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-brand-orange selection:text-white">
       <SectionHero />
+      
+      {/* REAL Differentiator Section */}
+      <section className="py-20 bg-slate-900 overflow-hidden relative">
+        <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-orange blur-[120px] rounded-full"></div>
+          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand-orange blur-[120px] rounded-full"></div>
+        </div>
+        <div className="max-w-[1440px] mx-auto px-6 md:px-12 relative z-10 text-center">
+           <h2 className="text-[2rem] md:text-[3.5rem] font-black tracking-tight leading-tight text-white mb-8">
+             Built for real homes — <br className="hidden md:block" />
+             not perfect collections
+           </h2>
+           <p className="text-[18px] md:text-[22px] text-white/60 font-medium max-w-2xl mx-auto leading-relaxed">
+             HelloBrick works with messy piles, mixed sets, and random bricks. 
+             <span className="text-brand-orange font-bold"> No need to organise first.</span>
+           </p>
+        </div>
+      </section>
+
       <div id="how-it-works">
         <SectionHowItWorks />
       </div>
+
+      {/* TikTok-style hook section */}
+      <section className="py-24 md:py-32 bg-brand-orange/5 border-y border-brand-orange/10">
+        <div className="max-w-[1440px] mx-auto px-6 md:px-12">
+           <div className="flex flex-col md:flex-row items-center gap-12 md:gap-20">
+              <div className="w-full md:w-1/2 space-y-8">
+                 <h2 className="text-[2.5rem] md:text-[4rem] font-black tracking-tight leading-[1] text-slate-900">
+                    What can <span className="text-brand-orange italic underline decoration-8 underline-offset-4">YOU</span> build with your LEGO?
+                 </h2>
+                 <p className="text-[20px] text-slate-600 font-bold leading-relaxed">
+                    Most people have £100+ of unused LEGO sitting at home. 
+                    HelloBrick turns that into something fun again.
+                 </p>
+              </div>
+              <div className="w-full md:w-1/2">
+                 <div className="aspect-[9/16] max-w-[320px] mx-auto bg-slate-900 rounded-[40px] border-[8px] border-slate-900 shadow-2xl relative overflow-hidden group">
+                    <img src="/screens/missions.png" className="w-full h-full object-cover opacity-80 group-hover:scale-110 transition-transform duration-700" alt="TikTok Hook" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent flex items-end p-8">
+                       <div className="space-y-2">
+                          <p className="text-brand-orange font-black text-sm uppercase tracking-widest">Trending Now</p>
+                          <p className="text-white text-xl font-black">"I found 400 pieces I forgot I had!"</p>
+                       </div>
+                    </div>
+                 </div>
+              </div>
+           </div>
+        </div>
+      </section>
+
       <div id="pricing">
         <SectionPricing />
       </div>

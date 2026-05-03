@@ -4,6 +4,7 @@ import { App as CapacitorApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { Capacitor } from '@capacitor/core';
 import { Screen, BattleResult, GameModeId } from './types';
+import { OnboardingQuestionnaire } from './screens/OnboardingQuestionnaire';
 import { HomeScreen } from './screens/HomeScreen';
 import { ScannerScreen } from './screens/ScannerScreen';
 import { CollectionScreen } from './screens/CollectionScreen';
@@ -50,7 +51,7 @@ const App: React.FC = () => {
     }
 
     const hasFinishedOnboarding = localStorage.getItem('hellobrick_onboarding_finished') === 'true';
-    if (!hasFinishedOnboarding) return Screen.FEATURE_INTRO;
+    if (!hasFinishedOnboarding) return Screen.ONBOARDING_QUESTIONNAIRE;
     
     // PHASE 2: Allow direct navigation to SCANNER/HOME even for unauthenticated users
     return Screen.HOME;
@@ -207,6 +208,8 @@ const App: React.FC = () => {
 
   const renderScreen = () => {
     switch (currentScreen) {
+      case Screen.ONBOARDING_QUESTIONNAIRE:
+        return <OnboardingQuestionnaire />;
       case Screen.FEATURE_INTRO:
         return <FeatureIntroScreen onNavigate={handleNavigate} />;
       case Screen.BUILDING_INTRO:

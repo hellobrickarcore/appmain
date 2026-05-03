@@ -1,7 +1,7 @@
 {
-  "name": "HelloBrick",
+  "name": "HelloBrick: AI Brick Scanner",
   "short_name": "HelloBrick",
-  "description": "AI-powered building brick detection and organization",
+  "description": "The world's most advanced AI brick scanner. Organize, identify, and build faster.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#fff7ed",
@@ -21,8 +21,27 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["utilities", "productivity"],
-  "screenshots": [],
+  "categories": ["utilities", "productivity", "lifestyle"],
+  "screenshots": [
+    {
+      "src": "/onboarding_scan_bg_1773682593724.png",
+      "type": "image/png",
+      "sizes": "1080x1920",
+      "label": "AI Brick Scanner"
+    },
+    {
+      "src": "/onboarding_vault_bg_1773682607010.png",
+      "type": "image/png",
+      "sizes": "1080x1920",
+      "label": "Digital Brick Vault"
+    },
+    {
+      "src": "/onboarding_ideas_bg_1773682621185.png",
+      "type": "image/png",
+      "sizes": "1080x1920",
+      "label": "Smart Build Ideas"
+    }
+  ],
   "permissions": [
     "camera"
   ],

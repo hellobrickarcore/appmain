@@ -1,6 +1,6 @@
 import { detectBricks, DetectionStabilizer, brickDetectionService } from '../services/brickDetectionService';
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { X, AlertCircle, Zap, ShieldCheck, ShieldAlert, Shield } from 'lucide-react';
+import { X, AlertCircle, Zap, ShieldCheck, ShieldAlert, Shield, Share2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Screen } from '../types';
 import { FrameDetection, ScanFrameResponse, bboxToRenderBox } from '../types/detection';
@@ -688,7 +688,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
                     <span className="text-[14px] font-black text-white/90 uppercase tracking-[0.15em]">
-                      {multiPassActive ? `DEEP SCAN ${passNumber}/3` : 'LIVE SCANNER'}
+                      {multiPassActive ? `FINDING WHAT YOU CAN BUILD ${passNumber}/3` : 'FINDING WHAT YOU CAN BUILD...'}
                     </span>
                   </div>
                 </div>
@@ -782,7 +782,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
               <div className="bg-black/60 backdrop-blur-xl px-6 py-3 rounded-2xl border border-white/10 flex items-center gap-3">
                 <div className="w-5 h-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
                 <span className="text-sm font-black text-white uppercase tracking-wider">
-                  Deep Scanning — Pass {passNumber}/3
+                  Finding what you can build... Pass {passNumber}/3
                 </span>
               </div>
               <div className="flex gap-1.5">
@@ -822,7 +822,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
           </div>
           {/* Brick list — maximized space for 5-6 rows visible */}
           <div className="flex-[6] bg-slate-900 border-t border-white/10 rounded-t-[24px] -mt-4 px-4 pt-4 pb-2 flex flex-col overflow-hidden">
-            <h2 className="text-base font-black text-white mb-2">{detectedObjects.length} Bricks Found</h2>
+            <h2 className="text-base font-black text-white mb-2">{detectedObjects.length} Bricks found — You can build this 👇</h2>
             <div className="flex-1 overflow-y-auto space-y-1.5">
               {detectedObjects.map((obj, i) => {
                 const isSelected = selectedBricks.has(obj.detectionId);
@@ -845,6 +845,26 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challe
             </div>
             <div className="pt-3 pb-[max(env(safe-area-inset-bottom),8rem)] flex gap-3">
               <button onClick={() => setPhase('scanning')} className="flex-1 py-3 rounded-2xl bg-white/5 text-white font-bold text-sm">Rescan</button>
+              <button 
+                onClick={async () => {
+                  if (navigator.share) {
+                    try {
+                      await navigator.share({
+                        title: 'HelloBrick — Look what I built!',
+                        text: `I just scanned my messy LEGO pile with HelloBrick and found ${detectedObjects.length} bricks to build with!`,
+                        url: 'https://hellobrick.app'
+                      });
+                    } catch (e) {
+                      console.log('Share failed', e);
+                    }
+                  } else {
+                    alert('Sharing not supported on this device');
+                  }
+                }} 
+                className="w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl bg-white/10 text-white active:scale-95 transition-all"
+              >
+                <Share2 className="w-5 h-5" />
+              </button>
               <button onClick={handleSaveSelected} className="flex-[2] py-3 rounded-2xl bg-orange-500 text-white font-bold text-sm">Add {selectedBricks.size} to Collection</button>
             </div>
           </div>

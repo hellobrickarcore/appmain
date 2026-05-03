@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Check, X, BarChart3, Users, MessageSquare, ShieldCheck } from 'lucide-react';
 import { Screen } from '../types';
+import { CONFIG } from '../services/configService';
 
 interface AdminDashboardScreenProps {
   onNavigate: (screen: Screen) => void;
@@ -8,36 +9,75 @@ interface AdminDashboardScreenProps {
 
 export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onNavigate }) => {
   const [pendingPosts, setPendingPosts] = useState<any[]>([]);
+  const [liveStats, setLiveStats] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'moderation' | 'stats'>('moderation');
 
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      // 1. Fetch Stats
+      const statsRes = await fetch(CONFIG.ADMIN_STATS);
+      const statsData = await statsRes.json();
+      if (statsData.success) {
+        setLiveStats(statsData.stats);
+      }
+
+      // 2. Fetch Pending Posts
+      const pendingRes = await fetch(CONFIG.FEED_PENDING);
+      const pendingData = await pendingRes.json();
+      if (pendingData.posts) {
+        setPendingPosts(pendingData.posts);
+      }
+    } catch (err) {
+      console.error('Error fetching admin data:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadPending = () => {
-      const posts = JSON.parse(localStorage.getItem('hellobrick_feed_posts') || '[]');
-      setPendingPosts(posts.filter((p: any) => p.isPending));
-    };
-    loadPending();
+    fetchData();
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
   }, []);
 
-  const handleApprove = (postId: string) => {
-    const allPosts = JSON.parse(localStorage.getItem('hellobrick_feed_posts') || '[]');
-    const updated = allPosts.map((p: any) => 
-      p.id === postId ? { ...p, isPending: false } : p
-    );
-    localStorage.setItem('hellobrick_feed_posts', JSON.stringify(updated));
-    setPendingPosts(prev => prev.filter(p => p.id !== postId));
+  const handleApprove = async (postId: string) => {
+    try {
+      const res = await fetch(typeof CONFIG.FEED_APPROVE === 'function' ? CONFIG.FEED_APPROVE(postId) : CONFIG.FEED_APPROVE, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        setPendingPosts((prev: any[]) => prev.filter((p: any) => p.id !== postId));
+      }
+    } catch (err) {
+      console.error('Failed to approve post:', err);
+    }
   };
 
-  const handleReject = (postId: string) => {
-    const allPosts = JSON.parse(localStorage.getItem('hellobrick_feed_posts') || '[]');
-    const updated = allPosts.filter((p: any) => p.id !== postId);
-    localStorage.setItem('hellobrick_feed_posts', JSON.stringify(updated));
-    setPendingPosts(prev => prev.filter(p => p.id !== postId));
+  const handleReject = async (postId: string) => {
+    try {
+      const res = await fetch(typeof CONFIG.FEED_REJECT === 'function' ? CONFIG.FEED_REJECT(postId) : CONFIG.FEED_REJECT, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        setPendingPosts((prev: any[]) => prev.filter((p: any) => p.id !== postId));
+      }
+    } catch (err) {
+      console.error('Failed to reject post:', err);
+    }
   };
 
-  const stats = [
-    { label: 'Daily Scans', value: '1,284', trend: '+12%', icon: <BarChart3 className="w-5 h-5" /> },
-    { label: 'Active Users', value: '4,892', trend: '+5%', icon: <Users className="w-5 h-5" /> },
-    { label: 'New Posts', value: pendingPosts.length, trend: 'Pending', icon: <MessageSquare className="w-5 h-5" /> },
+  const stats = liveStats.length > 0 ? liveStats.map((s: any) => ({
+    ...s,
+    icon: s.id === 'scans' ? <BarChart3 className="w-5 h-5" /> : 
+          s.id === 'users' ? <Users className="w-5 h-5" /> : 
+          <MessageSquare className="w-5 h-5" />
+  })) : [
+    { label: 'Daily Scans', value: '...', trend: '---', icon: <BarChart3 className="w-5 h-5" />, id: 'scans' },
+    { label: 'Active Users', value: '...', trend: '---', icon: <Users className="w-5 h-5" />, id: 'users' },
+    { label: 'New Posts', value: '...', trend: '---', icon: <MessageSquare className="w-5 h-5" />, id: 'posts' },
   ];
 
   return (
@@ -55,7 +95,7 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onNa
             <h1 className="text-xl font-black tracking-tight">Admin Terminal</h1>
             <div className="flex items-center gap-1.5 mt-0.5">
               <ShieldCheck className="w-3.5 h-3.5 text-indigo-500" />
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">Global Control</span>
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">Global Control {isLoading && ' (Syncing...)'}</span>
             </div>
           </div>
         </div>
@@ -124,7 +164,7 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({ onNa
                     <img src={post.image} className="w-full h-full object-cover" />
                   </div>
                   <div className="p-5 space-y-3">
-                    <p className="text-sm font-bold text-slate-300 leading-relaxed italic">"{post.description}"</p>
+                    <p className="text-sm font-bold text-slate-300 leading-relaxed italic">"{post.caption || 'No caption'}"</p>
                     <div className="flex gap-2">
                        <button 
                         onClick={() => handleApprove(post.id)}

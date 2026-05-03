@@ -15,50 +15,27 @@ export const Users: React.FC = () => {
 
   useEffect(() => {
     const fetchUsers = async () => {
-      if (!supabase) return;
-      
       try {
-        const { data: profiles, error } = await supabase
-          .from('profiles')
-          .select('id, display_name, email, is_pro, created_at')
-          .order('created_at', { ascending: false });
+        setLoading(true);
+        const response = await fetch('/api/admin/users');
+        const data = await response.json();
 
-        if (error) {
-          console.error('Error fetching profiles:', error);
+        if (data.success && data.users) {
+          const userList = data.users.map((u: any) => ({
+            ...u,
+            display_name: u.display_name || u.email.split('@')[0],
+            is_pro: u.is_pro || false, // Pro status still needs a reliable source or sync
+          }));
+
+          setUsers(userList);
+          setStats({
+            total: userList.length,
+            pro: userList.filter((u: any) => u.is_pro).length,
+            retention: 78
+          });
         }
-
-        // Fetch collections to identify users that might not have a profile yet (Anonymous Builders)
-        const { data: collections } = await supabase.from('user_collections').select('user_id');
-        const collectionUserIds = Array.from(new Set((collections || []).map(c => c.user_id)));
-
-        // Merge profiles with collection-only users
-        let userList = profiles ? [...profiles] : [];
-        const profileIds = new Set(userList.map(p => p.id));
-        
-        collectionUserIds.forEach(id => {
-          if (!profileIds.has(id) && id !== 'anonymous' && id !== 'undefined' && id !== 'null') {
-            userList.push({
-              id,
-              email: id.includes('@') ? id : 'unregistered-builder@hellobrick.app',
-              display_name: 'Unregistered Builder',
-              created_at: new Date().toISOString(),
-              is_pro: false
-            });
-          }
-        });
-
-        // Ensure total is strictly reflective of the merged list (Production: 13)
-        const totalUsers = userList.length;
-        const proUsers = userList.filter(u => u.is_pro).length;
-
-        setUsers(userList);
-        setStats({
-          total: totalUsers,
-          pro: proUsers,
-          retention: 78 // Standard metric
-        });
       } catch (err) {
-        console.error('Error fetching users:', err);
+        console.error('Error fetching admin users:', err);
       } finally {
         setLoading(false);
       }

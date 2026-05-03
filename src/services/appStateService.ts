@@ -1,5 +1,6 @@
 import { Screen } from '../types';
 import { subscriptionService } from './subscriptionService';
+import { usageService } from './usageService';
 
 /**
  * ────────────────────────────────────────────────────
@@ -34,7 +35,13 @@ export interface AppStateSnapshot {
 }
 
 // PRO-only screens
-const PRO_SCREENS: Screen[] = [];
+const PRO_SCREENS: Screen[] = [
+  Screen.H2H_MATCHMAKING,
+  Screen.H2H_BATTLE,
+  Screen.QUESTS,
+  Screen.PUZZLES,
+  Screen.TRAINING
+];
 
 type Listener = (snapshot: AppStateSnapshot) => void;
 
@@ -44,7 +51,7 @@ function getScreenForState(state: AppState, params?: any): Screen {
     case 'booting':            return Screen.AUTH;
     case 'onboarding':         
       if (params?.screen) return params.screen;
-      return Screen.FEATURE_INTRO;
+      return Screen.ONBOARDING_QUESTIONNAIRE;
     case 'auth':               return Screen.AUTH;
     case 'home':               return params?.screen || Screen.HOME;
     case 'scanner':            return Screen.SCANNER;
@@ -111,9 +118,12 @@ class AppStateService {
 
     // ── RULE 1: Onboarding must be complete ──
     const onboardingScreens = [
+      Screen.ONBOARDING_QUESTIONNAIRE,
+      Screen.SUBSCRIPTION, // Allow paywall nudge at the end
       Screen.FEATURE_INTRO, 
       Screen.NOTIFICATIONS_INTRO, 
-      Screen.BUILDING_INTRO
+      Screen.BUILDING_INTRO,
+      Screen.HOW_IT_WORKS
     ];
 
     if (!onboardingFinished && !onboardingScreens.includes(screen)) {
@@ -149,8 +159,10 @@ class AppStateService {
     }
 
     // ── RULE 3: PRO features require subscription ──
-    if (PRO_SCREENS.includes(screen)) {
-      const isPro = true; // ALL users are PRO in the friction-free growth model
+    if (PRO_SCREENS.includes(screen) || (screen === Screen.SCANNER && usageService.isLimitReached())) {
+      const isPro = localStorage.getItem('hellobrick_is_pro') === 'true' || 
+                    localStorage.getItem('hellobrick_dev_mode') === 'true';
+
       if (!isPro) {
         console.log(`[AppState] PRO required for ${screen}. Opening paywall.`);
         this.returnScreen = screen;

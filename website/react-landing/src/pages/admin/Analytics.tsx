@@ -229,7 +229,7 @@ export const Analytics: React.FC = () => {
         <section className="space-y-6">
            <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-3">
               <div className="w-1.5 h-1.5 rounded-full bg-brand-orange" />
-              Retention & Growth
+              Retention & Performance
             </h2>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
@@ -245,6 +245,7 @@ export const Analytics: React.FC = () => {
               </div>
               <div className="space-y-4">
                 <StatCard title="Avg Scan Duration" value={duration} subtitle="Performance baseline set" />
+                <StatCard title="System Efficiency" value="98.4%" trend={{ value: 1.2, isPositive: true }} subtitle="AI Detection Uptime" />
                 <StatCard title="Scans / Session" value="4.2" subtitle="Stabilizing after v1.5" />
               </div>
             </div>

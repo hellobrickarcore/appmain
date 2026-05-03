@@ -15,12 +15,31 @@ from ultralytics import YOLO
 import cv2
 import os
 import time
+from datetime import datetime, timedelta
 import requests
+import sqlite3
 from pathlib import Path
 from supabase import create_client, Client
 
 from config import STABILITY_CONFIG
 from tracker import SortTracker
+
+# Feed Database for Admin Stats
+FEED_DB_PATH = Path("models/feed_database.db")
+
+def get_pending_posts_count():
+    try:
+        if not FEED_DB_PATH.exists():
+            return 0
+        conn = sqlite3.connect(str(FEED_DB_PATH))
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM posts WHERE status = 'pending'")
+        count = cursor.fetchone()[0]
+        conn.close()
+        return count
+    except Exception as e:
+        print(f"Error getting pending posts: {e}")
+        return 0
 
 # Supabase Configuration
 SUPABASE_URL = os.getenv('VITE_SUPABASE_URL', 'https://tlcqiixlpmpguixzbbxj.supabase.co')
@@ -817,6 +836,57 @@ def record_scan():
         return jsonify({'success': True})
     except Exception as e:
         print(f"Scan Record Error: {e}")
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/admin/stats', methods=['GET'])
+def get_admin_stats():
+    """Aggregate live stats for both App Terminal and Web Admin Dashboard"""
+    if not supabase: 
+        return jsonify({'error': 'Supabase not configured'}), 500
+    
+    try:
+        today_iso = time.strftime('%Y-%m-%dT00:00:00Z', time.gmtime())
+
+        # 1. Total All-Time Counts
+        profiles = supabase.table('profiles').select('id', count='exact').execute()
+        total_users = profiles.count if hasattr(profiles, 'count') else 0
+
+        scans_all = supabase.table('scans').select('id', count='exact').execute()
+        total_scans_all = scans_all.count if hasattr(scans_all, 'count') else 0
+
+        ideas_all = supabase.table('ideas').select('id', count='exact').execute()
+        total_ideas = ideas_all.count if hasattr(ideas_all, 'count') else 0
+
+        # 2. Daily Pulse
+        res_scans_today = supabase.table('scans').select('id', count='exact').gte('timestamp', today_iso).execute()
+        scans_today = res_scans_today.count if hasattr(res_scans_today, 'count') else 0
+
+        res_sessions = supabase.table('sessions').select('user_id').gte('start_time', today_iso).execute()
+        active_users_today = len(set(r['user_id'] for r in res_sessions.data if r['user_id']))
+
+        # 3. Pending Content
+        pending_posts = get_pending_posts_count()
+
+        # Build consistent response for all dashboards
+        return jsonify({
+            'success': True,
+            'stats': [
+                { 'id': 'scans_today', 'label': 'Daily Scans', 'value': f"{scans_today:,}" },
+                { 'id': 'active_users', 'label': 'Active Users', 'value': f"{active_users_today:,}" },
+                { 'id': 'pending_posts', 'label': 'Pending Posts', 'value': str(pending_posts), 'trend': 'Review' },
+                { 'id': 'total_users', 'label': 'Total Users', 'value': f"{total_users:,}" },
+                { 'id': 'total_scans', 'label': 'All-Time Scans', 'value': f"{total_scans_all:,}" },
+                { 'id': 'total_ideas', 'label': 'Ideas Total', 'value': f"{total_ideas:,}" }
+            ],
+            # Flat map for the web dashboard's simple state
+            'installs': total_users,
+            'activeUsers': active_users_today,
+            'scansToday': total_scans_all,
+            'ideasGenerated': total_ideas,
+            'activePro': 0 # TODO: Integrate RevenueCat Webhook data if available
+        })
+    except Exception as e:
+        print(f"Admin Stats Error: {e}")
         return jsonify({'error': str(e)}), 400
 
 @app.route('/api/sessions/heartbeat', methods=['POST'])

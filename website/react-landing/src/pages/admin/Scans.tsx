@@ -22,43 +22,28 @@ export const Scans: React.FC = () => {
 
   useEffect(() => {
     const fetchScans = async () => {
-      if (!supabase) return;
-      
       try {
-        // 1. Fetch profiles for email lookup
-        const { data: profiles } = await supabase.from('profiles').select('id, email');
-        const emailMap = new Map((profiles || []).map(p => [p.id, p.email]));
+        setLoading(true);
+        const response = await fetch('/api/admin/scans');
+        const data = await response.json();
 
-        // 2. Fetch last 20 scans
-        const { data, error } = await supabase
-          .from('scans')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(20);
+        if (data.success && data.scans) {
+          setScans(data.scans);
+          
+          // Calculate high-level stats from the returned telemetry
+          const totalScans = data.scans.length;
+          const avgConf = Math.round(
+            data.scans.reduce((acc: number, s: any) => acc + (s.confidence_avg || 0), 0) / (totalScans || 1) * 100
+          );
 
-        if (error) throw error;
-
-        const scansWithEmails = (data || []).map(s => ({
-          ...s,
-          user_email: emailMap.get(s.user_id) || 'Anonymous'
-        }));
-
-        // 1. Calculate stats (Live)
-        const { count: totalScans } = await supabase.from('scans').select('*', { count: 'exact', head: true });
-        const { data: confidenceData } = await supabase.from('scans').select('confidence_avg').limit(100);
-        
-        const avgConf = confidenceData && confidenceData.length > 0
-          ? Math.round((confidenceData.reduce((acc, s) => acc + (s.confidence_avg || 0), 0) / confidenceData.length) * 100)
-          : 0;
-
-        setScans(scansWithEmails);
-        setStats({
-          total: totalScans || 0,
-          avgConfidence: avgConf,
-          activeSensors: 12 // Reflecting 12 worldwide active nodes
-        });
+          setStats({
+            total: data.total_count || totalScans,
+            avgConfidence: avgConf,
+            activeSensors: 12
+          });
+        }
       } catch (err) {
-        console.error('Error fetching scans:', err);
+        console.error('Error fetching admin scans:', err);
       } finally {
         setLoading(false);
       }

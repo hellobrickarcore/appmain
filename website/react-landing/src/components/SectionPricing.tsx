@@ -3,9 +3,9 @@ import { Check, Star } from 'lucide-react';
 
 export const SectionPricing: React.FC = () => {
   const features = [
-    "Infinite AI brick detection",
-    "Access to 1000+ build ideas",
-    "Step-by-step 3D instructions",
+    "Scan as many times as you want",
+    "Get advanced build ideas",
+    "Access exclusive mini-games",
     "Daily quest rewards",
     "Cloud vault synchronization",
     "Priority support"
@@ -19,7 +19,7 @@ export const SectionPricing: React.FC = () => {
              <span className="w-2 h-2 rounded-full bg-brand-orange"></span>
              <span className="text-[14px] uppercase tracking-widest font-black text-slate-500">Simple Pricing</span>
           </div>
-          <h2 className="text-[2.5rem] md:text-ui-header font-black tracking-tight leading-[1.1] text-slate-900">Choose your builder path</h2>
+          <h2 className="text-[2.5rem] md:text-ui-header font-black tracking-tight leading-[1.1] text-slate-900">Unlock unlimited builds</h2>
           <p className="text-[18px] text-slate-500 font-medium max-w-xl mx-auto">
             Choose the plan that fits your building style. Start with a 14-day free trial on any Pro plan.
           </p>
@@ -90,7 +90,7 @@ export const SectionPricing: React.FC = () => {
               className="w-full bg-slate-900 text-white text-center py-5 rounded-2xl font-bold text-[16px] hover:bg-brand-orange transition-all shadow-xl mt-auto"
               onClick={() => (window as any).trackConversion?.('Subscribe')}
             >
-              Start free trial
+              Start building without limits
             </a>
           </div>
         </div>

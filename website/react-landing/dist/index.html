@@ -8,6 +8,17 @@
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
       gtag('config', 'G-19NTJ70M5E');
+
+      // Conversion Event: App Download / CTA Click
+      function trackConversion(label) {
+        gtag('event', 'conversion', {
+          'send_to': 'G-19NTJ70M5E/conversion',
+          'event_label': label,
+          'value': 1.0,
+          'currency': 'USD'
+        });
+        console.log('🎯 Conversion Tracked:', label);
+      }
     </script>
     <!-- HelloBrick build trigger: 2026-03-29T10:37:06Z -->
 
@@ -63,8 +74,8 @@
       "description": "Unlock 1000+ LEGO build ideas with the world's first AI-powered brick scanner."
     }
     </script>
-    <script type="module" crossorigin src="/assets/index-C5IQSssi.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-ukFz3qll.css">
+    <script type="module" crossorigin src="/assets/index-DExzRpCR.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BW_VrPay.css">
   </head>
   <body>
     <div id="root"></div>

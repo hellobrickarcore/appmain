@@ -6,6 +6,12 @@
 
 [[redirects]]
   # API Proxying - Specific to General
+  from = "/api/admin/*"
+  to = "http://174.138.93.172:3008/api/admin/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/api/auth/*"
   to = "http://174.138.93.172:3007/api/auth/:splat"
   status = 200

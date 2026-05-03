@@ -12,8 +12,6 @@ import { Capacitor } from '@capacitor/core';
 
 const PROD_API_BASE = 'https://hellobrick.app';
 const DO_IP = '174.138.93.172';
-const DO_DETECTION = `http://${DO_IP}:3003`;
-const DO_AUTH = `http://${DO_IP}:3007`;
 
 /**
  * Resolves a central API URL based on platform and service.
@@ -26,15 +24,24 @@ export const getApiUrl = (path: string): string => {
   
   // NATIVE MOBILE: Hit Digital Ocean DIRECTLY (Bypass Netlify Proxy)
   if (Capacitor.isNativePlatform()) {
-    // Port 3007 for Auth/User services
-    if (cleanPath.includes('/auth') || cleanPath.includes('/user') || cleanPath.includes('/notifications')) {
-        url = `${DO_AUTH}${cleanPath}`;
-    } else if (cleanPath.includes('/xp/')) {
-        // Port 3003 for XP services
-        url = `http://${DO_IP}:3003${cleanPath}`;
+    if (cleanPath.includes('/api/admin/')) {
+        // Port 3008 for Admin Services
+        url = `http://${DO_IP}:3008${cleanPath}`;
+    } else if (cleanPath.includes('/api/auth/') || cleanPath.includes('/api/user/') || cleanPath.includes('/api/notifications/')) {
+        // Port 3007 for Auth/User services
+        url = `http://${DO_IP}:3007${cleanPath}`;
+    } else if (cleanPath.includes('/api/feed/')) {
+        // Port 3006 for Feed service
+        url = `http://${DO_IP}:3006${cleanPath}`;
+    } else if (cleanPath.includes('/api/xp/')) {
+        // Port 3005 for XP services
+        url = `http://${DO_IP}:3005${cleanPath}`;
+    } else if (cleanPath.includes('/api/dataset/')) {
+        // Port 3004 for Dataset services
+        url = `http://${DO_IP}:3004${cleanPath}`;
     } else {
         // Port 3003 for Detection and everything else
-        url = `${DO_DETECTION}${cleanPath}`;
+        url = `http://${DO_IP}:3003${cleanPath}`;
     }
   }
   
@@ -88,6 +95,12 @@ export const CONFIG = {
 
     // Sessions (Port 3003)
     SESSION_HEARTBEAT: getApiUrl('/api/sessions/heartbeat'),
+
+    // Admin
+    ADMIN_STATS: getApiUrl('/api/admin/stats'),
+    FEED_PENDING: getApiUrl('/api/feed/posts/pending'),
+    FEED_APPROVE: (id: string) => getApiUrl(`/api/feed/posts/${id}/approve`),
+    FEED_REJECT: (id: string) => getApiUrl(`/api/feed/posts/${id}/reject`),
 
     // Webhooks
     SUBSCRIPTION_WEBHOOK: getApiUrl('/api/webhooks/revenuecat'),

@@ -32,20 +32,18 @@ export const SectionHero: React.FC = () => {
                <span className="bg-brand-orange/10 text-brand-orange text-[11px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full">New in v1.6.1</span>
             </div>
             <h1 className="font-black text-[3rem] md:text-ui-header leading-[1.05] text-slate-900 tracking-tight mb-10">
-              Build new<br />
-              creations from<br />
-              your old bricks
+              You don’t need more LEGO.<br />
+              You need to know what<br />
+              you can build.
             </h1>
             
-            {/* AEO/GEO Answer Block */}
             <div className="bg-slate-50 border border-slate-100 rounded-[32px] p-6 md:p-8 mb-12 max-w-[580px] mx-auto lg:mx-0 text-left">
               <p className="text-[18px] text-slate-600 font-medium leading-relaxed">
-                <strong className="text-slate-950">HelloBrick</strong> is the world's most advanced <strong className="text-brand-orange">AI LEGO scanner</strong>. 
-                Identify 10,000+ loose bricks in seconds and unlock instant build ideas (MOCs) from your existing collection.
+                <strong className="text-slate-950">HelloBrick</strong> scans your pile and shows you <strong className="text-brand-orange">exactly what to make</strong>.
               </p>
             </div>
             
-            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-6 pt-0">
+            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-6 pt-0 mb-12">
               <a href="https://apps.apple.com/us/app/hellobrick/id6760016096" target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 bg-slate-900 text-white px-8 py-4 rounded-3xl font-bold hover:bg-brand-orange transition-all group shadow-xl" onClick={() => (window as any).trackConversion?.('Download')}>
                  <Download className="w-6 h-6" />
                  <div className="text-left leading-tight">
@@ -56,6 +54,22 @@ export const SectionHero: React.FC = () => {
               <Link to="/blog" className="text-[16px] font-bold text-slate-500 hover:text-slate-950 transition-colors px-4 py-2">
                 Explore the Resource Hub
               </Link>
+            </div>
+
+            {/* Proof Strip */}
+            <div className="border-t border-slate-100 pt-8 flex flex-col gap-6">
+              <p className="text-[14px] font-black text-slate-400 uppercase tracking-widest text-center lg:text-left">Loved by messy LEGO owners everywhere</p>
+              <div className="flex flex-wrap justify-center lg:justify-start gap-x-8 gap-y-4">
+                {[
+                  "This saved me HOURS sorting",
+                  "My kids actually use their LEGO again",
+                  "Way faster than trying to figure it out myself"
+                ].map((text, i) => (
+                  <div key={i} className="flex items-center gap-2 text-slate-500 font-bold text-[15px]">
+                    <span className="text-brand-orange text-lg">✔</span> {text}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 

@@ -27,8 +27,8 @@ export const SectionHowItWorks: React.FC = () => {
             </div>
           </div>
           
-          <h3 className="text-[24px] font-black text-slate-900 mb-3">Scatter and scan</h3>
-          <p className="text-slate-500 text-[16px] leading-relaxed font-medium">No sorting required. Just lay your bricks flat and take a single photo. Our app identifies everything in seconds.</p>
+          <h3 className="text-[24px] font-black text-slate-900 mb-3">Dump your LEGO on the floor</h3>
+          <p className="text-slate-500 text-[16px] leading-relaxed font-medium">No sorting required. Just clear some space and dump your collection. Real builds happen in real homes.</p>
         </div>
 
         {/* Step 2 */}
@@ -42,8 +42,8 @@ export const SectionHowItWorks: React.FC = () => {
             </div>
           </div>
           
-          <h3 className="text-[24px] font-black text-slate-900 mb-3">Unlock daily builds</h3>
-          <p className="text-slate-500 text-[16px] leading-relaxed font-medium">Instantly see thousands of builds you can complete with the bricks you just scanned. New ideas every day.</p>
+          <h3 className="text-[24px] font-black text-slate-900 mb-3">Scan it with your camera</h3>
+          <p className="text-slate-500 text-[16px] leading-relaxed font-medium">Our AI identifies every brick instantly. No guesswork, no counting, no mistakes.</p>
         </div>
 
         {/* Step 3 */}
@@ -57,8 +57,8 @@ export const SectionHowItWorks: React.FC = () => {
             </div>
           </div>
           
-          <h3 className="text-[24px] font-black text-slate-900 mb-3">Start building</h3>
-          <p className="text-slate-500 text-[16px] leading-relaxed font-medium">Choose from hundreds of compatible builds. Follow step-by-step instructions showing you exactly where each piece is.</p>
+          <h3 className="text-[24px] font-black text-slate-900 mb-3">Get builds you can actually make</h3>
+          <p className="text-slate-500 text-[16px] leading-relaxed font-medium">Instantly see thousands of builds you can complete with the bricks you just scanned. That’s it.</p>
         </div>
       </div>
     </section>

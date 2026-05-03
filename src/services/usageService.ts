@@ -26,7 +26,7 @@ export const usageService = {
   },
 
   isLimitReached(): boolean {
-    return false; // DISABLED for 'No Sign-Up First' strategy
+    return this.getLifetimeScanCount() >= 1;
   },
 
   cleanupOldLogs(currentDate: string): void {

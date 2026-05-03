@@ -1,71 +1,58 @@
 # HelloBrick: App Store Listing
 
 ## App Name (30 characters max)
-**HelloBrick**
+**HelloBrick: LEGO Builder App**
 
 ## App Subtitle (30 characters max)
-**Sort Your Bricks. Build More.**
+**Scan bricks. Build instantly.**
 
 ## App Description (4000 characters max)
 
-**Turn your brick pile into a building-ready collection.**
+What can you build with your LEGO?
 
-HelloBrick is the modern companion for every brick owner. Using advanced AI and computer vision, we help you sort your loose pieces, track your inventory, and discover what you can actually build with the pieces you already own.
+HelloBrick scans your bricks and shows you real builds you can make — instantly.
 
-**KEY FEATURES:**
+No sorting. No guessing. Just point your camera and start building.
 
-🔍 **Pro-Grade AI Scanner**
-- Point your camera at a pile or a single piece for instant identification.
-- Automatically recognizes dimensions, colors, and official part numbers.
-- Built-in "Reviewer Pass" for seamless access to all features.
+Perfect for:
+• Mixed LEGO collections
+• Random bricks at home
+• Kids who want new ideas
+• Anyone who doesn’t know what to build
 
-📦 **Digital Brick Vault**
-- Catalog your entire collection in a sleek, organized inventory.
-- Track pieces by type, color, or custom bins.
-- Never wonder if you have "that one piece" again.
+How it works:
+1. Scan your LEGO
+2. We detect your bricks
+3. Get builds you can make right now
 
-🏠 **Smart Build Suggestions**
-- Get ideas for what to build based on your real brick mix.
-- Explore designs from simple models to complex creations.
+Works with messy, mixed LEGO — no need to organise first.
 
-🎮 **Gamified Sorting**
-- Turn sorting into a game with quests, XP, and daily challenges.
-- Climb the community leaderboard and earn badges for your progress.
-- Help the community by verifying detections and earn exclusive rewards.
+Stop letting your LEGO sit unused.
 
-**WHY HELLOBRICK?**
-- **Smarter Sorting**: Spend less time searching and more time building.
-- **Privacy-First**: Your camera is only active when you are scanning.
-- **Community-Driven**: Join thousands of builders in the "Community Lab" to help improve detection for everyone.
-
-Stop digging through piles and start building with confidence. Download HelloBrick today.
+Download HelloBrick and start building today.
 
 ---
 
 *Note: HelloBrick is an independent platform and is not affiliated with, sponsored by, or endorsed by the LEGO Group.*
 
 ## Keywords (100 characters max)
-building bricks,scanner,AI,sort,identify,collection,inventory,bricks,finder,organize,build,ideas
+lego,builder,scanner,ideas,finder,inventory,instructions,bricks,Brickit,alternative,build,set,mocs
 
 ## Promotional Text (170 characters max)
-Scan your bricks, build your personal vault, and discover new ideas. Turn your loose piles into perfectly organized collections with HelloBrick!
+What can you build with your LEGO? HelloBrick scans your bricks and shows you real builds you can make instantly. Perfect for messy, mixed collections!
 
 ## Support URL
-https://hellobrick.netlify.app/support
+https://hellobrick.app/support
 
 ## Marketing URL
-https://hellobrick.netlify.app/
+https://hellobrick.app/
 
 ## Privacy Policy URL
-https://hellobrick.netlify.app/privacy
+https://hellobrick.app/privacy
 
 ## What's New
-- Official HelloBrick Rebrand!
-- New premium Dark Mode interface.
-- Enhanced AI detection for specialized pieces.
-- Community Lab: Earn XP for helping verify bricks.
-- Improved "Ideas" generator for personalized building suggestions.
-
-
-
-
+- Official HelloBrick 2.0 Rebrand!
+- "What can I build?" outcome focus.
+- 30% faster AI detection for specialized technical pieces.
+- Community Lab: Earn XP and climb the global rankings.
+- New "Idea Engine" for personalized build suggestions.

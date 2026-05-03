@@ -72,14 +72,14 @@ export const Sidebar: React.FC = () => {
           <Logo size="sm" light={true} />
           <div className="flex flex-col">
             <span className="text-white font-black tracking-tighter text-[1.2rem] leading-none">Admin</span>
-            <span className="text-[10px] text-brand-yellow font-bold tracking-widest uppercase mt-0.5 opacity-80">Product Brain</span>
+            <span className="text-[10px] text-brand-yellow font-bold tracking-widest uppercase mt-0.5 opacity-80">V4.0 INTELLIGENCE</span>
           </div>
         </Link>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 px-4 space-y-1">
-        <div className="text-[10px] font-bold text-white/20 uppercase tracking-widest mb-4 px-3">Main</div>
+        <div className="text-[10px] font-bold text-white/20 uppercase tracking-widest mb-4 px-3">Lifecycle</div>
         <NavItem 
           to="/admin" 
           icon={LayoutDashboard} 
@@ -110,6 +110,19 @@ export const Sidebar: React.FC = () => {
           label="Analytics" 
           active={location.pathname === '/admin/analytics'} 
         />
+
+        <div className="pt-8 pb-4">
+           <div className="text-[10px] font-bold text-white/20 uppercase tracking-widest mb-4 px-3">Deployment</div>
+           <a 
+             href="/" 
+             target="_blank" 
+             rel="noopener noreferrer"
+             className="flex items-center gap-3 px-3 py-2 rounded-lg text-brand-text-dim hover:text-white hover:bg-white/5 transition-all duration-200 group"
+           >
+             <ExternalLink className="w-4 h-4 text-brand-text-dim group-hover:text-white" />
+             <span className="text-ui-body font-medium">View Live Site</span>
+           </a>
+        </div>
       </nav>
 
       {/* Footer / User Profile */}
