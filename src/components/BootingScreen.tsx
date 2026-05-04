@@ -9,7 +9,7 @@ export const BootingScreen: React.FC = () => {
   }, []);
 
   return (
-    <div className="fixed inset-0 bg-[#050A18] flex flex-col items-center justify-center z-[10000] transition-opacity duration-700" style={{ opacity }}>
+    <div className="fixed inset-0 bg-[#050A18] flex flex-col items-center justify-center z-[10000]">
       <div className="relative">
         {/* Glow behind logo */}
         <div className="absolute inset-0 bg-orange-500/20 blur-[60px] rounded-full animate-pulse" />

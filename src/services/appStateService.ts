@@ -68,13 +68,20 @@ function getScreenForState(state: AppState, params?: any): Screen {
 
 class AppStateService {
   private state: AppState = 'booting';
-  private currentScreen: Screen = Screen.AUTH;
+  private currentScreen: Screen = Screen.HOME; // Default to HOME to match App.tsx initial state
   private currentParams: any = null;
   private listeners: Set<Listener> = new Set();
   private returnScreen: Screen | null = null;
 
   constructor() {
     if (typeof window !== 'undefined') {
+      // 🚨 HARD RESET: If we detect bad data, wipe it immediately
+      const feed = localStorage.getItem('hellobrick_feed_posts');
+      if (feed && (feed.includes('hijo') || feed.includes('apple') || feed.includes('kids'))) {
+         localStorage.removeItem('hellobrick_feed_posts');
+         localStorage.removeItem('hellobrick_community_last_drip');
+      }
+      
       this.boot();
     }
   }

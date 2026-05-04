@@ -23,9 +23,9 @@ export const Logo: React.FC<{
   };
 
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
+    <div className={`flex items-center gap-3 shrink-0 ${className}`}>
       {/* The Brick Mark: Yellow background, Orange box, two black dots */}
-      <div className={`${markSize[size]} bg-[#FFD600] flex items-center justify-center shadow-lg relative overflow-hidden p-1`}>
+      <div className={`${markSize[size]} bg-[#FFD600] flex-shrink-0 flex items-center justify-center shadow-lg relative overflow-hidden p-1`}>
          <div className="w-[85%] h-[85%] bg-[#FF7A30] rounded-[30%] flex items-center justify-center gap-1.5 relative">
             <div className="w-[18%] h-[18%] bg-black rounded-full" />
             <div className="w-[18%] h-[18%] bg-black rounded-full" />
