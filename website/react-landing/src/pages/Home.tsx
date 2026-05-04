@@ -101,8 +101,8 @@ export const Home: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 text-center">
           {[
             { icon: Camera, title: "Scan your bricks", desc: "Just point your camera at your messy pile." },
-            { icon: Cpu, title: "We detect what you have", desc: "Our AI identifies every brick in seconds." },
-            { icon: Zap, title: "Get builds you can make", desc: "Start building instantly with what's in front of you." }
+            { icon: Cpu, title: "Detect what you have", desc: "Identify every brick in seconds." },
+            { icon: Zap, title: "Get build ideas", desc: "Start building instantly with what's in front of you." }
           ].map((step, i) => (
             <motion.div key={i} {...fadeInUp} transition={{ delay: i * 0.1 }}>
               <div className="w-16 h-16 bg-white rounded-2xl shadow-xl shadow-black/5 flex items-center justify-center mx-auto mb-6">
