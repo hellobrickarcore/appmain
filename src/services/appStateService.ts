@@ -75,11 +75,15 @@ class AppStateService {
 
   constructor() {
     if (typeof window !== 'undefined') {
-      // 🚨 HARD RESET: If we detect bad data, wipe it immediately
-      const feed = localStorage.getItem('hellobrick_feed_posts');
-      if (feed && (feed.includes('hijo') || feed.includes('apple') || feed.includes('kids'))) {
+      // 🚨 HARD VERSIONED PURGE: Force refresh community feed to remove old kids/fruit/generic data
+      const currentVersion = '1.6.2'; // Increment this to force a wipe
+      const storedVersion = localStorage.getItem('hellobrick_data_version');
+      
+      if (storedVersion !== currentVersion) {
+         console.log(`[AppState] Version mismatch (${storedVersion} vs ${currentVersion}). Purging community data...`);
          localStorage.removeItem('hellobrick_feed_posts');
          localStorage.removeItem('hellobrick_community_last_drip');
+         localStorage.setItem('hellobrick_data_version', currentVersion);
       }
       
       this.boot();

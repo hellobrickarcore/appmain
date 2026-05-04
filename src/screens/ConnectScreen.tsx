@@ -112,15 +112,15 @@ export const ConnectScreen: React.FC<ConnectScreenProps> = ({ onNavigate, isPro 
           "Just scanned 200+ bricks in under a minute. Wild."
         ];
         const legoImages = [
-          "https://images.pexels.com/photos/14823946/pexels-photo-14823946.jpeg?auto=compress&cs=tinysrgb&w=800",
-          "https://images.pexels.com/photos/1660662/pexels-photo-1660662.jpeg?auto=compress&cs=tinysrgb&w=800",
-          "https://images.pexels.com/photos/3661193/pexels-photo-3661193.jpeg?auto=compress&cs=tinysrgb&w=800",
-          "https://images.pexels.com/photos/2081166/pexels-photo-2081166.jpeg?auto=compress&cs=tinysrgb&w=800",
-          "https://images.pexels.com/photos/298825/pexels-photo-298825.jpeg?auto=compress&cs=tinysrgb&w=800",
-          "https://images.pexels.com/photos/3928164/pexels-photo-3928164.jpeg?auto=compress&cs=tinysrgb&w=800",
-          "https://images.pexels.com/photos/1274260/pexels-photo-1274260.jpeg?auto=compress&cs=tinysrgb&w=800",
-          "https://images.pexels.com/photos/207891/pexels-photo-207891.jpeg?auto=compress&cs=tinysrgb&w=800",
-          "https://images.pexels.com/photos/14823950/pexels-photo-14823950.jpeg?auto=compress&cs=tinysrgb&w=800"
+          "https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?w=800&q=80",
+          "https://images.unsplash.com/photo-1472457897821-70d3819a0e24?w=800&q=80",
+          "https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=800&q=80",
+          "https://images.unsplash.com/photo-1558008258-3256797b43f3?w=800&q=80",
+          "https://images.unsplash.com/photo-1611145100085-f5e27a6f2eb5?w=800&q=80",
+          "https://images.unsplash.com/photo-1606760227091-3dd870d97f1d?w=800&q=80",
+          "https://images.unsplash.com/photo-1518331647614-7a1f04cd34ce?w=800&q=80",
+          "https://images.unsplash.com/photo-1533022137081-3bd426c19f5e?w=800&q=80",
+          "https://images.unsplash.com/photo-1560961911-ba7ef651a56c?w=800&q=80"
         ];
 
         const generatePost = (timestamp: number, index: number) => {

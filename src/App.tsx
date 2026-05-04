@@ -30,6 +30,7 @@ import { HowItWorksScreen } from './screens/HowItWorksScreen';
 import { IdeasGeneratorScreen } from './screens/IdeasGeneratorScreen';
 import { BuildingIntroScreen } from './screens/BuildingIntroScreen';
 import { FeatureIntroScreen } from './screens/FeatureIntroScreen';
+import { NotificationsIntroScreen } from './screens/NotificationsIntroScreen';
 import { EmailAuthScreen } from './screens/EmailAuthScreen';
 import { AdminDashboardScreen } from './screens/AdminDashboardScreen';
 import { BottomNav } from './components/BottomNav';
@@ -232,6 +233,8 @@ const App: React.FC = () => {
         return <BuildingIntroScreen onNavigate={handleNavigate} />;
       case Screen.HOW_IT_WORKS:
         return <HowItWorksScreen onNavigate={handleNavigate} />;
+      case Screen.NOTIFICATIONS_INTRO:
+        return <NotificationsIntroScreen onNavigate={handleNavigate} />;
       case Screen.AUTH:
         return <AuthScreen onAuthenticate={() => handleNavigate(Screen.HOME)} onNavigate={handleNavigate} />;
       case Screen.EMAIL_SIGNUP:
@@ -325,7 +328,7 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
-      {[Screen.HOME, Screen.SCANNER, Screen.COLLECTION, Screen.PROFILE, Screen.FEED, Screen.PUZZLES, Screen.TRAINING, Screen.QUESTS, Screen.LEADERBOARD, Screen.MY_CREATIONS, Screen.IDEAS].includes(currentScreen) && showNav && (
+      {[Screen.HOME, Screen.SCANNER, Screen.COLLECTION, Screen.PROFILE, Screen.FEED, Screen.PUZZLES, Screen.TRAINING, Screen.QUESTS, Screen.LEADERBOARD, Screen.MY_CREATIONS, Screen.IDEAS, Screen.NOTIFICATIONS_INTRO].includes(currentScreen) && showNav && (
         <BottomNav currentScreen={currentScreen} onNavigate={handleNavigate} />
       )}
     </div>
