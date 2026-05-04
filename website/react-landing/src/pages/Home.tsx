@@ -1,152 +1,232 @@
 import React from 'react';
-import { SectionHero } from '../components/SectionHero';
-import { SectionHowItWorks } from '../components/SectionHowItWorks';
-import { SectionPricing } from '../components/SectionPricing';
-import { SectionEdu } from '../components/SectionEdu';
-import { Logo } from '../components/Logo';
-import { Download, Instagram, Twitter, Mail, ArrowRight } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Apple, Camera, Cpu, Layers, Star, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
+
+const fadeInUp = {
+  initial: { opacity: 0, y: 20 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true },
+  transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] }
+};
+
+const Section = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
+  <section className={`py-20 md:py-32 px-6 ${className}`}>
+    <div className="max-w-[1100px] mx-auto">
+      {children}
+    </div>
+  </section>
+);
 
 export const Home: React.FC = () => {
   return (
-    <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-brand-orange selection:text-white">
-      <SectionHero />
+    <div className="min-h-screen bg-white font-sans text-[#111111] selection:bg-brand-orange selection:text-white overflow-x-hidden">
       
-      {/* REAL Differentiator Section */}
-      <section className="py-20 bg-slate-900 overflow-hidden relative">
-        <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
-          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-orange blur-[120px] rounded-full"></div>
-          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand-orange blur-[120px] rounded-full"></div>
-        </div>
-        <div className="max-w-[1440px] mx-auto px-6 md:px-12 relative z-10 text-center">
-           <h2 className="text-[2rem] md:text-[3.5rem] font-black tracking-tight leading-tight text-white mb-8">
-             Built for real homes — <br className="hidden md:block" />
-             not perfect collections
-           </h2>
-           <p className="text-[18px] md:text-[22px] text-white/60 font-medium max-w-2xl mx-auto leading-relaxed">
-             HelloBrick works with messy piles, mixed sets, and random bricks. 
-             <span className="text-brand-orange font-bold"> No need to organise first.</span>
-           </p>
-        </div>
-      </section>
+      {/* 1. HERO SECTION */}
+      <section className="pt-24 pb-20 md:pt-40 md:pb-32 px-6">
+        <div className="max-w-[1100px] mx-auto text-center">
+          <motion.div {...fadeInUp}>
+            <h1 className="text-[48px] md:text-[64px] font-black tracking-tight leading-[1.05] mb-6">
+              Turn your brick pile into <br className="hidden md:block" />
+              something you can actually build
+            </h1>
+            <p className="text-[18px] md:text-[20px] text-[#64748B] font-medium mb-10 max-w-[600px] mx-auto">
+              Scan your bricks and get real build ideas — instantly
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
+              <a 
+                href="https://apps.apple.com/app/hellobrick" 
+                className="group flex items-center gap-3 bg-[#111111] text-white px-8 py-4 rounded-2xl font-black text-[17px] hover:scale-[1.03] active:scale-[0.98] transition-all shadow-xl shadow-black/10"
+              >
+                <Apple className="w-6 h-6 fill-current" />
+                Download on the App Store
+              </a>
+            </div>
+          </motion.div>
 
-      <div id="how-it-works">
-        <SectionHowItWorks />
-      </div>
-
-      {/* TikTok-style hook section */}
-      <section className="py-24 md:py-32 bg-brand-orange/5 border-y border-brand-orange/10">
-        <div className="max-w-[1440px] mx-auto px-6 md:px-12">
-           <div className="flex flex-col md:flex-row items-center gap-12 md:gap-20">
-              <div className="w-full md:w-1/2 space-y-8">
-                 <h2 className="text-[2.5rem] md:text-[4rem] font-black tracking-tight leading-[1] text-slate-900">
-                    What can <span className="text-brand-orange italic underline decoration-8 underline-offset-4">YOU</span> build with your LEGO?
-                 </h2>
-                 <p className="text-[20px] text-slate-600 font-bold leading-relaxed">
-                    Most people have £100+ of unused LEGO sitting at home. 
-                    HelloBrick turns that into something fun again.
-                 </p>
-              </div>
-              <div className="w-full md:w-1/2">
-                 <div className="aspect-[9/16] max-w-[320px] mx-auto bg-slate-900 rounded-[40px] border-[8px] border-slate-900 shadow-2xl relative overflow-hidden group">
-                    <img src="/screens/missions.png" className="w-full h-full object-cover opacity-80 group-hover:scale-110 transition-transform duration-700" alt="TikTok Hook" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent flex items-end p-8">
-                       <div className="space-y-2">
-                          <p className="text-brand-orange font-black text-sm uppercase tracking-widest">Trending Now</p>
-                          <p className="text-white text-xl font-black">"I found 400 pieces I forgot I had!"</p>
-                       </div>
-                    </div>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1, delay: 0.2 }}
+            className="relative max-w-[800px] mx-auto"
+          >
+            <div className="aspect-[16/10] bg-slate-50 rounded-[40px] overflow-hidden border border-slate-100 shadow-2xl relative">
+              <img 
+                src="/images/messy_pile.png" 
+                className="absolute inset-0 w-full h-full object-cover" 
+                alt="Messy brick pile" 
+              />
+              <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
+                 <div className="w-20 h-20 bg-white/20 backdrop-blur-xl rounded-full flex items-center justify-center border border-white/40 shadow-2xl animate-pulse">
+                    <Camera className="w-10 h-10 text-white" />
                  </div>
               </div>
-           </div>
-        </div>
-      </section>
-
-      <div id="pricing">
-        <SectionPricing />
-      </div>
-      
-      {/* Education Teaser */}
-      <section className="py-24 md:py-40 bg-slate-50/50">
-        <div className="max-w-[1440px] mx-auto px-6 md:px-12">
-           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 md:gap-20 items-center">
-             <div className="relative aspect-square md:aspect-video rounded-[32px] md:rounded-[48px] overflow-hidden border border-slate-100 group shadow-lg">
-                <img src="/screens/train.png" alt="Education" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent"></div>
-             </div>
-             
-             <div className="space-y-8 md:space-y-10">
-                <div className="inline-flex items-center gap-2">
-                   <span className="w-2 h-2 rounded-full bg-brand-orange"></span>
-                   <span className="text-[14px] uppercase tracking-widest font-black text-slate-500">Education</span>
-                </div>
-                <h2 className="text-[2.5rem] md:text-ui-header font-black tracking-tight leading-[1.1] text-slate-900">HelloBrick for schools</h2>
-                <p className="text-[18px] text-slate-500 font-medium leading-relaxed max-w-lg">
-                  Bring the power of AI scanning to your classroom. Automate inventory, manage student labs, and follow standards-aligned building guides.
-                </p>
-                <Link to="/education" className="inline-flex items-center gap-3 text-brand-orange font-bold text-[16px] transition-all group">
-                  Explore education <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </Link>
-             </div>
-           </div>
-        </div>
-      </section>
-
-      {/* Blog Teaser */}
-      <section className="py-24 md:py-40 bg-white">
-        <div className="max-w-[1440px] mx-auto px-6 md:px-12 text-center">
-           <h2 className="text-[2.5rem] md:text-ui-header font-black tracking-tight leading-[1.1] text-slate-900 mb-10">Latest from the vault</h2>
-           <p className="text-[18px] text-slate-500 font-medium max-w-xl mx-auto mb-16">
-             Get the best tips on sorting, building, and maintaining your collection in our daily AI-generated journal.
-           </p>
-           <Link to="/blog" className="inline-flex items-center gap-4 bg-slate-900 text-white px-10 py-5 rounded-[24px] text-[16px] font-bold hover:bg-brand-orange hover:shadow-xl transition-all">
-             View all guides
-           </Link>
-        </div>
-      </section>
-
-      <footer className="py-24 md:py-32 border-t border-slate-100 bg-white relative overflow-hidden">
-         <div className="max-w-[1440px] mx-auto px-6 md:px-12 relative z-10">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-16 md:gap-20 mb-24">
-               <div className="col-span-1 md:col-span-2 space-y-10">
-                  <Logo size="lg" light={false} />
-                  <p className="text-[16px] text-slate-500 font-medium max-w-sm">
-                    The ultimate AI companion for brick builders. Scan, sort, and build anything from your existing collection.
-                  </p>
-                  <div className="flex gap-4">
-                    <a href="#" className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 hover:bg-brand-orange hover:text-white transition-all"><Instagram className="w-6 h-6" /></a>
-                    <a href="#" className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 hover:bg-brand-orange hover:text-white transition-all"><Twitter className="w-6 h-6" /></a>
-                  </div>
-               </div>
-               
-               <div className="space-y-6">
-                  <h4 className="text-[14px] uppercase tracking-widest font-black text-slate-900 mb-8">Navigation</h4>
-                  <ul className="space-y-4 text-slate-500 text-[15px] font-bold">
-                    <li><Link to="/" className="hover:text-brand-orange transition-colors">Home</Link></li>
-                    <li><Link to="/education" className="hover:text-brand-orange transition-colors">Education</Link></li>
-                    <li><Link to="/blog" className="hover:text-brand-orange transition-colors">Journal</Link></li>
-                    <li><a href="#pricing" className="hover:text-brand-orange transition-colors">Pricing</a></li>
-                  </ul>
-               </div>
-
-               <div className="space-y-6">
-                  <h4 className="text-[14px] uppercase tracking-widest font-black text-slate-900 mb-8">Legal</h4>
-                  <ul className="space-y-4 text-slate-500 text-[15px] font-bold">
-                    <li><Link to="/privacy" className="hover:text-brand-orange transition-colors">Privacy policy</Link></li>
-                    <li><Link to="/terms" className="hover:text-brand-orange transition-colors">Terms of service</Link></li>
-                  </ul>
-               </div>
             </div>
-            
-            <div className="flex flex-col md:flex-row justify-between items-center gap-12 pt-16 border-t border-slate-100">
-               <div className="flex items-center gap-6">
-                  <Logo size="sm" light={false} showText={false} />
-                  <p className="text-[14px] text-slate-400 font-bold">© 2024 HelloBrick. All rights reserved.</p>
-               </div>
-               
-               <p className="text-[13px] text-slate-300 font-bold max-w-sm text-center md:text-right">HelloBrick is an independent application. LEGO is a trademark of the LEGO Group.</p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* 2. VISUAL PROOF */}
+      <section className="bg-[#111111] py-0 overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
+          <div className="relative aspect-square md:aspect-auto h-full min-h-[400px]">
+            <img src="/images/messy_pile.png" className="absolute inset-0 w-full h-full object-cover" alt="Before" />
+            <div className="absolute top-8 left-8 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
+              <span className="text-white font-black text-sm uppercase tracking-widest">From this 👇</span>
             </div>
-         </div>
+          </div>
+          <div className="relative aspect-square md:aspect-auto h-full min-h-[400px]">
+            <img src="/images/build_result.png" className="absolute inset-0 w-full h-full object-cover" alt="After" />
+            <div className="absolute top-8 right-8 bg-brand-orange backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
+              <span className="text-white font-black text-sm uppercase tracking-widest">To this 👇</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. PROBLEM -> SOLUTION */}
+      <Section className="text-center">
+        <motion.div {...fadeInUp}>
+          <h2 className="text-[32px] md:text-[48px] font-black tracking-tight mb-6 max-w-[800px] mx-auto">
+            Most brick collections sit unused
+          </h2>
+          <p className="text-[18px] md:text-[22px] text-[#64748B] font-medium leading-relaxed max-w-[700px] mx-auto">
+            HelloBrick shows you exactly what you can build — without sorting or guessing
+          </p>
+        </motion.div>
+      </Section>
+
+      {/* 4. HOW IT WORKS */}
+      <Section className="bg-slate-50 rounded-[48px] my-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 text-center">
+          {[
+            { icon: Camera, title: "Scan your bricks", desc: "Just point your camera at your messy pile." },
+            { icon: Cpu, title: "We detect what you have", desc: "Our AI identifies every brick in seconds." },
+            { icon: Zap, title: "Get builds you can make", desc: "Start building instantly with what's in front of you." }
+          ].map((step, i) => (
+            <motion.div key={i} {...fadeInUp} transition={{ delay: i * 0.1 }}>
+              <div className="w-16 h-16 bg-white rounded-2xl shadow-xl shadow-black/5 flex items-center justify-center mx-auto mb-6">
+                <step.icon className="w-8 h-8 text-brand-orange" />
+              </div>
+              <h3 className="text-[20px] font-black mb-2">{step.title}</h3>
+              <p className="text-[#64748B] font-medium">{step.desc}</p>
+            </motion.div>
+          ))}
+        </div>
+      </Section>
+
+      {/* 5. DIFFERENTIATION */}
+      <Section>
+        <div className="flex flex-col md:flex-row items-center gap-16">
+          <div className="w-full md:w-1/2">
+            <h2 className="text-[32px] md:text-[48px] font-black tracking-tight mb-6">
+              Works with messy, <br /> mixed bricks
+            </h2>
+            <p className="text-[18px] md:text-[20px] text-[#64748B] font-medium leading-relaxed">
+              No need to organise. No perfect sets required. Just throw them on the table and scan.
+            </p>
+          </div>
+          <div className="w-full md:w-1/2">
+            <div className="rounded-[32px] overflow-hidden border border-slate-100 shadow-2xl">
+              <img src="/images/messy_pile.png" className="w-full aspect-video object-cover" alt="Messy pile" />
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      {/* 6. USE CASES */}
+      <Section className="bg-[#111111] text-white rounded-[48px] my-10">
+        <div className="text-center mb-16">
+          <h2 className="text-[32px] md:text-[48px] font-black tracking-tight">Perfect for:</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            { title: "Random Collections", desc: "Mixed bricks from years of building." },
+            { title: "Bored Kids", desc: "When they don't know what to build next." },
+            { title: "Anyone Else", desc: "Who wants to build something new today." }
+          ].map((use, i) => (
+            <div key={i} className="p-8 bg-white/5 rounded-3xl border border-white/10 text-center">
+              <h3 className="text-[18px] font-black mb-2">{use.title}</h3>
+              <p className="text-white/60 font-medium">{use.desc}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* 7. SOCIAL PROOF */}
+      <Section>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {[
+            { quote: "This saved me hours sorting", author: "Sarah, Parent of two" },
+            { quote: "My kids actually use their bricks again", author: "Mark, LEGO Fan" },
+            { quote: "So much easier than figuring it out myself", author: "James, Designer" }
+          ].map((test, i) => (
+            <motion.div 
+              key={i} 
+              {...fadeInUp} 
+              className="p-10 bg-slate-50 rounded-[32px] border border-slate-100"
+            >
+              <div className="flex gap-1 mb-6">
+                {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 fill-brand-orange text-brand-orange" />)}
+              </div>
+              <p className="text-[18px] font-bold italic mb-6 leading-relaxed">"{test.quote}"</p>
+              <p className="text-[#64748B] font-black text-sm uppercase tracking-widest">{test.author}</p>
+            </motion.div>
+          ))}
+        </div>
+      </Section>
+
+      {/* 8. PRODUCT UI SHOWCASE */}
+      <section className="py-20 md:py-32 overflow-hidden bg-slate-50">
+        <div className="max-w-[1100px] mx-auto px-6 mb-16 text-center">
+          <h2 className="text-[32px] md:text-[48px] font-black tracking-tight mb-4">Simple. Fast. Works instantly.</h2>
+        </div>
+        <div className="flex gap-8 px-6 overflow-x-auto no-scrollbar pb-10">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex-shrink-0 w-[280px] md:w-[320px] aspect-[9/19] bg-[#111111] rounded-[40px] border-[8px] border-[#111111] shadow-2xl overflow-hidden">
+               <img src={`/screens/screen-${i}.png`} className="w-full h-full object-cover opacity-90" alt={`Screen ${i}`} onError={(e) => {
+                 (e.target as HTMLImageElement).src = '/images/build_result.png';
+               }} />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 9. FINAL CTA */}
+      <Section className="text-center py-40">
+        <motion.div {...fadeInUp}>
+          <h2 className="text-[40px] md:text-[64px] font-black tracking-tight mb-6">
+            Find out what your <br /> bricks can build
+          </h2>
+          <p className="text-[18px] md:text-[20px] text-[#64748B] font-medium mb-12">
+            Download HelloBrick and start building today
+          </p>
+          <a 
+            href="https://apps.apple.com/app/hellobrick" 
+            className="inline-flex items-center gap-3 bg-[#111111] text-white px-10 py-5 rounded-2xl font-black text-[20px] hover:scale-[1.03] active:scale-[0.98] transition-all shadow-2xl shadow-black/20"
+          >
+            <Apple className="w-7 h-7 fill-current" />
+            Download Now
+          </a>
+        </motion.div>
+      </Section>
+
+      {/* Footer */}
+      <footer className="py-12 px-6 border-t border-slate-100">
+        <div className="max-w-[1100px] mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+          <div className="flex items-center gap-3">
+             <div className="w-10 h-10 bg-brand-orange rounded-xl flex items-center justify-center">
+                <Layers className="w-6 h-6 text-white" />
+             </div>
+             <span className="font-black text-xl tracking-tighter text-[#111111]">HelloBrick</span>
+          </div>
+          <div className="flex gap-8 text-[#64748B] font-bold text-sm">
+            <Link to="/privacy" className="hover:text-[#111111] transition-colors">Privacy</Link>
+            <Link to="/terms" className="hover:text-[#111111] transition-colors">Terms</Link>
+            <Link to="/support" className="hover:text-[#111111] transition-colors">Support</Link>
+          </div>
+          <p className="text-[#64748B] text-sm font-medium">© 2026 HelloBrick. All rights reserved.</p>
+        </div>
       </footer>
     </div>
   );
