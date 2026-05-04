@@ -233,10 +233,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
         "https://images.pexels.com/photos/207891/pexels-photo-207891.jpeg?auto=compress&cs=tinysrgb&w=800",
         "https://images.pexels.com/photos/14823946/pexels-photo-14823946.jpeg?auto=compress&cs=tinysrgb&w=800",
         "https://images.pexels.com/photos/14823950/pexels-photo-14823950.jpeg?auto=compress&cs=tinysrgb&w=800",
-        "https://images.pexels.com/photos/3928164/pexels-photo-3928164.jpeg?auto=compress&cs=tinysrgb&w=800",
-        "https://images.pexels.com/photos/32432135/pexels-photo-32432135.jpeg?auto=compress&cs=tinysrgb&w=800",
-        "https://images.pexels.com/photos/32432128/pexels-photo-32432128.jpeg?auto=compress&cs=tinysrgb&w=800",
-        "https://images.pexels.com/photos/32432126/pexels-photo-32432126.jpeg?auto=compress&cs=tinysrgb&w=800"
+        "https://images.pexels.com/photos/3928164/pexels-photo-3928164.jpeg?auto=compress&cs=tinysrgb&w=800"
       ];
 
       const today = new Date().toISOString().split('T')[0];
