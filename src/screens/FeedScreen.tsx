@@ -79,9 +79,9 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
           title: 'My First LEGO House',
           description: 'Used leftover 2x4 bricks after my son got tired of his castle set. This cottage took about 10 minutes! 🏠',
           bricksUsed: 42,
-          baseLikes: 31,
+          baseLikes: 247,
           isLiked: false,
-          postedAt: getAnchoredTimestamp(0, 3), // ~3 hours ago
+          postedAt: getAnchoredTimestamp(0, 3),
         },
         {
           id: 'seed_2',
@@ -93,23 +93,23 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
           title: 'Simple Desktop Tree',
           description: 'Just a few brown and green bricks — makes my desk look great during meetings!',
           bricksUsed: 18,
-          baseLikes: 24,
+          baseLikes: 89,
           isLiked: true,
-          postedAt: getAnchoredTimestamp(1, 5), // ~1.2 days ago
+          postedAt: getAnchoredTimestamp(1, 5),
         },
         {
           id: 'seed_3',
           userId: 'user3',
-          userName: 'QuickRacer',
-          userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Racer',
+          userName: 'レゴパパ',
+          userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=legopapa',
           isPrivate: false,
           image: carImg,
-          title: '5-Minute Race Car',
-          description: 'Built this with my son in under five minutes. Now he wants to race it against my truck 😂',
+          title: '5分で作った車',
+          description: '息子と一緒に作りました。スキャナーが本当に便利！次はトラックを作りたい 🚗',
           bricksUsed: 25,
-          baseLikes: 18,
+          baseLikes: 312,
           isLiked: false,
-          postedAt: getAnchoredTimestamp(3, 2), // ~3 days ago
+          postedAt: getAnchoredTimestamp(2, 1),
         },
         {
           id: 'seed_4',
@@ -121,23 +121,23 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
           title: 'Micro Apartment Block',
           description: 'Tried to recreate my NYC apartment. The scale is way off but the vibe is there 🏢',
           bricksUsed: 56,
-          baseLikes: 45,
+          baseLikes: 1243,
           isLiked: false,
-          postedAt: getAnchoredTimestamp(4, 8), // ~4.3 days ago
+          postedAt: getAnchoredTimestamp(3, 8),
         },
         {
           id: 'seed_5',
           userId: 'user5',
-          userName: 'StudMaster',
-          userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Stud',
+          userName: 'carlos_bricks',
+          userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=carlos',
           isPrivate: false,
           image: treeImg,
-          title: 'Palm Tree for My Beach Set',
-          description: 'The scanner found green plates I forgot I had. This palm fits perfectly next to my surfboard minifig 🌴',
+          title: 'Palmera para mi set de playa',
+          description: 'El escáner encontró piezas verdes que ni sabía que tenía. Esta palmera queda perfecto al lado de mi minifig surfer 🌴',
           bricksUsed: 14,
-          baseLikes: 19,
+          baseLikes: 156,
           isLiked: false,
-          postedAt: getAnchoredTimestamp(6, 1), // ~6 days ago
+          postedAt: getAnchoredTimestamp(5, 1),
         },
         {
           id: 'seed_6',
@@ -146,26 +146,26 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
           userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Dad',
           isPrivate: false,
           image: carImg,
-          title: 'Monster Truck Attempt',
-          description: 'The kids said it looks more like a box with wheels. Fair enough. Back to scanning for bigger tires!',
+          title: 'Monster Truck Attemp lol',
+          description: 'The kids said it looks more like a box with wheels. Fair enought. Back to scaning for bigger tires lmao!',
           bricksUsed: 34,
-          baseLikes: 27,
+          baseLikes: 78,
           isLiked: true,
-          postedAt: getAnchoredTimestamp(8, 4), // ~8 days ago
+          postedAt: getAnchoredTimestamp(7, 4),
         },
         {
           id: 'seed_7',
           userId: 'user7',
-          userName: 'MiniBricks',
-          userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mini',
+          userName: 'Bausteine_Max',
+          userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Max',
           isPrivate: false,
           image: houseImg,
-          title: 'Church with a Bell Tower',
-          description: 'My grandma asked me to build her church. Not my best work but she loved it ❤️',
+          title: 'Kirche mit Glockenturm',
+          description: 'Meine Oma hat mich gebeten ihre Kirche zu bauen. Nicht mein bestes Werk aber sie hat sich gefreut ❤️',
           bricksUsed: 67,
-          baseLikes: 52,
+          baseLikes: 534,
           isLiked: false,
-          postedAt: getAnchoredTimestamp(11, 6), // ~11 days ago
+          postedAt: getAnchoredTimestamp(10, 6),
         },
         {
           id: 'seed_8',
@@ -177,9 +177,9 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
           title: 'Bonsai Tree (HelloBrick Idea!)',
           description: 'Got this idea from the AI after scanning my green and brown bricks. Turned out way better than expected 🌿',
           bricksUsed: 22,
-          baseLikes: 38,
+          baseLikes: 2891,
           isLiked: false,
-          postedAt: getAnchoredTimestamp(14, 3), // ~14 days ago
+          postedAt: getAnchoredTimestamp(12, 3),
         },
       ];
 
@@ -196,19 +196,33 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
       const dailyNames = [
         "BrickNinja", "AFOLJenny", "TechnicFan_UK", "ModularMike", "SpaceBuilder_",
         "ClassicBricks", "BricksByJake", "PixelBricks", "MasterMOC", "LEGOdad_Mark",
-        "PlasticArchitect", "MinifigCollector", "NinjaBricks", "BrickQueen2", "StudShooter"
+        "PlasticArchitect", "MinifigCollector", "NinjaBricks", "BrickQueen2", "StudShooter",
+        "建築好き", "lego_maria", "briques_jules", "mattoncini_it", "klodser_dk",
+        "brick_addict_23", "xXBuildKingXx", "sarahh_builds", "jonnybricks99"
       ];
       const dailyCaptions = [
-        "Scanned my pile and built this in 15 minutes! 🔥",
-        "HelloBrick found bricks I forgot I had.",
-        "Sunday afternoon build — no sorting needed!",
-        "My kids designed this one after we scanned together ❤️",
-        "First build using HelloBrick — I'm hooked!",
+        "insane 🔥",
+        "Scanned my pile and built this in 15 minutes!",
+        "HelloBrick found bricks I forgot I had lol",
+        "Sunday afternoon build — no sorting needed",
+        "My kids designd this one after we scanned together ❤️",
+        "First build using HelloBrick — im hooked!",
         "POV: you scan a messy pile and get 6 build ideas instantly",
-        "This app literally saved me 3 hours of sorting.",
+        "This app literaly saved me 3 hours of sorting",
         "Just scanned 200+ bricks in under a minute. Wild.",
-        "Before HelloBrick I would've never found these pieces 🤯",
-        "Rainy day + messy bricks = perfect afternoon"
+        "perfecto 🫶",
+        "Rainy day + messy bricks = perfect afternoon",
+        "genuinley cant believe how quick this was",
+        "magnifique! j'adore cette app",
+        "素晴らしい！子供も大喜び 🎉",
+        "no way this actually works??",
+        "ok i was skeptical but this is actually magic",
+        "wow",
+        "finally used those random bricks in my drawer lmaooo",
+        "mein bestes Bauwerk bisher! danke HelloBrick",
+        "¡increíble! mi hijo está obsesionado con el escáner",
+        "ngl thought this was fake but its legit",
+        "obsessed 😍"
       ];
       const dailyImages = [
         "https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?w=800&q=80",
@@ -231,6 +245,11 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
         for (let j = 0; j < numNew; j++) {
           const name = dailyNames[Math.floor(Math.random() * dailyNames.length)];
           const hourOffset = Math.floor(Math.random() * 6) * 3600000;
+          // Varied like counts: most 20-300, occasional viral post 500-3000
+          const isViral = Math.random() < 0.15;
+          const likes = isViral
+            ? Math.floor(Math.random() * 2500) + 500
+            : Math.floor(Math.random() * 280) + 3;
           allPosts.push({
             id: `daily_${today}_${j}_${Math.random().toString(36).slice(2,7)}`,
             userId: `user_${name.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
@@ -241,7 +260,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
             title: dailyCaptions[Math.floor(Math.random() * dailyCaptions.length)].split('!')[0],
             description: dailyCaptions[Math.floor(Math.random() * dailyCaptions.length)],
             bricksUsed: Math.floor(Math.random() * 80) + 15,
-            baseLikes: Math.floor(Math.random() * 60) + 10,
+            baseLikes: likes,
             isLiked: false,
             postedAt: Date.now() - hourOffset,
           } as any);
