@@ -76,7 +76,7 @@ class AppStateService {
   constructor() {
     if (typeof window !== 'undefined') {
       // 🚨 HARD VERSIONED PURGE: Force refresh community feed to remove old kids/fruit/generic data
-      const currentVersion = '1.6.2'; // Increment this to force a wipe
+      const currentVersion = '1.7.0'; // Increment this to force a wipe
       const storedVersion = localStorage.getItem('hellobrick_data_version');
       
       if (storedVersion !== currentVersion) {

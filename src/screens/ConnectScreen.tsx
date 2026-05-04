@@ -112,15 +112,15 @@ export const ConnectScreen: React.FC<ConnectScreenProps> = ({ onNavigate, isPro 
           "Just scanned 200+ bricks in under a minute. Wild."
         ];
         const legoImages = [
-          "https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?w=800&q=80",
-          "https://images.unsplash.com/photo-1472457897821-70d3819a0e24?w=800&q=80",
-          "https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=800&q=80",
-          "https://images.unsplash.com/photo-1558008258-3256797b43f3?w=800&q=80",
-          "https://images.unsplash.com/photo-1611145100085-f5e27a6f2eb5?w=800&q=80",
-          "https://images.unsplash.com/photo-1606760227091-3dd870d97f1d?w=800&q=80",
-          "https://images.unsplash.com/photo-1518331647614-7a1f04cd34ce?w=800&q=80",
-          "https://images.unsplash.com/photo-1533022137081-3bd426c19f5e?w=800&q=80",
-          "https://images.unsplash.com/photo-1560961911-ba7ef651a56c?w=800&q=80"
+          "https://images.unsplash.com/photo-1557597774-9d273605dfa9?w=800&q=80",
+          "https://images.unsplash.com/photo-1559066653-edfd1e6af5f3?w=800&q=80",
+          "https://images.unsplash.com/photo-1562040506-a9b32cb51b94?w=800&q=80",
+          "https://images.unsplash.com/photo-1615729947596-a598e5de0ab3?w=800&q=80",
+          "https://images.unsplash.com/photo-1544511916-0148ccdeb877?w=800&q=80",
+          "https://images.unsplash.com/photo-1621600411688-4be93c68a1ff?w=800&q=80",
+          "https://images.unsplash.com/photo-1563453392212-326f5e854473?w=800&q=80",
+          "https://images.unsplash.com/photo-1599508704512-2f19efd1e35f?w=800&q=80",
+          "https://images.unsplash.com/photo-1611780243669-0fae91df5f81?w=800&q=80"
         ];
 
         const generatePost = (timestamp: number, index: number) => {

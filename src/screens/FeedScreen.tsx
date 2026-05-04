@@ -117,7 +117,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
           userName: 'BrickQueen',
           userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Queen',
           isPrivate: false,
-          image: 'https://images.unsplash.com/photo-1558008258-3256797b43f3?w=800&q=80',
+          image: 'https://images.unsplash.com/photo-1596854407944-bf87f6fdd49e?w=800&q=80',
           title: 'Mini city vibes',
           description: 'Trying to build a whole street from spare parts. Its slow going but getting there 🏢',
           bricksUsed: 56,
@@ -131,7 +131,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
           userName: 'carlos_bricks',
           userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=carlos',
           isPrivate: false,
-          image: 'https://images.unsplash.com/photo-1611145100085-f5e27a6f2eb5?w=800&q=80',
+          image: 'https://images.unsplash.com/photo-1578652520385-c406cd700097?w=800&q=80',
           title: 'Creación libre',
           description: 'Sin instrucciones, solo piezas sueltas y imaginación 🌴',
           bricksUsed: 14,
@@ -145,7 +145,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
           userName: 'DadBuilds',
           userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Dad',
           isPrivate: false,
-          image: 'https://images.unsplash.com/photo-1533022137081-3bd426c19f5e?w=800&q=80',
+          image: 'https://images.unsplash.com/photo-1566140967404-b8b3932483f5?w=800&q=80',
           title: 'Mess before the build lol',
           description: 'This is what my table looks like every saturday. Just dump everything out and go for it',
           bricksUsed: 34,
@@ -159,7 +159,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
           userName: 'Bausteine_Max',
           userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Max',
           isPrivate: false,
-          image: 'https://images.unsplash.com/photo-1560961911-ba7ef651a56c?w=800&q=80',
+          image: 'https://images.unsplash.com/photo-1595594424995-3203a53aff8f?w=800&q=80',
           title: 'Altes Set neu gebaut',
           description: 'Hatte noch Steine von vor 10 Jahren im Keller. Hab einfach was zusammengebaut ❤️',
           bricksUsed: 67,
@@ -170,12 +170,12 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
         {
           id: 'seed_8',
           userId: 'user8',
-          userName: 'PixelArtPro',
-          userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Pixel',
+          userName: 'brick_addict_23',
+          userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=addict',
           isPrivate: false,
-          image: 'https://images.unsplash.com/photo-1606760227091-3dd870d97f1d?w=800&q=80',
-          title: 'Tiny garden scene',
-          description: 'Made a little garden with whatever green and brown pieces I had lying around 🌿',
+          image: 'https://images.unsplash.com/photo-1602532305019-3dbbd482dae9?w=800&q=80',
+          title: 'Morning sort session',
+          description: 'Coffee and bricks. Best combo there is ☕',
           bricksUsed: 22,
           baseLikes: 2891,
           isLiked: false,
@@ -225,15 +225,15 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
         "obsessed w this colour combo 😍"
       ];
       const dailyImages = [
-        "https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?w=800&q=80",
-        "https://images.unsplash.com/photo-1472457897821-70d3819a0e24?w=800&q=80",
-        "https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=800&q=80",
-        "https://images.unsplash.com/photo-1558008258-3256797b43f3?w=800&q=80",
-        "https://images.unsplash.com/photo-1611145100085-f5e27a6f2eb5?w=800&q=80",
-        "https://images.unsplash.com/photo-1606760227091-3dd870d97f1d?w=800&q=80",
-        "https://images.unsplash.com/photo-1518331647614-7a1f04cd34ce?w=800&q=80",
-        "https://images.unsplash.com/photo-1533022137081-3bd426c19f5e?w=800&q=80",
-        "https://images.unsplash.com/photo-1560961911-ba7ef651a56c?w=800&q=80"
+        "https://images.unsplash.com/photo-1560859251-d563a49c5e4a?w=800&q=80",
+        "https://images.unsplash.com/photo-1607513746994-51f730a44832?w=800&q=80",
+        "https://images.unsplash.com/photo-1611780243669-0fae91df5f81?w=800&q=80",
+        "https://images.unsplash.com/photo-1625425259894-4db0b1935078?w=800&q=80",
+        "https://images.unsplash.com/photo-1551103782-8ab07afd45c1?w=800&q=80",
+        "https://images.unsplash.com/photo-1599508704512-2f19efd1e35f?w=800&q=80",
+        "https://images.unsplash.com/photo-1628498188904-036f3d0073e4?w=800&q=80",
+        "https://images.unsplash.com/photo-1609710228159-0fa9bd7c0827?w=800&q=80",
+        "https://images.unsplash.com/photo-1608501078713-8e445a709b39?w=800&q=80"
       ];
 
       const today = new Date().toISOString().split('T')[0];
