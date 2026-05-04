@@ -8,12 +8,20 @@ import Footer from './components/Footer';
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white scroll-smooth">
       <Navbar />
       <Hero />
       <VisualProof />
-      <BentoValueProps />
-      <AsymmetricBento />
+      
+      {/* Sections with matching IDs for Navbar links */}
+      <div id="features">
+        <BentoValueProps />
+      </div>
+      
+      <div id="how-it-works">
+        <AsymmetricBento />
+      </div>
+      
       <Subscribe />
       <Footer />
     </div>

@@ -1,29 +1,24 @@
 import { motion } from 'motion/react';
 
-// Generates playful "brick" clusters in LEGO branding colors
-const BlobCluster = ({ color, sizes = [], style }: { color: string; sizes?: number[]; style?: React.CSSProperties }) => {
+const BrickCluster = ({ color, style, studs = 2 }: { color: string; style?: React.CSSProperties, studs?: number }) => {
   return (
     <motion.div 
-      className="absolute flex items-center justify-center p-2 rounded-full"
+      className="absolute flex items-center justify-center rounded-full px-4 py-2"
       style={{ backgroundColor: color, ...style }}
       animate={{ 
-        y: [0, -10, 0],
-        rotate: [0, 2, -2, 0]
+        y: [0, -12, 0],
+        rotate: [0, 3, -3, 0]
       }}
       transition={{ 
-        duration: 4 + Math.random() * 3, 
+        duration: 5 + Math.random() * 2, 
         repeat: Infinity, 
         ease: "easeInOut" 
       }}
     >
-      <div className="flex gap-1 items-center justify-center">
-        {sizes.map((s, i) => (
-          <div key={i} className="bg-black/20 rounded-full" style={{ width: s, height: s }} />
+      <div className="flex gap-2">
+        {Array.from({ length: studs }).map((_, i) => (
+          <div key={i} className="w-4 h-4 bg-black/10 rounded-full border border-white/10 shadow-inner"></div>
         ))}
-      </div>
-      <div className="absolute flex gap-1.5 opacity-80 mix-blend-overlay">
-        <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-        <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
       </div>
     </motion.div>
   );
@@ -33,27 +28,21 @@ export default function Hero() {
   return (
     <section className="relative pt-40 pb-24 px-6 min-h-[85vh] flex flex-col items-center justify-center overflow-hidden">
       
-      {/* Background Clusters - Updated to LEGO/HelloBrick Colors */}
-      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none mix-blend-multiply opacity-50 md:opacity-100">
-        <BlobCluster color="#FFCE4A" sizes={[16, 24, 16]} style={{ top: '15%', left: '10%' }} />
-        <BlobCluster color="#FF4D80" sizes={[24, 24]} style={{ top: '25%', left: '25%', transform: 'scale(1.2)' }} />
-        <BlobCluster color="#00C2FF" sizes={[16, 32, 16]} style={{ top: '30%', right: '15%', transform: 'scale(1.5)' }} />
-        <BlobCluster color="#FF7A30" sizes={[20, 20]} style={{ top: '60%', left: '15%', transform: 'scale(1.1)' }} />
-        <BlobCluster color="#22D35A" sizes={[16, 16, 16, 16]} style={{ top: '70%', right: '20%', transform: 'scale(1.3)' }} />
-        <BlobCluster color="#0F4CFF" sizes={[24, 16]} style={{ top: '10%', right: '35%', transform: 'scale(0.9)' }} />
-        <BlobCluster color="#FFCE4A" sizes={[24, 32]} style={{ top: '80%', left: '35%', transform: 'scale(1.4)' }} />
-        <BlobCluster color="#FF4D80" sizes={[16, 16]} style={{ top: '50%', right: '5%', transform: 'scale(1.1)' }} />
-        
-        {/* Fill in more blobs for the crowded look */}
-        <BlobCluster color="#FF7A30" sizes={[16]} style={{ top: '45%', left: '5%' }} />
-        <BlobCluster color="#0F4CFF" sizes={[20, 20]} style={{ top: '85%', right: '35%' }} />
-        <BlobCluster color="#FFCE4A" sizes={[16, 24, 16]} style={{ top: '20%', right: '10%' }} />
-        <BlobCluster color="#00C2FF" sizes={[24, 24]} style={{ top: '75%', left: '25%' }} />
+      {/* LEGO Brick Background Clusters */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none opacity-40 md:opacity-100">
+        <BrickCluster color="#FFCE4A" studs={3} style={{ top: '12%', left: '8%', transform: 'rotate(-15deg)' }} />
+        <BrickCluster color="#FF4D80" studs={2} style={{ top: '22%', left: '22%', transform: 'scale(1.4) rotate(10deg)' }} />
+        <BrickCluster color="#00C2FF" studs={2} style={{ top: '28%', right: '12%', transform: 'scale(1.6) rotate(-5deg)' }} />
+        <BrickCluster color="#FF7A30" studs={1} style={{ top: '58%', left: '12%', transform: 'scale(1.2)' }} />
+        <BrickCluster color="#22D35A" studs={2} style={{ top: '68%', right: '18%', transform: 'scale(1.3) rotate(20deg)' }} />
+        <BrickCluster color="#0F4CFF" studs={2} style={{ top: '8%', right: '32%', transform: 'scale(0.9) rotate(45deg)' }} />
+        <BrickCluster color="#FFCE4A" studs={2} style={{ top: '78%', left: '32%', transform: 'scale(1.5) rotate(-10deg)' }} />
+        <BrickCluster color="#FF4D80" studs={2} style={{ top: '48%', right: '4%', transform: 'scale(1.1) rotate(15deg)' }} />
       </div>
 
       <div className="relative z-10 max-w-4xl mx-auto text-center mt-12 mb-16">
         <motion.h1 
-          className="font-display text-[56px] md:text-[88px] leading-[1.05] tracking-tight font-bold mb-6"
+          className="font-display text-[56px] md:text-[88px] leading-[1.05] tracking-tight font-bold mb-6 text-brand-navy"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
@@ -62,22 +51,44 @@ export default function Hero() {
         </motion.h1>
         
         <motion.p 
-          className="text-lg md:text-2xl text-gray-600 max-w-2xl mx-auto font-medium mb-10"
+          className="text-lg md:text-2xl text-gray-600 max-w-2xl mx-auto font-medium mb-12"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
         >
-          Scan your bricks and get real build ideas — instantly. No sorting required.
+          Scan your bricks and get real build ideas — instantly. <br className="hidden md:block" /> No sorting required.
         </motion.p>
         
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
+          className="flex flex-col items-center gap-6"
         >
-          <a href="https://apps.apple.com/app/hellobrick" className="bg-brand text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-brand-hover transition-colors shadow-lg shadow-brand/20 inline-flex items-center gap-2">
-             Download on the App Store
+          {/* Classic App Store Format Button */}
+          <a 
+            href="https://apps.apple.com/app/hellobrick" 
+            className="flex items-center gap-4 bg-brand-navy text-white px-8 py-5 rounded-[24px] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-2xl group"
+          >
+            <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center p-1.5 shrink-0">
+               {/* Logo in button */}
+               <div className="w-full h-full bg-[#FFCE4A] rounded-lg relative flex items-center justify-center p-1">
+                  <div className="w-full h-full bg-[#FF7A30] rounded-sm flex items-center justify-center gap-1">
+                     <div className="w-1.5 h-1.5 bg-black/20 rounded-full"></div>
+                     <div className="w-1.5 h-1.5 bg-black/20 rounded-full"></div>
+                  </div>
+               </div>
+            </div>
+            <div className="text-left pr-4">
+               <div className="text-white/60 text-xs font-bold uppercase tracking-widest">Download App</div>
+               <div className="text-xl font-bold">Available on iOS</div>
+            </div>
           </a>
+          
+          <div className="flex items-center gap-2 text-sm font-bold text-gray-400 uppercase tracking-widest">
+             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+             Works with mixed bricks
+          </div>
         </motion.div>
       </div>
 

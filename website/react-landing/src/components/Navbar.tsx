@@ -3,9 +3,13 @@ import { Menu, Globe } from 'lucide-react';
 export default function Navbar() {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-6 py-4">
-      <div className="flex items-center gap-2">
-        <div className="w-10 h-10 bg-brand rounded-xl flex items-center justify-center text-white font-display font-bold text-xl leading-none shadow-lg shadow-brand/20">
-          H
+      <div className="flex items-center gap-3">
+        {/* HelloBrick Official Icon Logo */}
+        <div className="w-10 h-10 bg-[#FFCE4A] rounded-xl flex items-center justify-center p-1.5 shadow-md">
+           <div className="w-full h-full bg-[#FF7A30] rounded-lg flex items-center justify-center gap-1.5">
+              <div className="w-1.5 h-1.5 bg-black/20 rounded-full"></div>
+              <div className="w-1.5 h-1.5 bg-black/20 rounded-full"></div>
+           </div>
         </div>
         <span className="font-display font-bold text-2xl tracking-tighter text-brand-navy">HelloBrick</span>
       </div>
@@ -25,7 +29,7 @@ export default function Navbar() {
           href="https://apps.apple.com/app/hellobrick" 
           className="bg-brand text-white px-6 py-3 rounded-full font-bold hover:bg-brand-hover transition-colors shadow-lg shadow-brand/20"
         >
-          Get HelloBrick
+          Get App
         </a>
         <button className="md:hidden">
           <Menu className="w-6 h-6 text-brand-navy" />
