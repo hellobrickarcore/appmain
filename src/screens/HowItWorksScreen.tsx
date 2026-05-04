@@ -87,10 +87,10 @@ export const HowItWorksScreen: React.FC<HowItWorksScreenProps> = ({ onNavigate }
       {/* Standardized Footer Button */}
       <div className="px-10 pb-[max(env(safe-area-inset-bottom),3rem)] pt-6 z-20 shrink-0">
           <button 
-            onClick={() => onNavigate(Screen.AUTH)}
+            onClick={() => onNavigate(Screen.HOME)}
             className="w-full bg-[#2563EB] text-white py-6 rounded-[32px] font-black text-2xl shadow-2xl active:scale-[0.98] transition-all"
           >
-              Continue
+              Get Started
           </button>
       </div>
     </div>

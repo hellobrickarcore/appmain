@@ -25,9 +25,9 @@ export default defineConfig(({ mode }) => {
       // Central proxy for all backend services to enable mobile access via relative paths
       proxy: {
         '/api/detect': {
-          target: 'https://hellobrick.netlify.app',
+          target: process.env.VITE_DETECTION_API_URL?.replace('/api/detect', '') || 'http://127.0.0.1:3001',
           changeOrigin: true,
-          secure: true
+          secure: false
         },
         '/api/dataset': {
           target: 'https://hellobrick.netlify.app',

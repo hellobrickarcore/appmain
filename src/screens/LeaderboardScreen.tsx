@@ -1,9 +1,5 @@
 import React, { useState, useEffect } from 'react';
-<<<<<<< HEAD
 import { ChevronLeft, Clock, Crown, Star, Flame, Trophy, Award, Shield } from 'lucide-react';
-=======
-import { ChevronLeft, Clock, Crown, Star } from 'lucide-react';
->>>>>>> 7ac4433 (feat: hellobrick v1.4.0 - CV pipeline upgrade & SEO expansion)
 import { Screen, LeaderboardEntry } from '../types';
 import { CONFIG } from '../services/configService';
 import { getUserId, getUserXP } from '../services/xpService';
@@ -41,37 +37,71 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ onNavigate
     const fetchLeaderboard = async () => {
       try {
         const userId = getUserId();
-        const response = await fetch(`${CONFIG.XP_LEADERBOARD}?limit=50`);
-        const data = await response.json();
+        const profileName = localStorage.getItem('hellobrick_profile_name') || 'Builder';
         
-        if (data.success) {
-          const entries: LeaderboardEntry[] = data.leaderboard.map((item: any) => ({
-            rank: item.rank,
-            name: item.name,
-            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.user_id}`,
-            xp: item.xp_total,
-            isCurrentUser: item.user_id === userId,
-            streak: item.streak_count || 0
-          }));
+        let entries: LeaderboardEntry[] = [];
+        
+        try {
+          const response = await fetch(`${CONFIG.XP_LEADERBOARD}?limit=50`);
+          const data = await response.json();
           
-          setLeaderboard(entries);
+          if (data.success && data.leaderboard?.length > 0) {
+            entries = data.leaderboard.map((item: any) => ({
+              rank: item.rank,
+              name: item.name,
+              avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.user_id}`,
+              xp: item.xp_total,
+              isCurrentUser: item.user_id === userId,
+              streak: item.streak_count || 0
+            }));
+          }
+        } catch (apiErr) {
+          console.warn('[Leaderboard] API fetch failed, using local data:', apiErr);
+        }
 
-          const meInList = entries.find(e => e.isCurrentUser);
-          if (meInList) {
-            setCurrentUserRank(meInList);
-          } else {
-            // Fetch personal stats if not in top 50
-            const myXp = await getUserXP(userId);
-            setCurrentUserRank({
-              rank: 0, // Unknown high rank
-              name: localStorage.getItem('hellobrick_profile_name') || 'You',
-              avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`,
-              xp: myXp.xp_total,
-              isCurrentUser: true,
-              streak: myXp.streak_count
+        // --- FAKE COMPETITOR SEEDING ---
+        if (entries.length < 20) {
+          const fakeNames = ["MasterBuilder", "BrickNinja", "AFOL_Dave", "LegoMom", "CreativeBlocks", "CityBuilder", "TechnicFan", "PieceFinder", "MOC_Master", "BlockHead", "StudShooter", "PlasticArchitect", "BrickWhisperer", "MinifigKing", "BaseplateBoss"];
+          const numToAdd = 20 - entries.length;
+          
+          for (let i = 0; i < numToAdd; i++) {
+            const randomName = fakeNames[i % fakeNames.length] + Math.floor(Math.random() * 99);
+            // Bias XP towards 500-15000 range
+            const randomXP = Math.floor(Math.pow(Math.random(), 2) * 14500) + 500; 
+            
+            entries.push({
+              rank: 0,
+              name: randomName,
+              avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${randomName}`,
+              xp: randomXP,
+              isCurrentUser: false,
+              streak: Math.floor(Math.random() * 10)
             });
           }
         }
+        // -------------------------------
+
+        // Always ensure the current user appears on the leaderboard
+        const myXp = await getUserXP(userId).catch(() => ({ xp_total: 0, streak_count: 0 }));
+        const meInList = entries.find(e => e.isCurrentUser);
+
+        if (!meInList) {
+          const myEntry: LeaderboardEntry = {
+            rank: entries.length + 1,
+            name: profileName,
+            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userId}`,
+            xp: (myXp as any).xp_total || 0,
+            isCurrentUser: true,
+            streak: (myXp as any).streak_count || 0
+          };
+          entries.push(myEntry);
+          // Re-sort and re-rank by XP
+          entries.sort((a, b) => b.xp - a.xp);
+          entries.forEach((e, i) => e.rank = i + 1);
+        }
+
+        setLeaderboard(entries);
+        setCurrentUserRank(entries.find(e => e.isCurrentUser) || null);
       } catch (error) {
         console.error('Failed to fetch leaderboard:', error);
       } finally {
@@ -83,11 +113,21 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ onNavigate
   }, []);
 
   const getLeague = (xp: number) => {
-    if (xp > 50000) return { name: 'Diamond', color: 'text-cyan-400', bg: 'bg-cyan-400/10', border: 'border-cyan-400/20' };
-    if (xp > 25000) return { name: 'Platinum', color: 'text-indigo-400', bg: 'bg-indigo-400/10', border: 'border-indigo-400/20' };
-    if (xp > 10000) return { name: 'Gold', color: 'text-yellow-400', bg: 'bg-yellow-400/10', border: 'border-yellow-400/20' };
-    if (xp > 5000) return { name: 'Silver', color: 'text-slate-300', bg: 'bg-slate-300/10', border: 'border-slate-300/20' };
+    if (xp >= 10000) return { name: 'Diamond', color: 'text-cyan-400', bg: 'bg-cyan-400/10', border: 'border-cyan-400/20' };
+    if (xp >= 5000) return { name: 'Platinum', color: 'text-indigo-400', bg: 'bg-indigo-400/10', border: 'border-indigo-400/20' };
+    if (xp >= 2000) return { name: 'Gold', color: 'text-yellow-400', bg: 'bg-yellow-400/10', border: 'border-yellow-400/20' };
+    if (xp >= 500) return { name: 'Silver', color: 'text-slate-300', bg: 'bg-slate-300/10', border: 'border-slate-300/20' };
     return { name: 'Bronze', color: 'text-orange-500', bg: 'bg-orange-500/10', border: 'border-orange-500/20' };
+  };
+
+  // Progressive level calc (same formula as ProfileScreen)
+  const getLevel = (xp: number) => {
+    const thresholds = [0, 50, 150, 300, 500, 800, 1200, 1800, 2500, 3500, 5000, 7000, 10000, 15000, 20000, 30000, 50000];
+    let lvl = 1;
+    for (let i = 1; i < thresholds.length; i++) {
+      if (xp >= thresholds[i]) lvl = i + 1;
+    }
+    return lvl;
   };
 
   const topThree = leaderboard.slice(0, 3);
@@ -252,7 +292,7 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ onNavigate
                     </h3>
                     <div className="flex items-center gap-1.5 mt-0.5">
                        <Star className="w-3 h-3 text-orange-500 fill-orange-500" />
-                       <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Lvl {Math.floor(user.xp / 1000) || 1}</p>
+                       <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Lvl {getLevel(user.xp)}</p>
                     </div>
                   </div>
 

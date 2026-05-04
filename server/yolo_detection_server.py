@@ -15,11 +15,43 @@ from ultralytics import YOLO
 import cv2
 import os
 import time
+from datetime import datetime, timedelta
+import requests
+import sqlite3
 from pathlib import Path
-import re
+from supabase import create_client, Client
 
 from config import STABILITY_CONFIG
 from tracker import SortTracker
+
+# Feed Database for Admin Stats
+FEED_DB_PATH = Path("models/feed_database.db")
+
+def get_pending_posts_count():
+    try:
+        if not FEED_DB_PATH.exists():
+            return 0
+        conn = sqlite3.connect(str(FEED_DB_PATH))
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM posts WHERE status = 'pending'")
+        count = cursor.fetchone()[0]
+        conn.close()
+        return count
+    except Exception as e:
+        print(f"Error getting pending posts: {e}")
+        return 0
+
+# Supabase Configuration
+SUPABASE_URL = os.getenv('VITE_SUPABASE_URL', 'https://tlcqiixlpmpguixzbbxj.supabase.co')
+SUPABASE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+supabase: Client = None
+
+if SUPABASE_KEY:
+    try:
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        print("✅ Supabase Bridge Active (Detection)")
+    except Exception as e:
+        print(f"❌ Supabase init error: {e}")
 
 app = Flask(__name__)
 CORS(app)
@@ -175,29 +207,68 @@ def validate_shape(class_name, bbox, polygon=None):
         
     return True, None
 
-def infer_brick_attributes(bbox, class_name, polygon=None):
-    """Stage 2 Refinement: Infer dimensions and brick family from geometry and label."""
+def count_studs(image_np, bbox):
+    """
+    Experimental Stage 2: Count LEGO studs using OpenCV blob detection.
+    This helps distinguish between 2x2, 2x4, etc. when YOLO is uncertain.
+    """
+    try:
+        x1, y1, x2, y2 = int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])
+        crop = image_np[y1:y2, x1:x2]
+        if crop.size == 0: return 0
+        
+        # Preprocessing: Grayscale + Contrast
+        gray = cv2.cvtColor(crop, cv2.COLOR_RGB2GRAY)
+        gray = cv2.equalizeHist(gray)
+        
+        # Adaptive Thresholding to find the circles
+        thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+        
+        # Morphological operations to clean up
+        kernel = np.ones((3,3), np.uint8)
+        opening = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=1)
+        
+        # Find contours
+        contours, _ = cv2.findContours(opening, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        
+        stud_count = 0
+        crop_area = (x2 - x1) * (y2 - y1)
+        
+        for cnt in contours:
+            area = cv2.contourArea(cnt)
+            # A stud should be between 2% and 15% of the brick area
+            if (crop_area * 0.02) < area < (crop_area * 0.15):
+                # Check for circularity
+                peri = cv2.arcLength(cnt, True)
+                circularity = 4 * np.pi * area / (peri * peri) if peri > 0 else 0
+                if circularity > 0.6:
+                    stud_count += 1
+        
+        return stud_count
+    except Exception as e:
+        print(f"Stud count error: {e}")
+        return 0
+
+def infer_brick_attributes(image_np, bbox, class_name, polygon=None):
+    """Stage 2 Refinement: Infer dimensions and brick family from geometry, label, and stud counting."""
     w, h = bbox['width'], bbox['height']
+    x, y = bbox['x'], bbox['y']
+    bbox_xyxy = [x, y, x + w, y + h]
     aspect_ratio = max(w, h) / max(min(w, h), 1.0)
     
     # --- PHYSICAL SANITY CHECKS ---
-    # 1. Extreme Aspect Ratio: Bricks are rarely > 8x longer than wide.
-    # Giant horizontal boxes often have AR > 10.
     if aspect_ratio > 8.0:
         return "Reject", "Invalid", 0.0
     
-    # 2. Absurd Size: A brick shouldn't fill > 80% of the screen if we're scanning multiple.
-    # This helps filter out "screen-size" false positives.
-    if w > 600 or h > 600:
+    if w > 1000 or h > 1000:
         return "Reject", "Too Large", 0.0
 
     family = "Brick"
     dims = "2x2"
     conf = 0.5
     
-    # Try to extract from class_name
+    # Extract from class_name
     cn = class_name.lower()
-    
     if "plate" in cn: family = "Plate"
     elif "tile" in cn: family = "Tile"
     elif "brick" in cn: family = "Brick"
@@ -207,15 +278,31 @@ def infer_brick_attributes(bbox, class_name, polygon=None):
     dim_match = re.search(r'(\d+)x(\d+)', cn)
     if dim_match:
         dims = f"{dim_match.group(1)}x{dim_match.group(2)}"
-        conf = 0.9
+        conf = 0.95
     else:
-        # Geometry fallback
-        if 0.8 <= aspect_ratio <= 1.2:
-            dims = "2x2"
-            conf = 0.7
-        elif 1.8 <= aspect_ratio <= 2.2:
+        # GEOMETRY + STUD COUNT FALLBACK
+        studs = count_studs(image_np, bbox_xyxy)
+        
+        if studs >= 7:
             dims = "2x4"
-            conf = 0.7
+            conf = 0.82
+        elif 5 <= studs <= 6:
+            dims = "2x3"
+            conf = 0.75
+        elif 1 <= studs <= 4:
+            dims = "2x2"
+            conf = 0.85
+        else:
+            # Aspect ratio fallback
+            if 0.8 <= aspect_ratio <= 1.2:
+                dims = "2x2"
+                conf = 0.7
+            elif 1.8 <= aspect_ratio <= 2.2:
+                dims = "2x4"
+                conf = 0.7
+            elif 1.4 <= aspect_ratio <= 1.6:
+                dims = "2x3"
+                conf = 0.7
         
     return family, dims, conf
 
@@ -401,9 +488,9 @@ def detect():
             sharpened = cv2.addWeighted(img_np, 1.8, gaussian, -0.8, 0)
             image_sharp = Image.fromarray(sharpened)
 
-            # Phase 27: Ultra-Stable Floor (0.28 Conf) to kill hallucinations
-            print(f"📦 [STAGE 1] LIVE GUIDANCE (ULTRA-SHARP): imgsz={live_imgsz} conf=0.28")
-            results = model(image_sharp, conf=0.28, iou=0.40, imgsz=live_imgsz, agnostic_nms=True, max_det=150, verbose=False)
+            # Phase 11: TIGHTEN confidence (0.40) to kill hallucinations/ghosts
+            print(f"📦 [STAGE 1] LIVE GUIDANCE (ULTRA-SHARP): imgsz={live_imgsz} conf=0.40")
+            results = model(image_sharp, conf=0.40, iou=0.40, imgsz=live_imgsz, agnostic_nms=True, max_det=150, verbose=False)
             for res in results:
                 for i, b in enumerate(res.boxes):
                     mask = res.masks[i].xy[0].tolist() if res.masks is not None else None
@@ -417,9 +504,9 @@ def detect():
         raw_count = len(raw_proposals)
         
         # C1: Box Validation (Drop clearly bad geometry)
-        # Phase 25: Ultra-low area threshold for 5ft scanning at 1024px (from 0.0001 to 0.00005)
+        # Phase 11: LOOSEN area threshold for 5ft scanning (from 0.0001 to 0.00005)
         frame_area = img_width * img_height
-        min_area_threshold = frame_area * 0.0001
+        min_area_threshold = frame_area * 0.00005
         
         valid_proposals = []
         for p in raw_proposals:
@@ -491,8 +578,9 @@ def detect():
                 rx1, ry1 = bbox_dict['x'], bbox_dict['y']
                 rx2, ry2 = rx1 + bbox_dict['width'], ry1 + bbox_dict['height']
                 
-                # Step 8: Dimension & Family Heuristics
-                family, dims, dim_conf = infer_brick_attributes(bbox_dict, class_name, polygon)
+                # Step 8: Dimension & Family Heuristics (With Stud Counter)
+                img_np = np.array(image)
+                family, dims, dim_conf = infer_brick_attributes(img_np, bbox_dict, class_name, polygon)
                 if family != "Reject": dim_count += 1
                 if family == "Reject" and not request.form.get('debugMode'): continue
                 
@@ -603,6 +691,21 @@ def detect():
         inference_ms = int((time.time() - start_time) * 1000)
         print(f"✅ [PIPELINE] Done: Raw={raw_count}, Final={len(detections)}, Color={color_count}, Dim={dim_count}, Identity={identity_count}")
         
+        # --- PHASE 8: SUPABASE TELEMETRY SYNC ---
+        if supabase and detections:
+            try:
+                # Use scan_id for deduplication if needed
+                user_id = request.form.get('userId', 'anonymous')
+                supabase.table('scans').insert({
+                    'user_id': user_id,
+                    'bricks_detected_count': len(detections),
+                    'timestamp': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+                    'detected_types': [d['prediction']['brickName'] for d in detections]
+                }).execute()
+                print(f"📡 Telemetry Synced: {len(detections)} bricks detected for user {user_id}")
+            except Exception as e:
+                print(f"⚠ Telemetry sync error: {e}")
+
         return jsonify({
             'sessionId': request.form.get('sessionId', 'session_dense'),
             'frameId': f'f_{int(time.time()*1000)}',
@@ -651,6 +754,171 @@ def get_user_profile():
         'avatar_url': '',
         'created_at': '2026-03-20T12:25:46Z'
     })
+
+# --- PHASE 10: PRODUCTION TELEMETRY & XP ---
+
+import uuid
+
+def is_valid_uuid(val):
+    try:
+        uuid.UUID(str(val))
+        return True
+    except ValueError:
+        return False
+
+@app.route('/api/xp/events', methods=['POST'])
+def record_xp_event():
+    """Record XP events directly to Supabase bypassing RLS"""
+    if not supabase: return jsonify({'error': 'Supabase not configured'}), 500
+    
+    data = request.json
+    uid = data.get('user_id')
+    db_uid = uid if is_valid_uuid(uid) else None
+    
+    try:
+        # 1. Log the event to Scans (as a proxy for activity)
+        supabase.table('scans').insert({
+            'user_id': db_uid,
+            'bricks_detected_count': data.get('payload', {}).get('detection_count', 0),
+            'timestamp': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+        }).execute()
+        
+        # 2. If valid user, update profile 'updated_at' to reflect activity
+        if db_uid:
+            supabase.table('profiles').update({
+                'updated_at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+            }).eq('id', db_uid).execute()
+            
+        return jsonify({'success': True, 'xp_awarded': 25})
+    except Exception as e:
+        print(f"XP Record Error: {e}")
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/ideas/record', methods=['POST'])
+def record_idea_generation():
+    """Record Ideas directly to Supabase bypassing RLS"""
+    if not supabase: return jsonify({'error': 'Supabase not configured'}), 500
+    
+    data = request.json
+    uid = data.get('user_id')
+    db_uid = uid if is_valid_uuid(uid) else None
+    
+    try:
+        supabase.table('ideas').insert({
+            'user_id': db_uid,
+            'idea_type': data.get('idea_type'),
+            'title': data.get('title'),
+            'timestamp': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+        }).execute()
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"Idea Record Error: {e}")
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/scan/record', methods=['POST'])
+def record_scan():
+    """Record Scans directly to Supabase bypassing RLS"""
+    if not supabase: return jsonify({'error': 'Supabase not configured'}), 500
+    
+    data = request.json
+    uid = data.get('user_id')
+    db_uid = uid if is_valid_uuid(uid) else None
+    
+    try:
+        supabase.table('scans').insert({
+            'user_id': db_uid,
+            'bricks_detected_count': data.get('brick_count'),
+            'detected_types': data.get('detected_types', []),
+            'confidence_avg': data.get('confidence', 0),
+            'scan_duration_ms': data.get('duration_ms', 0),
+            'timestamp': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+        }).execute()
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"Scan Record Error: {e}")
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/admin/stats', methods=['GET'])
+def get_admin_stats():
+    """Aggregate live stats for both App Terminal and Web Admin Dashboard"""
+    if not supabase: 
+        return jsonify({'error': 'Supabase not configured'}), 500
+    
+    try:
+        today_iso = time.strftime('%Y-%m-%dT00:00:00Z', time.gmtime())
+
+        # 1. Total All-Time Counts
+        profiles = supabase.table('profiles').select('id', count='exact').execute()
+        total_users = profiles.count if hasattr(profiles, 'count') else 0
+
+        scans_all = supabase.table('scans').select('id', count='exact').execute()
+        total_scans_all = scans_all.count if hasattr(scans_all, 'count') else 0
+
+        ideas_all = supabase.table('ideas').select('id', count='exact').execute()
+        total_ideas = ideas_all.count if hasattr(ideas_all, 'count') else 0
+
+        # 2. Daily Pulse
+        res_scans_today = supabase.table('scans').select('id', count='exact').gte('timestamp', today_iso).execute()
+        scans_today = res_scans_today.count if hasattr(res_scans_today, 'count') else 0
+
+        res_sessions = supabase.table('sessions').select('user_id').gte('start_time', today_iso).execute()
+        active_users_today = len(set(r['user_id'] for r in res_sessions.data if r['user_id']))
+
+        # 3. Pending Content
+        pending_posts = get_pending_posts_count()
+
+        # Build consistent response for all dashboards
+        return jsonify({
+            'success': True,
+            'stats': [
+                { 'id': 'scans_today', 'label': 'Daily Scans', 'value': f"{scans_today:,}" },
+                { 'id': 'active_users', 'label': 'Active Users', 'value': f"{active_users_today:,}" },
+                { 'id': 'pending_posts', 'label': 'Pending Posts', 'value': str(pending_posts), 'trend': 'Review' },
+                { 'id': 'total_users', 'label': 'Total Users', 'value': f"{total_users:,}" },
+                { 'id': 'total_scans', 'label': 'All-Time Scans', 'value': f"{total_scans_all:,}" },
+                { 'id': 'total_ideas', 'label': 'Ideas Total', 'value': f"{total_ideas:,}" }
+            ],
+            # Flat map for the web dashboard's simple state
+            'installs': total_users,
+            'activeUsers': active_users_today,
+            'scansToday': total_scans_all,
+            'ideasGenerated': total_ideas,
+            'activePro': 0 # TODO: Integrate RevenueCat Webhook data if available
+        })
+    except Exception as e:
+        print(f"Admin Stats Error: {e}")
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/sessions/heartbeat', methods=['POST'])
+def record_heartbeat():
+    """Record Session Heartbeat to the SESSIONS table (Retention Tracking)"""
+    if not supabase: return jsonify({'error': 'Supabase not configured'}), 500
+    
+    data = request.json
+    uid = data.get('user_id')
+    db_uid = uid if is_valid_uuid(uid) else None
+    platform = data.get('platform', 'unknown')
+    
+    try:
+        # Use a "Daily Session" logic: Upsert a record for this user/day to the sessions table
+        # This keeps the Admin Dashboard "Active Users" metric accurate.
+        today = time.strftime('%Y-%m-%d', time.gmtime())
+        
+        # Point: Dashboard queries 'sessions' table for 'last_heartbeat' or 'start_time'
+        # Since the schema doesn't have 'last_heartbeat', we update 'end_time' as a proxy 
+        # or just ensure a row exists for the day.
+        
+        supabase.table('sessions').insert({
+            'user_id': db_uid,
+            'platform': platform,
+            'start_time': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+            'device_id': uid # Store the raw ID (even if anonymous) in device_id
+        }).execute()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"Heartbeat Record Error: {e}")
+        return jsonify({'error': str(e)}), 400
 
 if __name__ == '__main__':
     # When running manually, we still ensure it's loaded

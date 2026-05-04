@@ -3,7 +3,6 @@ import { X, Lock, Star, Bell, Loader2, Check, Fingerprint } from 'lucide-react';
 import { subscriptionService } from '../services/subscriptionService';
 import { Logo } from '../components/Logo';
 import confetti from 'canvas-confetti';
-import { Browser } from '@capacitor/browser';
 
 interface SubscriptionScreenProps {
   onNavigate: (success?: boolean) => void;
@@ -53,6 +52,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
     }
   };
 
+
   const confirmPurchase = async () => {
     setIsProcessing(true);
     try {
@@ -82,13 +82,13 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
       setShowSheet(false);
     }
   };
-
+  
   const handleRestore = async () => {
     setLoading(true);
     try {
       await subscriptionService.restorePurchases();
-      const status = await subscriptionService.getSubscriptionStatus();
-      if (status.isPro) {
+      // If restore success, it will update isPro in localStorage, so we navigate home
+      if (localStorage.getItem('hellobrick_is_pro') === 'true') {
         onNavigate(true);
       } else {
         alert('No previous purchases found.');
@@ -101,9 +101,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
     }
   };
 
-  const openLegal = async (url: string) => {
-    await Browser.open({ url, presentationStyle: 'popover' });
-  };
+
 
   return (
     <div className="fixed inset-0 bg-white text-[#1A1A1A] z-50 flex flex-col font-sans overflow-hidden">
@@ -123,17 +121,8 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
 
       <div className="flex-1 px-8 pt-4 flex flex-col items-center overflow-y-auto no-scrollbar pb-32">
         <h1 className="text-[18px] font-black text-center mb-1 leading-tight tracking-tight text-[#0F172A]">How your trial works</h1>
-        <div className="text-center mb-6">
-          <p className="text-orange-500 font-black text-6xl mb-1 mt-4">
-            {billingCycle === 'annual' ? '$29.99' : '$3.49'}
-          </p>
-          <p className="text-slate-400 font-bold uppercase tracking-widest text-[12px] mt-2">
-            {billingCycle === 'annual' ? 'billed annually' : 'per month'}
-          </p>
-        </div>
-        
-        <p className="text-slate-500 font-bold mb-6 text-center text-[12px]">
-          First 14 days FREE, then {billingCycle === 'annual' ? '$29.99/year' : '$3.49/month'}
+        <p className="text-slate-500 font-bold mb-6 text-[12px]">
+          First 14 days free, then {billingCycle === 'annual' ? '£29.99/year' : '£2.99/month'}
         </p>
 
         {/* Toggle - Pill style matched to screenshot */}
@@ -180,7 +169,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
             </div>
             <div className="pt-0.5">
               <h3 className="font-black text-[16px] mb-0.5 text-[#0F172A]">In 14 days</h3>
-              <p className="text-slate-500 text-[13px] font-bold leading-snug">Trial ends. You'll be charged <span className="text-[#0F172A] font-black">{billingCycle === 'annual' ? '$29.99' : '$3.49'}</span>. Cancel anytime.</p>
+              <p className="text-slate-500 text-[13px] font-bold leading-snug">You'll be charged {billingCycle === 'annual' ? '$29.99' : '$3.99'}, cancel anytime.</p>
             </div>
           </div>
         </div>
@@ -191,46 +180,41 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
         <button
           onClick={handleSubscribe}
           disabled={loading}
-          className="w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white py-5 rounded-3xl font-black text-xl shadow-[0_10px_30px_-10px_rgba(37,99,235,0.5)] active:scale-[0.98] transition-all flex flex-col items-center justify-center leading-none"
+          className="w-full bg-[#2563EB] text-white py-3.5 rounded-[22px] font-black text-base shadow-[0_8px_30px_rgba(37,99,235,0.3)] active:scale-[0.98] transition-all flex items-center justify-center"
         >
-          {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : (
-            <>
-              <span>Subscribe - {billingCycle === 'annual' ? '$29.99/year' : '$3.49/month'}</span>
-              <span className="text-[10px] uppercase tracking-widest mt-1 opacity-60 font-medium">Includes 14-Day Free Trial</span>
-            </>
-          )}
+          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Try for $0.00'}
         </button>
 
-        <button
-          onClick={handleRestore}
-          className="text-slate-400 font-bold text-[10px] uppercase tracking-widest hover:text-slate-600 transition-colors"
-        >
-          RESTORE PURCHASE
-        </button>
+        <div className="flex flex-col items-center gap-3">
+            <button 
+              onClick={handleRestore}
+              className="text-slate-400 font-extrabold text-[10px] tracking-widest uppercase hover:text-slate-600 transition-colors"
+            >
+              RESTORE PURCHASE
+            </button>
+            <p className="text-slate-400 text-[12px] font-bold">Cancel Anytime in the App Store</p>
 
-        <p className="text-slate-400 text-[11px] font-medium text-center">Cancel Anytime in the App Store</p>
-
-        <div className="flex gap-6 mt-2">
-          <button 
-            onClick={() => openLegal('https://hellobrick.app/terms')}
-            className="text-slate-400 text-[10px] font-bold uppercase tracking-wider underline text-center"
-          >
-            TERMS OF USE (EULA)
-          </button>
-          <button 
-            onClick={() => openLegal('https://hellobrick.app/privacy')}
-            className="text-slate-400 text-[10px] font-bold uppercase tracking-wider underline text-center"
-          >
-            PRIVACY POLICY
-          </button>
+            <div className="flex gap-6 mt-1">
+              <button 
+                onClick={() => window.open('https://hellobrick.app/terms', '_blank')}
+                className="text-slate-400/60 text-[11px] font-black tracking-tight border-b border-slate-200 uppercase"
+              >
+                Terms of Use
+              </button>
+              <button 
+                onClick={() => window.open('https://hellobrick.app/privacy', '_blank')}
+                className="text-slate-400/60 text-[11px] font-black tracking-tight border-b border-slate-200 uppercase"
+              >
+                Privacy Policy
+              </button>
+            </div>
         </div>
       </div>
-
       {/* Reviewer / Fallback Payment Sheet */}
       {showSheet && (
         <div className="fixed inset-0 z-[100] flex items-end animate-in fade-in duration-300">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={() => !isProcessing && setShowSheet(false)} />
-          <div className="relative w-full bg-[#F2F2F7] rounded-t-3xl pt-2 pb-10 px-4 shadow-2xl animate-in slide-in-from-bottom duration-300">
+          <div className="relative w-full bg-[#F2F2F7] rounded-x-3xl rounded-t-3xl pt-2 pb-10 px-4 shadow-2xl animate-in slide-in-from-bottom duration-300">
             <div className="w-12 h-1.5 bg-slate-300 rounded-full mx-auto mb-6" />
             
             <div className="flex items-center gap-4 mb-8">
@@ -291,4 +275,3 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
     </div>
   );
 };
-

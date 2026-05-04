@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
+import { Capacitor } from '@capacitor/core';
 import { Screen, BattleResult, GameModeId } from './types';
+import { OnboardingQuestionnaire } from './screens/OnboardingQuestionnaire';
 import { HomeScreen } from './screens/HomeScreen';
 import { ScannerScreen } from './screens/ScannerScreen';
 import { CollectionScreen } from './screens/CollectionScreen';
@@ -25,35 +27,23 @@ import { CreatePostScreen } from './screens/CreatePostScreen';
 import { AuthScreen } from './screens/AuthScreen';
 import { SubscriptionScreen } from './screens/SubscriptionScreen';
 import { HowItWorksScreen } from './screens/HowItWorksScreen';
-import { HowToScanScreen } from './screens/HowToScanScreen';
 import { IdeasGeneratorScreen } from './screens/IdeasGeneratorScreen';
+import { BuildingIntroScreen } from './screens/BuildingIntroScreen';
+import { FeatureIntroScreen } from './screens/FeatureIntroScreen';
 import { NotificationsIntroScreen } from './screens/NotificationsIntroScreen';
-import { CameraPermissionScreen } from './screens/CameraPermissionScreen';
 import { EmailAuthScreen } from './screens/EmailAuthScreen';
 import { AdminDashboardScreen } from './screens/AdminDashboardScreen';
-import { FeatureIntroScreen } from './screens/FeatureIntroScreen';
-import { BuildingIntroScreen } from './screens/BuildingIntroScreen';
 import { BottomNav } from './components/BottomNav';
+import { BootingScreen } from './components/BootingScreen';
+import { appStateService } from './services/appStateService';
 import { subscriptionService } from './services/subscriptionService';
 import { onAuthStateChange, supabase } from './services/supabaseService';
-import { usageService } from './services/usageService';
-
-console.log('🚀 BUILD_VERSION: 1.5.0 - GEMINI_IMAGE_ENGINE_V1');
-console.log('--- APP v1.5.0 ACTIVE ---');
 
 const App: React.FC = () => {
   const getInitialScreen = (): Screen => {
     console.log('[App] Determining initial screen...');
     const urlParams = new URLSearchParams(window.location.search);
     
-    // Simulator Mode (Reviewer/Tester)
-    if (urlParams.get('simulator') === 'true') {
-      localStorage.setItem('hellobrick_simulator_mode', 'true');
-      localStorage.setItem('hellobrick_onboarding_finished', 'true');
-      localStorage.setItem('hellobrick_authenticated', 'true');
-      return Screen.SUBSCRIPTION;
-    }
-
     // Dev Bypass
     if (urlParams.get('dev') === 'true' || localStorage.getItem('hellobrick_dev_mode') === 'true') {
       localStorage.setItem('hellobrick_dev_mode', 'true');
@@ -62,12 +52,10 @@ const App: React.FC = () => {
       return Screen.HOME;
     }
 
-    const hasFinishedIntro = localStorage.getItem('hellobrick_onboarding_finished') === 'true';
-    if (!hasFinishedIntro) return Screen.FEATURE_INTRO;
+    const hasFinishedOnboarding = localStorage.getItem('hellobrick_onboarding_finished') === 'true';
+    if (!hasFinishedOnboarding) return Screen.ONBOARDING_QUESTIONNAIRE;
     
-    const isAuthenticated = localStorage.getItem('hellobrick_authenticated') === 'true';
-    if (!isAuthenticated) return Screen.AUTH;
-
+    // PHASE 2: Allow direct navigation to SCANNER/HOME even for unauthenticated users
     return Screen.HOME;
   };
 
@@ -76,6 +64,18 @@ const App: React.FC = () => {
   const [battleResult, setBattleResult] = useState<BattleResult | null>(null);
   const [selectedMode, setSelectedMode] = useState<GameModeId>('TARGET');
   const [showNav, setShowNav] = useState(true);
+  const [isBooting, setIsBooting] = useState(true);
+
+  // Sync with appStateService for unified navigation
+  useEffect(() => {
+    const unsubscribe = appStateService.subscribe((snapshot) => {
+      if (snapshot.screen !== currentScreen) {
+        setCurrentScreen(snapshot.screen);
+        if (snapshot.params) setScreenParams(snapshot.params);
+      }
+    });
+    return () => { unsubscribe(); };
+  }, [currentScreen]);
 
   // Early Splash Hide
   useEffect(() => {
@@ -99,10 +99,27 @@ const App: React.FC = () => {
         await subscriptionService.initialize(initialUserId).catch(err => {
           console.warn('[App] RevenueCat init warning:', err);
         });
+
+        // CRITICAL: Refresh Pro Status on startup to fix desync
+        const snapshot = appStateService.getSnapshot();
+        if (snapshot.userId) {
+          await subscriptionService.getSubscriptionStatus().catch(() => {});
+        }
+
+        // Community Cleanup: Purge if old non-lego data exists
+        const feed = localStorage.getItem('hellobrick_feed_posts');
+        if (feed && (feed.includes('hijo') || feed.includes('apple') || feed.includes('kids'))) {
+           console.log('[App] Purging dirty community feed data...');
+           localStorage.removeItem('hellobrick_feed_posts');
+           localStorage.removeItem('hellobrick_community_last_drip');
+        }
+
+        setTimeout(() => setIsBooting(false), 1200);
         
         console.log('[App] ✅ Init Sequence Complete');
       } catch (err) {
         console.error('[App] 🛑 CRITICAL INIT ERROR:', err);
+        setIsBooting(false);
       }
     };
 
@@ -145,10 +162,10 @@ const App: React.FC = () => {
               refresh_token: refreshToken
             });
             
-            if (!error) {
-              console.log('[App] ✅ Session updated successfully');
-              handleNavigate(Screen.NOTIFICATIONS_INTRO);
-            }
+              if (!error) {
+                console.log('[App] ✅ Session updated successfully');
+                handleNavigate(Screen.SUBSCRIPTION);
+              }
           }
         }
       });
@@ -156,104 +173,82 @@ const App: React.FC = () => {
 
     setupDeepLinks();
 
-    const unsubscribe = onAuthStateChange((event, session) => {
+    const unsubscribeAuth = onAuthStateChange((event, session) => {
       console.log(`🔐 Auth State Change: ${event}`, session?.user?.id);
       if (session?.user) {
         localStorage.setItem('hellobrick_userId', session.user.id);
+        localStorage.setItem('hellobrick_authenticated', 'true');
         subscriptionService.setUserId(session.user.id).catch(() => {});
+        // Refresh app state
+        appStateService.onAuthSuccess();
       } else if (event === 'SIGNED_OUT') {
         localStorage.removeItem('hellobrick_userId');
+        localStorage.removeItem('hellobrick_authenticated');
         subscriptionService.logout().catch(() => {});
       }
     });
 
+    // 💓 SESSION HEARTBEAT: Keep the Admin "Live Active" light green
+    const recordHeartbeat = async () => {
+      try {
+        const userId = localStorage.getItem('hellobrick_userId') || 'anonymous_mobile';
+        const DO_IP = '174.138.93.172';
+        const heartbeatUrl = `http://${DO_IP}:3003/api/sessions/heartbeat`;
+        
+        await fetch(heartbeatUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId, platform: Capacitor.getPlatform() })
+        });
+        console.log('[Heartbeat] 💓 Ping Success');
+      } catch (err) {
+        // Silent fail for heartbeat
+      }
+    };
+
+    // Initial and Recurring (5 mins)
+    recordHeartbeat();
+    const heartbeatInterval = setInterval(recordHeartbeat, 5 * 60 * 1000);
+
     return () => {
-      unsubscribe();
+      unsubscribeAuth();
+      clearInterval(heartbeatInterval);
     };
   }, []);
 
   const handleNavigate = (screen: Screen, params?: any) => {
     console.log(`🚀 Navigating to: ${screen}`, params);
-
-    const isPro = localStorage.getItem('hellobrick_is_pro') === 'true';
-    const isReviewer = localStorage.getItem('hellobrick_simulator_mode') === 'true';
     
-    const gatedScreens = [
-      Screen.REWARDS, Screen.HEAD_TO_HEAD, Screen.H2H_MODES, Screen.H2H_MATCHMAKING,
-      Screen.H2H_BATTLE, Screen.IDEAS, Screen.PUZZLES, Screen.TRAINING, 
-      Screen.TRAINING_INTRO, Screen.LEADERBOARD, Screen.MY_CREATIONS
-    ];
-    
-    if (gatedScreens.includes(screen)) {
-      const isAuthenticated = localStorage.getItem('hellobrick_authenticated') === 'true';
-      if (!isAuthenticated && !isReviewer) {
-        setCurrentScreen(Screen.AUTH);
-        return;
-      }
-      if (!isPro && !isReviewer) {
-        setCurrentScreen(Screen.SUBSCRIPTION);
-        return;
-      }
-    }
-
-    if (screen === Screen.SCANNER && !isPro && !isReviewer) {
-      if (usageService.isLimitReached()) {
-        setCurrentScreen(Screen.SUBSCRIPTION);
-        return;
-      }
-    }
-    
-    setShowNav(true);
-
-    if (screen === Screen.HOME || screen === Screen.NOTIFICATIONS_INTRO) {
-      localStorage.setItem('hellobrick_onboarding_finished', 'true');
-    }
-
-    if (screen === Screen.HOME) {
-      localStorage.setItem('hellobrick_authenticated', 'true');
-    }
-
-    if (screen === Screen.HOW_TO_SCAN_PERMISSION) {
-       setCurrentScreen(Screen.CAMERA_PERMISSION);
-       return;
-    }
-
-    if (screen === Screen.SCANNER) {
-      // Logic for scanner entry if needed
-    }
-
-    if (screen === Screen.H2H_RESULT && params) {
-      setBattleResult(params);
-    }
-
-    setCurrentScreen(screen);
-    setScreenParams(params || null);
+    // Use the state machine for unified logic
+    appStateService.navigate(screen, params);
   };
 
   const renderScreen = () => {
     switch (currentScreen) {
+      case Screen.ONBOARDING_QUESTIONNAIRE:
+        return <OnboardingQuestionnaire />;
       case Screen.FEATURE_INTRO:
         return <FeatureIntroScreen onNavigate={handleNavigate} />;
-      case Screen.HOW_IT_WORKS:
-        return <HowItWorksScreen onNavigate={() => handleNavigate(Screen.AUTH)} />;
-      case Screen.NOTIFICATIONS_INTRO:
-        return <NotificationsIntroScreen onNavigate={handleNavigate} />;
-      case Screen.HOW_TO_SCAN:
-        return <HowToScanScreen onNavigate={handleNavigate} />;
       case Screen.BUILDING_INTRO:
         return <BuildingIntroScreen onNavigate={handleNavigate} />;
-      case Screen.CAMERA_PERMISSION:
-        return <CameraPermissionScreen onNavigate={handleNavigate} />;
+      case Screen.HOW_IT_WORKS:
+        return <HowItWorksScreen onNavigate={handleNavigate} />;
+      case Screen.NOTIFICATIONS_INTRO:
+        return <NotificationsIntroScreen onNavigate={handleNavigate} />;
       case Screen.AUTH:
-        return <AuthScreen onAuthenticate={() => handleNavigate(Screen.NOTIFICATIONS_INTRO)} onNavigate={handleNavigate} />;
+        return <AuthScreen onAuthenticate={() => handleNavigate(Screen.HOME)} onNavigate={handleNavigate} />;
       case Screen.EMAIL_SIGNUP:
-        return <EmailAuthScreen onNavigate={handleNavigate} onAuthenticate={() => handleNavigate(Screen.NOTIFICATIONS_INTRO)} mode="signup" />;
+        return <EmailAuthScreen onNavigate={handleNavigate} onAuthenticate={() => handleNavigate(Screen.HOME)} mode="signup" />;
       case Screen.EMAIL_LOGIN:
-        return <EmailAuthScreen onNavigate={handleNavigate} onAuthenticate={() => handleNavigate(Screen.NOTIFICATIONS_INTRO)} mode="login" />;
+        return <EmailAuthScreen onNavigate={handleNavigate} onAuthenticate={() => handleNavigate(Screen.HOME)} mode="login" />;
       case Screen.SUBSCRIPTION:
-        return <SubscriptionScreen onNavigate={(success?: boolean) => {
-          localStorage.setItem('hellobrick_onboarding_finished', 'true');
-          if (success) localStorage.setItem('hellobrick_is_pro', 'true'); 
+        return <SubscriptionScreen onNavigate={(success) => {
+          if (success) {
+            console.log('[App] Subscription successful, forcing status lock');
+            localStorage.setItem('hellobrick_is_pro', 'true');
+            // Background refresh to confirm but the local state is now locked to true
+            subscriptionService.getSubscriptionStatus().catch(() => {});
+          }
           handleNavigate(Screen.HOME);
         }} />;
       case Screen.HOME:
@@ -304,8 +299,11 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="dark bg-slate-950 h-[100dvh] overflow-hidden text-slate-100 selection:bg-orange-500/30">
-      {renderScreen()}
+    <div className="dark bg-slate-950 h-[100dvh] overflow-hidden text-slate-100 selection:bg-orange-500/30 flex flex-col">
+      {isBooting && <BootingScreen />}
+      <div className="flex-1 relative min-h-0 overflow-hidden">
+        {renderScreen()}
+      </div>
       {localStorage.getItem('hellobrick_dev_mode') === 'true' && (
         <div className="fixed bottom-24 left-4 z-[9999] pointer-events-none">
           <div className="flex flex-col gap-2 pointer-events-auto">
@@ -330,7 +328,7 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
-      {[Screen.HOME, Screen.SCANNER, Screen.COLLECTION, Screen.PROFILE, Screen.FEED, Screen.PUZZLES, Screen.TRAINING, Screen.QUESTS, Screen.LEADERBOARD, Screen.MY_CREATIONS].includes(currentScreen) && showNav && (
+      {[Screen.HOME, Screen.SCANNER, Screen.COLLECTION, Screen.PROFILE, Screen.FEED, Screen.PUZZLES, Screen.TRAINING, Screen.QUESTS, Screen.LEADERBOARD, Screen.MY_CREATIONS, Screen.IDEAS, Screen.NOTIFICATIONS_INTRO].includes(currentScreen) && showNav && (
         <BottomNav currentScreen={currentScreen} onNavigate={handleNavigate} />
       )}
     </div>

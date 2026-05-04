@@ -1,5 +1,6 @@
 import { Screen } from '../types';
 import { subscriptionService } from './subscriptionService';
+import { usageService } from './usageService';
 
 /**
  * ────────────────────────────────────────────────────
@@ -35,14 +36,14 @@ export interface AppStateSnapshot {
 
 // PRO-only screens
 const PRO_SCREENS: Screen[] = [
-  Screen.IDEAS,
-  Screen.HEAD_TO_HEAD,
-  Screen.H2H_MODES,
   Screen.H2H_MATCHMAKING,
   Screen.H2H_BATTLE,
-  Screen.H2H_RESULT,
+  Screen.QUESTS,
+  Screen.PUZZLES,
   Screen.TRAINING,
-  Screen.TRAINING_INTRO,
+  Screen.COLLECTION,
+  Screen.IDEAS,
+  Screen.FEED
 ];
 
 type Listener = (snapshot: AppStateSnapshot) => void;
@@ -53,7 +54,7 @@ function getScreenForState(state: AppState, params?: any): Screen {
     case 'booting':            return Screen.AUTH;
     case 'onboarding':         
       if (params?.screen) return params.screen;
-      return Screen.FEATURE_INTRO;
+      return Screen.ONBOARDING_QUESTIONNAIRE;
     case 'auth':               return Screen.AUTH;
     case 'home':               return params?.screen || Screen.HOME;
     case 'scanner':            return Screen.SCANNER;
@@ -67,13 +68,24 @@ function getScreenForState(state: AppState, params?: any): Screen {
 
 class AppStateService {
   private state: AppState = 'booting';
-  private currentScreen: Screen = Screen.AUTH;
+  private currentScreen: Screen = Screen.HOME; // Default to HOME to match App.tsx initial state
   private currentParams: any = null;
   private listeners: Set<Listener> = new Set();
   private returnScreen: Screen | null = null;
 
   constructor() {
     if (typeof window !== 'undefined') {
+      // 🚨 HARD VERSIONED PURGE: Force refresh community feed to remove old kids/fruit/generic data
+      const currentVersion = '1.7.0'; // Increment this to force a wipe
+      const storedVersion = localStorage.getItem('hellobrick_data_version');
+      
+      if (storedVersion !== currentVersion) {
+         console.log(`[AppState] Version mismatch (${storedVersion} vs ${currentVersion}). Purging community data...`);
+         localStorage.removeItem('hellobrick_feed_posts');
+         localStorage.removeItem('hellobrick_community_last_drip');
+         localStorage.setItem('hellobrick_data_version', currentVersion);
+      }
+      
       this.boot();
     }
   }
@@ -83,7 +95,6 @@ class AppStateService {
     console.log('[AppState] Booting...');
 
     const onboardingFinished = localStorage.getItem('hellobrick_onboarding_finished') === 'true';
-    const isAuthenticated = localStorage.getItem('hellobrick_authenticated') === 'true';
 
     // Phase 1 Rules:
     // 1. If onboarding not done -> ONBOARDING
@@ -93,15 +104,14 @@ class AppStateService {
     if (!onboardingFinished) {
       console.log('[AppState] Step 1: ONBOARDING required');
       this.transition('onboarding');
-    } else if (!isAuthenticated) {
-      console.log('[AppState] Step 2: AUTH required');
-      this.transition('auth');
     } else {
-      console.log('[AppState] Step 3: Authenticated -> HOME');
+      // PHASE 2: Allow direct navigation to SCANNER/HOME even for unauthenticated users
+      console.log('[AppState] Step 2: Proceeding to HOME/SCANNER');
       this.transition('home');
-      // Initialize subscriptions for authenticated users
+      
       const userId = localStorage.getItem('hellobrick_userId');
-      if (userId) subscriptionService.initialize(userId).catch(console.error);
+      const isAuthenticated = localStorage.getItem('hellobrick_authenticated') === 'true';
+      if (userId && isAuthenticated) subscriptionService.initialize(userId).catch(console.error);
     }
   }
 
@@ -122,9 +132,12 @@ class AppStateService {
 
     // ── RULE 1: Onboarding must be complete ──
     const onboardingScreens = [
+      Screen.ONBOARDING_QUESTIONNAIRE,
+      Screen.SUBSCRIPTION, // Allow paywall nudge at the end
       Screen.FEATURE_INTRO, 
       Screen.NOTIFICATIONS_INTRO, 
-      Screen.BUILDING_INTRO
+      Screen.BUILDING_INTRO,
+      Screen.HOW_IT_WORKS
     ];
 
     if (!onboardingFinished && !onboardingScreens.includes(screen)) {
@@ -138,20 +151,30 @@ class AppStateService {
       return;
     }
 
-    // ── RULE 2: Must be authenticated ──
-    if (!isAuthenticated && !['onboarding', 'auth'].includes(this.state)) {
-      if (screen !== Screen.AUTH && screen !== Screen.EMAIL_SIGNUP && screen !== Screen.EMAIL_LOGIN) {
-        console.log(`[AppState] Auth lock active for ${screen}`);
-        this.returnScreen = screen;
-        this.transition('auth');
-        return;
-      }
+    // ── RULE 2: Authentication gating ──
+    const publicScreens = [
+      Screen.SCANNER, 
+      Screen.HOME, 
+      Screen.AUTH, 
+      Screen.EMAIL_SIGNUP, 
+      Screen.EMAIL_LOGIN,
+      Screen.QUESTS,
+      Screen.PROFILE,
+      Screen.LEADERBOARD,
+      Screen.MY_CREATIONS
+    ];
+    if (!isAuthenticated && !publicScreens.includes(screen)) {
+      console.log(`[AppState] Auth lock active for ${screen}`);
+      this.returnScreen = screen;
+      this.transition('auth');
+      return;
     }
 
     // ── RULE 3: PRO features require subscription ──
-    if (PRO_SCREENS.includes(screen)) {
-      const isPro = localStorage.getItem('hellobrick_is_pro') === 'true' ||
+    if (PRO_SCREENS.includes(screen) || (screen === Screen.SCANNER && usageService.isLimitReached())) {
+      const isPro = localStorage.getItem('hellobrick_is_pro') === 'true' || 
                     localStorage.getItem('hellobrick_dev_mode') === 'true';
+
       if (!isPro) {
         console.log(`[AppState] PRO required for ${screen}. Opening paywall.`);
         this.returnScreen = screen;
@@ -169,9 +192,9 @@ class AppStateService {
 
   // ── ONBOARDING COMPLETE ───────────────────────────
   public finishOnboarding() {
-    console.log('[AppState] Onboarding complete → AUTH');
+    console.log('[AppState] Onboarding complete → HOME');
     localStorage.setItem('hellobrick_onboarding_finished', 'true');
-    this.transition('auth');
+    this.transition('home');
   }
 
   // ── AUTH COMPLETE ─────────────────────────────────

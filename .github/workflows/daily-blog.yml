@@ -1,0 +1,26 @@
+name: Daily AI Blog Generator
+
+on:
+  schedule:
+    - cron: '0 9 * * *' # Every day at 9am UTC
+  workflow_dispatch: # Allow manual trigger from GitHub UI
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: pip install supabase requests
+
+      - name: Generate and Publish Blog Post
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          VITE_GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python server/blog-generator.py

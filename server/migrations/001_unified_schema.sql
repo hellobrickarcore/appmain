@@ -318,6 +318,17 @@ CREATE POLICY "detection_reviews_own" ON detection_reviews
 CREATE POLICY "training_queue_read" ON training_queue FOR SELECT USING (true);
 CREATE POLICY "training_assets_read" ON training_assets FOR SELECT USING (true);
 
+-- Admin Override Policies (Master Access)
+CREATE POLICY "Admins can view all scans" ON public.scan_sessions FOR SELECT USING (
+  auth.jwt() ->> 'email' = 'hellobrickar@gmail.com'
+);
+CREATE POLICY "Admins can view all collections" ON public.user_collections FOR SELECT USING (
+  auth.jwt() ->> 'email' = 'hellobrickar@gmail.com'
+);
+CREATE POLICY "Admins can view all collection items" ON public.collection_items FOR SELECT USING (
+  auth.jwt() ->> 'email' = 'hellobrickar@gmail.com'
+);
+
 -- ┌──────────────────────────────────────────────────────────────┐
 -- │ 7) SEED DATA                                                │
 -- └──────────────────────────────────────────────────────────────┘

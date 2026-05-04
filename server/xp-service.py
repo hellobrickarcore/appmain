@@ -245,6 +245,17 @@ def get_or_create_user(user_id: str) -> Dict:
     user = cursor.fetchone()
     
     if not user:
+        if user_id == "anonymous":
+            return {
+                "id": "anonymous",
+                "display_name": "Guest Builder",
+                "xp_total": 0,
+                "level": 1,
+                "streak_count": 0,
+                "streak_last_date": None,
+                "created_at": datetime.now().isoformat()
+            }
+        
         # Generate a default display name if not provided
         default_name = f"Builder-{user_id[-4:]}" if len(user_id) > 4 else f"Builder-{uuid.uuid4().hex[:4]}"
         cursor.execute("""
@@ -324,9 +335,10 @@ def award_xp(user_id: str, source: str, amount: int, event_id: str, meta: Dict =
     """, (ledger_id, user_id, source, event_id, amount, meta_json))
     
     # Update user
-    cursor.execute("""
-        UPDATE users SET xp_total = ?, level = ? WHERE id = ?
-    """, (new_xp_total, new_level, user_id))
+    if user_id != "anonymous":
+        cursor.execute("""
+            UPDATE users SET xp_total = ?, level = ? WHERE id = ?
+        """, (new_xp_total, new_level, user_id))
     
     conn.commit()
     conn.close()
@@ -375,22 +387,23 @@ def process_streak(user_id: str, event_type: str) -> Optional[Dict]:
     if streak_xp == 0:
         return None
     
-    # Update user streak
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("""
-        UPDATE users SET streak_count = ?, streak_last_date = ? WHERE id = ?
-    """, (new_streak, today.isoformat(), user_id))
-    
-    # Update daily stats
-    daily_stats = get_daily_stats(user_id, today)
-    cursor.execute("""
-        UPDATE user_daily_stats SET streak_xp_awarded = ? 
-        WHERE user_id = ? AND date = ?
-    """, (streak_xp, user_id, today.isoformat()))
-    
-    conn.commit()
-    conn.close()
+    if user_id != "anonymous":
+        # Update user streak
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE users SET streak_count = ?, streak_last_date = ? WHERE id = ?
+        """, (new_streak, today.isoformat(), user_id))
+        
+        # Update daily stats
+        daily_stats = get_daily_stats(user_id, today)
+        cursor.execute("""
+            UPDATE user_daily_stats SET streak_xp_awarded = ? 
+            WHERE user_id = ? AND date = ?
+        """, (streak_xp, user_id, today.isoformat()))
+        
+        conn.commit()
+        conn.close()
     
     return {
         "streak_count": new_streak,

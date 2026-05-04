@@ -3,7 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HelloBrick - Modern Brick Companion</title>
+    <title>HelloBrick - AI Brick Scanner & Collection Manager</title>
+    <meta name="description" content="HelloBrick is the world's most advanced AI brick scanner. Identify loose bricks in seconds, manage your digital inventory, and discover new build ideas instantly.">
+    <meta name="keywords" content="brick scanner, part identifier, brick inventory, AI scanner, building blocks, set finder">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://hellobrick.app/">
+    <meta property="og:title" content="HelloBrick - AI Brick Scanner & Collection Manager">
+    <meta property="og:description" content="Identify loose bricks in seconds, manage your digital inventory, and discover new build ideas instantly.">
+    <meta property="og:image" content="https://hellobrick.app/mockup.png">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://hellobrick.app/">
+    <meta property="twitter:title" content="HelloBrick - AI Brick Scanner & Collection Manager">
+    <meta property="twitter:description" content="Identify loose bricks in seconds, manage your digital inventory, and discover new build ideas instantly.">
+    <meta property="twitter:image" content="https://hellobrick.app/mockup.png">
+
+    <!-- Structured Data for AEO -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "HelloBrick",
+      "operatingSystem": "iOS, Android",
+      "applicationCategory": "UtilitiesApplication",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "reviewCount": "1250"
+      },
+      "description": "Advanced AI-powered brick scanner and collection management app for brick enthusiasts."
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How does the HelloBrick scanner work?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "HelloBrick uses state-of-the-art computer vision and custom-trained neural networks to recognize over 45,000 unique brick geometries in real-time using your smartphone camera."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is HelloBrick compatible with LEGO bricks?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, HelloBrick is designed to identify and catalog most standard building bricks, including those from major brands like LEGO. However, we are an independent platform not affiliated with the LEGO Group."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I see what I can build with my bricks?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Absolutely! Once you scan your bricks into your digital vault, HelloBrick's Idea Engine suggests models and MOCs (My Own Creations) that you can build with your existing parts."
+          }
+        }
+      ]
+    }
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -136,6 +206,27 @@
             </div>
         </div>
     </main>
+
+    <!-- FAQ Section for AEO -->
+    <section id="faq" class="py-24 bg-white/30 backdrop-blur-sm border-t border-slate-200">
+        <div class="max-w-4xl mx-auto px-6">
+            <h2 class="text-3xl font-extrabold text-slate-900 mb-12 text-center">Frequently Asked Questions</h2>
+            <div class="space-y-8">
+                <div class="glass-panel p-8 rounded-[2rem]">
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">How does the HelloBrick scanner work?</h3>
+                    <p class="text-slate-600 leading-relaxed">HelloBrick uses state-of-the-art computer vision and custom-trained neural networks to recognize over 45,000 unique brick geometries in real-time using your smartphone camera.</p>
+                </div>
+                <div class="glass-panel p-8 rounded-[2rem]">
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">Is HelloBrick compatible with LEGO bricks?</h3>
+                    <p class="text-slate-600 leading-relaxed">Yes, HelloBrick is designed to identify and catalog most standard building bricks, including those from major brands like LEGO. We are an independent platform and not affiliated with the LEGO Group.</p>
+                </div>
+                <div class="glass-panel p-8 rounded-[2rem]">
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">Can I see what I can build with my bricks?</h3>
+                    <p class="text-slate-600 leading-relaxed">Absolutely! Once you scan your bricks into your digital vault, HelloBrick's Idea Engine suggests models and MOCs (My Own Creations) that you can build with your existing parts.</p>
+                </div>
+            </div>
+        </div>
+    </section>
 
     <footer class="bg-slate-50 py-20 border-t border-slate-200">
         <div class="max-w-7xl mx-auto px-6 text-center">

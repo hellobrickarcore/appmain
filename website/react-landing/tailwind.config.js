@@ -10,16 +10,20 @@ export default {
         sans: ['"Inter"', 'sans-serif'],
       },
       fontSize: {
-        'ui-body': ['18px', { lineHeight: '1.6' }],
-        'ui-header': ['80px', { lineHeight: '1' }],
+        'ui-body': ['16px', { lineHeight: '1.6' }],
+        'ui-header': ['52px', { lineHeight: '1.1', letterSpacing: '-0.02em' }],
+        'ui-subhead': ['24px', { lineHeight: '1.4' }],
       },
       colors: {
         brand: {
-          navy: '#050A18', // Deepest background
-          'navy-light': '#0B1736', // Lighter background/cards
+          navy: '#050A18', // Deepest background (accent/footer)
+          'navy-light': '#0B1736', // Lighter background/cards (accent)
+          white: '#FFFFFF', // New Primary Background
+          surface: '#F8FAFC', // Soft Surface Gray
           orange: '#FF7A30', // Official app orange
           yellow: '#FFCE4A', // Official app yellow
-          'text-dim': '#94A3B8', // Muted text
+          'text-main': '#0F172A', // Slate-900 for Light Mode
+          'text-dim': '#64748B', // Slate-500 for secondary text
         }
       },
       animation: {

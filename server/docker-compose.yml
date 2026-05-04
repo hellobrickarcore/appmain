@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   yolo-backend:
     build: .
@@ -8,9 +7,55 @@ services:
       - "3003:3003"
     environment:
       - PYTHONUNBUFFERED=1
+      - SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRsY3FpaXhscG1wZ3VpeHpiYnhqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjQ0ODk3MCwiZXhwIjoyMDg4MDI0OTcwfQ.OK9uiI8sl-sRk7BlpsLkFxs-gxFzDj3RpJsivpgCvTg
+      - VITE_SUPABASE_URL=https://tlcqiixlpmpguixzbbxj.supabase.co
     deploy:
       resources:
         limits:
           memory: 1.5G
         reservations:
           memory: 512M
+
+  auth-backend:
+    build: .
+    container_name: hellobrick-auth
+    restart: always
+    ports:
+      - "3007:3007"
+    command: ["python3", "auth-service.py"]
+    environment:
+      - PYTHONUNBUFFERED=1
+      - SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRsY3FpaXhscG1wZ3VpeHpiYnhqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjQ0ODk3MCwiZXhwIjoyMDg4MDI0OTcwfQ.OK9uiI8sl-sRk7BlpsLkFxs-gxFzDj3RpJsivpgCvTg
+      - VITE_SUPABASE_URL=https://tlcqiixlpmpguixzbbxj.supabase.co
+
+  xp-backend:
+    build: .
+    container_name: hellobrick-xp
+    restart: always
+    ports:
+      - "3005:3005"
+    command: ["python3", "xp-service.py"]
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  feed-backend:
+    build: .
+    container_name: hellobrick-feed
+    restart: always
+    ports:
+      - "3006:3006"
+    command: ["python3", "feed-service.py"]
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  admin-backend:
+    build: .
+    container_name: hellobrick-admin
+    restart: always
+    ports:
+      - "3008:3008"
+    command: ["python3", "admin-service.py"]
+    environment:
+      - PYTHONUNBUFFERED=1
+      - SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRsY3FpaXhscG1wZ3VpeHpiYnhqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjQ0ODk3MCwiZXhwIjoyMDg4MDI0OTcwfQ.OK9uiI8sl-sRk7BlpsLkFxs-gxFzDj3RpJsivpgCvTg
+      - VITE_SUPABASE_URL=https://tlcqiixlpmpguixzbbxj.supabase.co

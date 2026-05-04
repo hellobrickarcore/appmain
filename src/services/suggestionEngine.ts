@@ -80,7 +80,9 @@ export const suggestionEngine = {
     async getSmartCreativeIdeas(userBricks: Brick[], query: string): Promise<any[]> {
         try {
             const results = await getConversationalIdeas(query, userBricks);
-            return results.builds.map(b => ({
+            // Defensive check since Gemini returns might vary in older branches
+            const ideasList = results.topIdeas || (results as any).builds || [];
+            return ideasList.map((b: any) => ({
                 ...b,
                 xp: b.difficulty === 'Ready' ? 100 : b.difficulty === 'Almost' ? 200 : 500
             }));

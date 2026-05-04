@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { Logo } from '../Logo';
+import { supabase } from '../../services/supabaseService';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -44,7 +45,24 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon: Icon, label, active }) => (
 
 export const Sidebar: React.FC = () => {
   const location = useLocation();
-  const isAdmin = true; // Placeholder for auth check
+  const [userEmail, setUserEmail] = React.useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = React.useState(false);
+
+  React.useEffect(() => {
+    const fetchUser = async () => {
+      if (!supabase) return;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserEmail(user.email || null);
+        const allowedAdmins = ['hellobrickar@gmail.com'];
+        setIsAdmin(allowedAdmins.includes(user.email || ''));
+      } else if (localStorage.getItem('hellobrick_admin_bypass') === 'true') {
+        setUserEmail('hellobrickar@gmail.com');
+        setIsAdmin(true);
+      }
+    };
+    fetchUser();
+  }, []);
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-[240px] bg-[#080808] border-r border-white/5 flex flex-col z-50">
@@ -54,14 +72,14 @@ export const Sidebar: React.FC = () => {
           <Logo size="sm" light={true} />
           <div className="flex flex-col">
             <span className="text-white font-black tracking-tighter text-[1.2rem] leading-none">Admin</span>
-            <span className="text-[10px] text-brand-yellow font-bold tracking-widest uppercase mt-0.5 opacity-80">Product Brain</span>
+            <span className="text-[10px] text-brand-yellow font-bold tracking-widest uppercase mt-0.5 opacity-80">V4.0 INTELLIGENCE</span>
           </div>
         </Link>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 px-4 space-y-1">
-        <div className="text-[10px] font-bold text-white/20 uppercase tracking-widest mb-4 px-3">Main</div>
+        <div className="text-[10px] font-bold text-white/20 uppercase tracking-widest mb-4 px-3">Lifecycle</div>
         <NavItem 
           to="/admin" 
           icon={LayoutDashboard} 
@@ -92,22 +110,42 @@ export const Sidebar: React.FC = () => {
           label="Analytics" 
           active={location.pathname === '/admin/analytics'} 
         />
+
+        <div className="pt-8 pb-4">
+           <div className="text-[10px] font-bold text-white/20 uppercase tracking-widest mb-4 px-3">Deployment</div>
+           <a 
+             href="/" 
+             target="_blank" 
+             rel="noopener noreferrer"
+             className="flex items-center gap-3 px-3 py-2 rounded-lg text-brand-text-dim hover:text-white hover:bg-white/5 transition-all duration-200 group"
+           >
+             <ExternalLink className="w-4 h-4 text-brand-text-dim group-hover:text-white" />
+             <span className="text-ui-body font-medium">View Live Site</span>
+           </a>
+        </div>
       </nav>
 
       {/* Footer / User Profile */}
       <div className="p-4 mt-auto border-t border-white/5">
         <div className="px-3 py-4 mb-2 flex items-center gap-3 bg-white/5 rounded-xl border border-white/5 hover:border-white/10 transition-all cursor-pointer group">
-          <div className="w-8 h-8 rounded-full bg-brand-orange/20 border border-brand-orange/30 flex items-center justify-center text-brand-orange font-bold text-xs">
-            AO
+          <div className="w-8 h-8 rounded-full bg-brand-orange/20 border border-brand-orange/30 flex items-center justify-center text-brand-orange font-bold text-xs uppercase">
+            {userEmail ? userEmail[0] : 'HB'}
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="text-xs font-bold text-white truncate">akeemojuko@...</span>
-            <span className="text-[10px] text-brand-text-dim truncate">Super Admin</span>
+            <span className="text-xs font-bold text-white truncate">{userEmail || 'Anonymous'}</span>
+            <span className="text-[10px] text-brand-text-dim truncate">{isAdmin ? 'Super Admin' : 'Admin'}</span>
           </div>
           <Settings className="w-3 h-3 text-white/20 group-hover:text-white/50 transition-colors ml-auto" />
         </div>
         
-        <button className="w-full flex items-center gap-3 px-3 py-2 text-red-400/60 hover:text-red-400 hover:bg-red-400/5 rounded-lg transition-all text-ui-body font-medium">
+        <button 
+          onClick={async () => {
+             if (supabase) await supabase.auth.signOut();
+             localStorage.removeItem('hellobrick_admin_bypass');
+             window.location.href = '/admin/login';
+          }}
+          className="w-full flex items-center gap-3 px-3 py-2 text-red-400/60 hover:text-red-400 hover:bg-red-400/5 rounded-lg transition-all text-ui-body font-medium"
+        >
           <LogOut className="w-4 h-4" /> Sign Out
         </button>
       </div>

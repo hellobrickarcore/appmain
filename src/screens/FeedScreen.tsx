@@ -15,94 +15,286 @@ interface FeedPost {
   title: string;
   description: string;
   bricksUsed: number;
-  likes: number;
+  baseLikes: number;
   isLiked: boolean;
-  timestamp: number;
+  postedAt: number; // fixed epoch timestamp
 }
 
 interface FeedScreenProps {
   onNavigate: (screen: Screen) => void;
 }
 
+// ─── Seeded Random ───────────────────────────────────────────────
+// Produces a deterministic daily fluctuation per post so likes feel alive
+function seededRandom(seed: number): number {
+  let x = Math.sin(seed) * 10000;
+  return x - Math.floor(x);
+}
+
+function dailyLikeOffset(postId: string, baseLikes: number): number {
+  const daysSinceEpoch = Math.floor(Date.now() / 86400000);
+  const seed = daysSinceEpoch * 31 + postId.charCodeAt(0) * 7 + postId.length;
+  const fluctuation = Math.floor(seededRandom(seed) * 11) - 3; // -3 to +7
+  return Math.max(0, baseLikes + fluctuation);
+}
+
+// ─── Anchored Launch Date ────────────────────────────────────────
+// Posts are anchored relative to a fixed "launch week" so timestamps
+// naturally age as real calendar time passes.
+function getAnchoredTimestamp(daysAgo: number, hoursOffset = 0): number {
+  const now = Date.now();
+  const ONE_DAY = 86400000;
+  const ONE_HOUR = 3600000;
+  return now - (daysAgo * ONE_DAY) - (hoursOffset * ONE_HOUR);
+}
+
+// ─── Realistic Online Counter ────────────────────────────────────
+function getRealisticOnlineCount(): number {
+  const hour = new Date().getHours();
+  // Higher during evening hours (18-23), lower overnight (0-6)
+  if (hour >= 18 && hour <= 23) return 485 + Math.floor(Math.random() * 30); // 485-514
+  if (hour >= 0 && hour <= 6) return 452 + Math.floor(Math.random() * 15);   // 452-466
+  return 468 + Math.floor(Math.random() * 25);                                // 468-492
+}
+
 export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [onlineCount, setOnlineCount] = useState(342);
+  const [onlineCount, setOnlineCount] = useState(getRealisticOnlineCount);
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
-    // Simulated API Fetch + Local Storage Merge
     const loadFeed = () => {
       const local = JSON.parse(localStorage.getItem('hellobrick_feed_posts') || '[]');
-      
-      // Real daily offsets for a realistic feed
-      const ONE_DAY = 24 * 60 * 60 * 1000;
-      const ONE_HOUR = 60 * 60 * 1000;
 
-      const remote = [
+      // 8 seed posts with anchored timestamps that age naturally
+      const seedPosts: FeedPost[] = [
         {
-          id: '1',
+          id: 'seed_1',
           userId: 'user1',
           userName: 'TinyBuilder',
           userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Tiny',
           isPrivate: false,
-          image: houseImg,
-          title: 'My First LEGO House',
-          description: 'Used some leftover 2x4 bricks to make this little cottage. 🏠',
+          image: 'https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=800&q=80',
+          title: 'Sorted my whole collection',
+          description: 'Finally went through all the bins. Took ages but at least now I know what I actually have 😅',
           bricksUsed: 42,
-          likes: 31,
+          baseLikes: 247,
           isLiked: false,
-          timestamp: Date.now() - (1 * ONE_HOUR), // Real 1 hour ago
+          postedAt: getAnchoredTimestamp(0, 3),
         },
         {
-          id: '2',
+          id: 'seed_2',
           userId: 'user2',
           userName: 'NatureLover',
           userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Nature',
           isPrivate: false,
-          image: treeImg,
-          title: 'Simple Desktop Tree',
-          description: 'Just a few brown and green bricks, but it makes my desk look great!',
+          image: 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?w=800&q=80',
+          title: 'Colourful build',
+          description: 'Grabbed whatever I could find in the box and this came out. Not bad for random pieces',
           bricksUsed: 18,
-          likes: 24,
+          baseLikes: 89,
           isLiked: true,
-          timestamp: Date.now() - ONE_DAY - (2 * ONE_HOUR), // Yesterday
+          postedAt: getAnchoredTimestamp(1, 5),
         },
         {
-          id: '3',
+          id: 'seed_3',
           userId: 'user3',
-          userName: 'QuickRacer',
-          userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Racer',
+          userName: 'レゴパパ',
+          userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=legopapa',
           isPrivate: false,
-          image: carImg,
-          title: '5-Minute Race Car',
-          description: 'Built this with my son in a few minutes. Simple but fast!',
+          image: 'https://images.unsplash.com/photo-1472457897821-70d3819a0e24?w=800&q=80',
+          title: '週末の作品',
+          description: '週末に作りました。色がバラバラだけど楽しかった 🚗',
           bricksUsed: 25,
-          likes: 12,
+          baseLikes: 312,
           isLiked: false,
-          timestamp: Date.now() - (2 * ONE_DAY) - (5 * ONE_HOUR), // 2 days ago
-        }
+          postedAt: getAnchoredTimestamp(2, 1),
+        },
+        {
+          id: 'seed_4',
+          userId: 'user4',
+          userName: 'BrickQueen',
+          userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Queen',
+          isPrivate: false,
+          image: 'https://images.unsplash.com/photo-1596854407944-bf87f6fdd49e?w=800&q=80',
+          title: 'Mini city vibes',
+          description: 'Trying to build a whole street from spare parts. Its slow going but getting there 🏢',
+          bricksUsed: 56,
+          baseLikes: 1243,
+          isLiked: false,
+          postedAt: getAnchoredTimestamp(3, 8),
+        },
+        {
+          id: 'seed_5',
+          userId: 'user5',
+          userName: 'carlos_bricks',
+          userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=carlos',
+          isPrivate: false,
+          image: 'https://images.unsplash.com/photo-1578652520385-c406cd700097?w=800&q=80',
+          title: 'Creación libre',
+          description: 'Sin instrucciones, solo piezas sueltas y imaginación 🌴',
+          bricksUsed: 14,
+          baseLikes: 156,
+          isLiked: false,
+          postedAt: getAnchoredTimestamp(5, 1),
+        },
+        {
+          id: 'seed_6',
+          userId: 'user6',
+          userName: 'DadBuilds',
+          userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Dad',
+          isPrivate: false,
+          image: 'https://images.unsplash.com/photo-1566140967404-b8b3932483f5?w=800&q=80',
+          title: 'Mess before the build lol',
+          description: 'This is what my table looks like every saturday. Just dump everything out and go for it',
+          bricksUsed: 34,
+          baseLikes: 78,
+          isLiked: true,
+          postedAt: getAnchoredTimestamp(7, 4),
+        },
+        {
+          id: 'seed_7',
+          userId: 'user7',
+          userName: 'Bausteine_Max',
+          userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Max',
+          isPrivate: false,
+          image: 'https://images.unsplash.com/photo-1595594424995-3203a53aff8f?w=800&q=80',
+          title: 'Altes Set neu gebaut',
+          description: 'Hatte noch Steine von vor 10 Jahren im Keller. Hab einfach was zusammengebaut ❤️',
+          bricksUsed: 67,
+          baseLikes: 534,
+          isLiked: false,
+          postedAt: getAnchoredTimestamp(10, 6),
+        },
+        {
+          id: 'seed_8',
+          userId: 'user8',
+          userName: 'brick_addict_23',
+          userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=addict',
+          isPrivate: false,
+          image: 'https://images.unsplash.com/photo-1602532305019-3dbbd482dae9?w=800&q=80',
+          title: 'Morning sort session',
+          description: 'Coffee and bricks. Best combo there is ☕',
+          bricksUsed: 22,
+          baseLikes: 2891,
+          isLiked: false,
+          postedAt: getAnchoredTimestamp(12, 3),
+        },
       ];
 
-      // Merge and sort
-      const allPosts = [...local, ...remote]
+      // Apply daily fluctuating likes
+      const postsWithLives = seedPosts.map(p => ({
+        ...p,
+        likes: dailyLikeOffset(p.id, p.baseLikes),
+      }));
+
+      // Merge local user posts on top, sort by timestamp descending
+      const allPosts = [...local, ...postsWithLives];
+
+      // ── DAILY DRIP: Add 2-3 fresh Unsplash posts per day ──
+      const dailyNames = [
+        "BrickNinja", "AFOLJenny", "TechnicFan_UK", "ModularMike", "SpaceBuilder_",
+        "ClassicBricks", "BricksByJake", "PixelBricks", "MasterMOC", "LEGOdad_Mark",
+        "PlasticArchitect", "MinifigCollector", "NinjaBricks", "BrickQueen2", "StudShooter",
+        "建築好き", "lego_maria", "briques_jules", "mattoncini_it", "klodser_dk",
+        "brick_addict_23", "xXBuildKingXx", "sarahh_builds", "jonnybricks99"
+      ];
+      const dailyCaptions = [
+        "nice 🔥",
+        "built this in like 15 min",
+        "found bricks I forgot I had lol",
+        "sunday afternoon vibes",
+        "my partner did this one ❤️",
+        "first time trying freebuilding",
+        "messy pile → this. not bad",
+        "took way longer than expected tbh",
+        "200+ pieces and counting",
+        "perfecto 🫶",
+        "rainy day build",
+        "genuinley cant believe this worked",
+        "magnifique 🇫🇷",
+        "やっと完成した 🎉",
+        "does this count as art??",
+        "its not perfect but its mine",
+        "wow",
+        "finally used those random bricks in my drawer",
+        "mein Sonntagsprojekt",
+        "¡lo diseñó solo!",
+        "happy with how this turned out",
+        "obsessed w this colour combo 😍"
+      ];
+      const dailyImages = [
+        "https://images.unsplash.com/photo-1560859251-d563a49c5e4a?w=800&q=80",
+        "https://images.unsplash.com/photo-1607513746994-51f730a44832?w=800&q=80",
+        "https://images.unsplash.com/photo-1611780243669-0fae91df5f81?w=800&q=80",
+        "https://images.unsplash.com/photo-1625425259894-4db0b1935078?w=800&q=80",
+        "https://images.unsplash.com/photo-1551103782-8ab07afd45c1?w=800&q=80",
+        "https://images.unsplash.com/photo-1599508704512-2f19efd1e35f?w=800&q=80",
+        "https://images.unsplash.com/photo-1628498188904-036f3d0073e4?w=800&q=80",
+        "https://images.unsplash.com/photo-1609710228159-0fa9bd7c0827?w=800&q=80",
+        "https://images.unsplash.com/photo-1608501078713-8e445a709b39?w=800&q=80"
+      ];
+
+      const today = new Date().toISOString().split('T')[0];
+      const lastDrip = localStorage.getItem('hellobrick_community_last_drip');
+
+      if (lastDrip !== today) {
+        const numNew = 2 + Math.floor(Math.random() * 2); // 2-3
+        for (let j = 0; j < numNew; j++) {
+          const name = dailyNames[Math.floor(Math.random() * dailyNames.length)];
+          const hourOffset = Math.floor(Math.random() * 6) * 3600000;
+          // Varied like counts: most 20-300, occasional viral post 500-3000
+          const isViral = Math.random() < 0.15;
+          const likes = isViral
+            ? Math.floor(Math.random() * 2500) + 500
+            : Math.floor(Math.random() * 280) + 3;
+          allPosts.push({
+            id: `daily_${today}_${j}_${Math.random().toString(36).slice(2,7)}`,
+            userId: `user_${name.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
+            userName: name,
+            userAvatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}${j}`,
+            isPrivate: false,
+            image: dailyImages[Math.floor(Math.random() * dailyImages.length)],
+            title: dailyCaptions[Math.floor(Math.random() * dailyCaptions.length)].split('!')[0],
+            description: dailyCaptions[Math.floor(Math.random() * dailyCaptions.length)],
+            bricksUsed: Math.floor(Math.random() * 80) + 15,
+            baseLikes: likes,
+            isLiked: false,
+            postedAt: Date.now() - hourOffset,
+          } as any);
+        }
+        localStorage.setItem('hellobrick_community_last_drip', today);
+        // Persist the daily posts
+        const dailyOnly = allPosts.filter((p: any) => p.id?.startsWith('daily_'));
+        const existingLocal = JSON.parse(localStorage.getItem('hellobrick_feed_posts') || '[]');
+        localStorage.setItem('hellobrick_feed_posts', JSON.stringify([...existingLocal, ...dailyOnly]));
+      }
+
+      const sorted = allPosts
         .filter((p: any) => !p.isPending)
-        .sort((a, b) => b.timestamp - a.timestamp);
-      setPosts(allPosts);
+        .sort((a: any, b: any) => (b.postedAt || b.timestamp || 0) - (a.postedAt || a.timestamp || 0));
+      setPosts(sorted as any);
       setLoading(false);
     };
 
-    const timer = setTimeout(loadFeed, 800);
-    
-    // Online counter fluctuation
-    const counterInterval = setInterval(() => {
-       setOnlineCount(prev => prev + (Math.random() > 0.5 ? 1 : -1));
-    }, 5000);
+    const timer = setTimeout(loadFeed, 600);
 
-    // Dynamic "time ago" updater - refreshes every minute
+    // Realistic online counter: fluctuates ±1-3 every 8-15 seconds
+    const counterInterval = setInterval(() => {
+      setOnlineCount(prev => {
+        const delta = Math.floor(Math.random() * 5) - 2; // -2 to +2
+        const base = getRealisticOnlineCount();
+        // Nudge towards the realistic base to prevent drift
+        const nudged = prev + delta + Math.sign(base - prev);
+        return Math.max(450, Math.min(520, nudged));
+      });
+    }, 8000 + Math.random() * 7000);
+
+    // Live time ticker — refreshes "X ago" every 30 seconds
     const timeUpdater = setInterval(() => {
       setNow(Date.now());
-    }, 60000);
+    }, 30000);
 
     return () => {
       clearTimeout(timer);
@@ -112,22 +304,26 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
   }, []);
 
   const handleLike = (postId: string) => {
-    setPosts(posts.map(post => 
-      post.id === postId 
-        ? { ...post, isLiked: !post.isLiked, likes: post.isLiked ? post.likes - 1 : post.likes + 1 }
+    setPosts(posts.map(post =>
+      post.id === postId
+        ? { ...post, isLiked: !post.isLiked, likes: (post as any).isLiked ? (post as any).likes - 1 : ((post as any).likes || post.baseLikes) + 1 }
         : post
     ));
   };
 
   const formatTimeAgo = (timestamp: number) => {
     const seconds = Math.floor((now - timestamp) / 1000);
-    if (seconds < 60) return `${seconds}s ago`;
+    if (seconds < 60) return 'just now';
     const minutes = Math.floor(seconds / 60);
     if (minutes < 60) return `${minutes}m ago`;
     const hours = Math.floor(minutes / 60);
     if (hours < 24) return `${hours}h ago`;
     const days = Math.floor(hours / 24);
-    return `${days}d ago`;
+    if (days === 1) return 'yesterday';
+    if (days < 7) return `${days}d ago`;
+    const weeks = Math.floor(days / 7);
+    if (weeks === 1) return '1 week ago';
+    return `${weeks} weeks ago`;
   };
 
   return (
@@ -136,7 +332,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
 
       {/* Header */}
       <div className="relative z-50 px-6 pt-[max(env(safe-area-inset-top),3.5rem)] pb-4 flex items-center justify-between sticky top-0 bg-[#050A18]/80 backdrop-blur-xl border-b border-white/5">
-        <button 
+        <button
           onClick={() => onNavigate(Screen.HOME)}
           className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10"
         >
@@ -189,10 +385,10 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
                              <span className="font-black text-white text-sm">@{post.userName}</span>
                              {post.isPrivate ? <Lock className="w-3 h-3 text-slate-600" /> : <Globe className="w-3 h-3 text-slate-600" />}
                           </div>
-                          <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">{formatTimeAgo(post.timestamp)}</span>
+                          <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">{formatTimeAgo(post.postedAt || (post as any).timestamp)}</span>
                         </div>
                       </div>
-                    <button 
+                    <button
                       onClick={() => {
                         const action = window.confirm('Report this post or block this user?');
                         if (action) alert('Post reported. Thank you for keeping the community safe.');
@@ -206,7 +402,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
                     {/* Image Area */}
                     <div className="px-4">
                        <div className="relative rounded-[32px] overflow-hidden aspect-square border border-white/5">
-                         <img src={post.image} className="w-full h-full object-cover" alt={post.title} />
+                         <img src={post.image} className="w-full h-full object-cover" alt={post.title} style={{ filter: `brightness(${0.92 + (post.id.charCodeAt(post.id.length - 1) % 7) * 0.03}) saturate(${0.9 + (post.id.charCodeAt(0) % 5) * 0.06}) hue-rotate(${(post.id.charCodeAt(2) || 0) % 8}deg)` }} />
                          <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-xl px-3 py-1 rounded-full border border-white/10 flex items-center gap-2">
                            <Sparkles className="w-3 h-3 text-yellow-400" />
                            <span className="text-[9px] font-black text-white uppercase tracking-widest">Featured</span>
@@ -219,7 +415,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
                        <div className="flex items-center gap-6 mb-5">
                           <button onClick={() => handleLike(post.id)} className="flex items-center gap-2 group">
                              <Heart className={`w-6 h-6 transition-all ${post.isLiked ? 'fill-red-500 text-red-500 scale-110' : 'text-slate-500 group-active:scale-95'}`} />
-                             <span className={`text-sm font-black ${post.isLiked ? 'text-white' : 'text-slate-500'}`}>{post.likes}</span>
+                             <span className={`text-sm font-black ${post.isLiked ? 'text-white' : 'text-slate-500'}`}>{(post as any).likes || post.baseLikes}</span>
                           </button>
                           <button className="ml-auto w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/5">
                              <Share2 className="w-4 h-4 text-slate-500" />

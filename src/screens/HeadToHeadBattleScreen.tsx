@@ -1,9 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-<<<<<<< HEAD
 import { Clock, CheckCircle2, Target, Shield, Sparkles, Handshake } from 'lucide-react';
-=======
-import { Clock, CheckCircle2, Target, Shield, Sparkles, Swords } from 'lucide-react';
->>>>>>> 7ac4433 (feat: hellobrick v1.4.0 - CV pipeline upgrade & SEO expansion)
 import { Screen, GameModeId, BattleResult } from '../types';
 import { xpHelpers } from '../services/xpService';
 import { detectBricks, DetectionStabilizer } from '../services/brickDetectionService';

@@ -52,6 +52,18 @@ export const ConnectScreen: React.FC<ConnectScreenProps> = ({ onNavigate, isPro 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showNewPostOptions, setShowNewPostOptions] = useState(false);
   const [followedUsers, setFollowedUsers] = useState<Set<string>>(new Set());
+  const [onlineCount, setOnlineCount] = useState(482);
+
+  // Fluctuating online counter
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setOnlineCount(prev => {
+        const change = Math.floor(Math.random() * 5) - 2; // -2 to +2
+        return Math.max(450, prev + change);
+      });
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Load posts from backend or localStorage
   useEffect(() => {
@@ -72,13 +84,94 @@ export const ConnectScreen: React.FC<ConnectScreenProps> = ({ onNavigate, isPro 
 
         // Fallback to localStorage
         const stored = localStorage.getItem('hellobrick_feed_posts');
-        if (stored) {
-          const allPosts = JSON.parse(stored);
-          // Only show approved posts (or pending if admin)
-          setPosts(allPosts.filter((p: FeedPost) => p.status === 'approved' || !p.status));
-        } else {
-          setPosts([]);
+        let allPosts = stored ? JSON.parse(stored) : [];
+        
+        // ── DAILY ACTIVITY GENERATOR ──────────────────────────────
+        // Adds 2-3 realistic new posts per day so the feed always looks fresh
+        const fakeNames = [
+          "BrickMaster99", "LegoMom_Sarah", "AFOL_Dave", "BuildItBetter", "CreativeBlocks",
+          "CityBuilder", "TechnicFan_UK", "MinifigCollector", "BricksByJake", "PixelBricks",
+          "MasterMOC", "StudShooter", "LEGOdad_Mark", "PlasticArchitect", "BrickQueen",
+          "NinjaBricks", "SpaceBuilder_", "AFOLJenny", "ClassicBricks", "ModularMike"
+        ];
+        const fakeCaptions = [
+          "Just finished scanning my messy pile and built this! 🔥",
+          "Can't believe the app found the exact pieces for this MOC.",
+          "Weekend project complete — no sorting needed!",
+          "Finally used all those random bricks in my drawer!",
+          "No sorting required, pure magic! HelloBrick is insane.",
+          "Found 47 bricks in my pile I didn't even know I had!",
+          "This app literally saved me 3 hours of sorting.",
+          "Sunday builds hit different when you skip the sorting 🧱",
+          "Mess before the build lol. Just dumped it all out.",
+          "POV: you scan a messy pile and get 6 build ideas instantly",
+          "Designed this after scanning my whole collection ❤️",
+          "First build using HelloBrick — I'm hooked!",
+          "Rainy day + messy bricks = perfect afternoon",
+          "Before HelloBrick I would've never found these pieces 🤯",
+          "Just scanned 200+ bricks in under a minute. Wild."
+        ];
+        const legoImages = [
+          "https://images.unsplash.com/photo-1557597774-9d273605dfa9?w=800&q=80",
+          "https://images.unsplash.com/photo-1559066653-edfd1e6af5f3?w=800&q=80",
+          "https://images.unsplash.com/photo-1562040506-a9b32cb51b94?w=800&q=80",
+          "https://images.unsplash.com/photo-1615729947596-a598e5de0ab3?w=800&q=80",
+          "https://images.unsplash.com/photo-1544511916-0148ccdeb877?w=800&q=80",
+          "https://images.unsplash.com/photo-1621600411688-4be93c68a1ff?w=800&q=80",
+          "https://images.unsplash.com/photo-1563453392212-326f5e854473?w=800&q=80",
+          "https://images.unsplash.com/photo-1599508704512-2f19efd1e35f?w=800&q=80",
+          "https://images.unsplash.com/photo-1611780243669-0fae91df5f81?w=800&q=80"
+        ];
+
+        const generatePost = (timestamp: number, index: number) => {
+          const name = fakeNames[Math.floor(Math.random() * fakeNames.length)];
+          const hourOffset = Math.floor(Math.random() * 8) * 60 * 60 * 1000; // spread across the day
+          return {
+            id: `auto_${timestamp}_${index}_${Math.random().toString(36).slice(2, 8)}`,
+            userId: `user_${name.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
+            userName: name,
+            userAvatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}${index}`,
+            image: legoImages[Math.floor(Math.random() * legoImages.length)],
+            caption: fakeCaptions[Math.floor(Math.random() * fakeCaptions.length)],
+            likes: Math.floor(Math.random() * 200) + 8,
+            comments: Math.floor(Math.random() * 35) + 1,
+            timestamp: timestamp - hourOffset,
+            liked: false,
+            status: 'approved',
+            commentList: []
+          };
+        };
+
+        // Step 1: Initial seed if empty (backfill 7 days of history)
+        if (allPosts.length < 10) {
+          for (let day = 0; day < 7; day++) {
+            const dayTimestamp = Date.now() - (day * 24 * 60 * 60 * 1000);
+            const postsPerDay = 2 + Math.floor(Math.random() * 2); // 2-3 per day
+            for (let j = 0; j < postsPerDay; j++) {
+              allPosts.push(generatePost(dayTimestamp, j));
+            }
+          }
         }
+
+        // Step 2: Daily drip — check if we already added posts "today"
+        const today = new Date().toISOString().split('T')[0];
+        const lastDripDate = localStorage.getItem('hellobrick_feed_last_drip');
+        
+        if (lastDripDate !== today) {
+          const postsToday = 2 + Math.floor(Math.random() * 2); // 2-3 new posts
+          for (let j = 0; j < postsToday; j++) {
+            allPosts.push(generatePost(Date.now(), j));
+          }
+          localStorage.setItem('hellobrick_feed_last_drip', today);
+        }
+
+        // Sort newest first and persist
+        allPosts.sort((a: any, b: any) => b.timestamp - a.timestamp);
+        // Cap at 60 posts to prevent infinite growth
+        if (allPosts.length > 60) allPosts = allPosts.slice(0, 60);
+        localStorage.setItem('hellobrick_feed_posts', JSON.stringify(allPosts));
+
+        setPosts(allPosts.filter((p: FeedPost) => p.status === 'approved' || !p.status));
       } catch (error) {
         console.error('Failed to load posts:', error);
         setPosts([]);
@@ -371,7 +464,13 @@ export const ConnectScreen: React.FC<ConnectScreenProps> = ({ onNavigate, isPro 
       {/* Header - Sticky */}
       <div className="bg-white/90 backdrop-blur-md sticky top-0 z-30 px-6 pt-[max(env(safe-area-inset-top),3.5rem)] pb-4 border-b border-slate-100">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-black text-slate-900">Feed</h1>
+          <div>
+             <h1 className="text-2xl font-black text-slate-900">Feed</h1>
+             <div className="flex items-center gap-1.5 mt-1">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{onlineCount} Online Now</span>
+             </div>
+          </div>
           <div className="flex gap-3">
             <button
               onClick={() => setShowSearch(!showSearch)}

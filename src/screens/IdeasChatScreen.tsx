@@ -51,12 +51,13 @@ export const IdeasChatScreen: React.FC<IdeasChatScreenProps> = ({ onNavigate }) 
     try {
       const stored = localStorage.getItem('hellobrick_collection');
       const bricks = stored ? JSON.parse(stored).bricks || [] : [];
-      const content = await generateBuildIdeas(input, bricks);
+      const response = await generateBuildIdeas(input, bricks);
       
       const assistantMsg: Message = {
         id: Date.now().toString(),
         role: 'assistant',
-        content: content,
+        // Support both old string responses and new structured object responses
+        content: typeof response === 'string' ? response : (response.assistantMessage || 'Here are some ideas:'),
         timestamp: Date.now(),
       };
       setMessages(prev => [...prev, assistantMsg]);

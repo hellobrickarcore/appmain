@@ -1,9 +1,6 @@
 import React from 'react';
 import { Box, Layout, CheckCircle2, ChevronRight, Database } from 'lucide-react';
-<<<<<<< HEAD
 
-=======
->>>>>>> 7ac4433 (feat: hellobrick v1.4.0 - CV pipeline upgrade & SEO expansion)
 import { Screen } from '../types';
 
 interface BuildingIntroScreenProps {
@@ -57,10 +54,10 @@ export const BuildingIntroScreen: React.FC<BuildingIntroScreenProps> = ({ onNavi
 
       <div className="px-8 pb-[max(env(safe-area-inset-bottom),2.5rem)] pt-10 bg-gradient-to-t from-[#050A18] via-[#050A18]/80 to-transparent">
         <button
-          onClick={() => onNavigate(Screen.NOTIFICATIONS_INTRO)}
+          onClick={() => onNavigate(Screen.HOW_IT_WORKS)}
           className="w-full bg-white text-slate-950 py-6 rounded-[32px] font-black text-sm uppercase tracking-[0.2em] shadow-3xl active:scale-[0.98] transition-all flex items-center justify-center gap-3"
         >
-          Initialize Manifest
+          Continue
           <ChevronRight className="w-4 h-4" />
         </button>
       </div>

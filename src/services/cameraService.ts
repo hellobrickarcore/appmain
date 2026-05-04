@@ -16,34 +16,19 @@ export const isNativePlatform = (): boolean => {
  */
 export const requestCameraPermissions = async (): Promise<boolean> => {
   try {
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/d7244d3a-90f2-41f3-bc4a-3f7a92e83342', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'cameraService.ts:17', 'message': 'Requesting camera permissions', 'data': { isNative: isNativePlatform() }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'camera-check', hypothesisId: 'A' }) }).catch(() => { });
-    // #endregion
     if (isNativePlatform()) {
       // Use Capacitor Camera plugin for permissions
       const status = await Camera.checkPermissions();
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/d7244d3a-90f2-41f3-bc4a-3f7a92e83342', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'cameraService.ts:22', 'message': 'Camera permission status checked', 'data': { status: status.camera }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'camera-check', hypothesisId: 'A' }) }).catch(() => { });
-      // #endregion
       if (status.camera !== 'granted') {
         const result = await Camera.requestPermissions({ permissions: ['camera'] });
-        // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/d7244d3a-90f2-41f3-bc4a-3f7a92e83342', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'cameraService.ts:29', 'message': 'Camera permission requested', 'data': { result: result.camera }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'camera-check', hypothesisId: 'A' }) }).catch(() => { });
-        // #endregion
         return result.camera === 'granted';
       }
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/d7244d3a-90f2-41f3-bc4a-3f7a92e83342', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'cameraService.ts:35', 'message': 'Camera permission already granted', 'data': { status: status.camera }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'camera-check', hypothesisId: 'A' }) }).catch(() => { });
-      // #endregion
       return true;
     } else {
       // Web: getUserMedia will request permissions automatically
       return true;
     }
   } catch (error) {
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/d7244d3a-90f2-41f3-bc4a-3f7a92e83342', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'cameraService.ts:33', 'message': 'Permission request error', 'data': { error: error instanceof Error ? error.message : String(error) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'camera-check', hypothesisId: 'A' }) }).catch(() => { });
-    // #endregion
     console.error('Permission request error:', error);
     return false;
   }
@@ -54,38 +39,25 @@ export const requestCameraPermissions = async (): Promise<boolean> => {
  */
 export const getCameraStream = async (): Promise<MediaStream | null> => {
   try {
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/d7244d3a-90f2-41f3-bc4a-3f7a92e83342', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'cameraService.ts:40', 'message': 'Getting camera stream - start', 'data': {}, timestamp: Date.now(), sessionId: 'debug-session', runId: 'camera-stream', hypothesisId: 'B' }) }).catch(() => { });
-    // #endregion
     // Request permissions first
     const hasPermission = await requestCameraPermissions();
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/d7244d3a-90f2-41f3-bc4a-3f7a92e83342', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'cameraService.ts:44', 'message': 'Permission check result', 'data': { hasPermission }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'camera-stream', hypothesisId: 'B' }) }).catch(() => { });
-    // #endregion
     if (!hasPermission) {
       throw new Error('Camera permission denied');
     }
 
     // Use getUserMedia (works in Capacitor WebView too)
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/d7244d3a-90f2-41f3-bc4a-3f7a92e83342', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'cameraService.ts:49', 'message': 'Calling getUserMedia', 'data': { hasMediaDevices: !!navigator.mediaDevices }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'camera-stream', hypothesisId: 'B' }) }).catch(() => { });
-    // #endregion
     const stream = await navigator.mediaDevices.getUserMedia({
       video: {
-        facingMode: 'environment', // Back camera on mobile
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
+        facingMode: { ideal: 'environment' }, // Back camera on mobile
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+        // Advanced focus constraint on supported browsers (iOS Safari / WKWebView)
+        advanced: [{ focusMode: "continuous" } as any]
       }
     });
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/d7244d3a-90f2-41f3-bc4a-3f7a92e83342', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'cameraService.ts:57', 'message': 'getUserMedia success', 'data': { streamId: stream.id, active: stream.active, tracks: stream.getTracks().length }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'camera-stream', hypothesisId: 'B' }) }).catch(() => { });
-    // #endregion
 
     return stream;
   } catch (error) {
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/d7244d3a-90f2-41f3-bc4a-3f7a92e83342', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'cameraService.ts:61', 'message': 'Camera stream error', 'data': { error: error instanceof Error ? error.message : String(error), name: error instanceof Error ? error.name : 'unknown' }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'camera-stream', hypothesisId: 'B' }) }).catch(() => { });
-    // #endregion
     console.error('Camera stream error:', error);
     throw error;
   }
@@ -139,4 +111,3 @@ export const stopCameraStream = (stream: MediaStream | null): void => {
     stream.getTracks().forEach(track => track.stop());
   }
 };
-

@@ -35,7 +35,7 @@ echo ""
 
 # Create or update .env file
 ENV_FILE=".env"
-API_URL="http://${MAC_IP}:3003/api"
+API_URL="http://${MAC_IP}:3001/api"
 
 if [ -f "$ENV_FILE" ]; then
     # Update existing .env file

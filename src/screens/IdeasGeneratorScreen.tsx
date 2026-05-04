@@ -51,18 +51,61 @@ export const IdeasGeneratorScreen: React.FC<IdeasGeneratorScreenProps> = ({ onNa
 
   // 2. Initial Greeting / Bootstrap (Run Once)
   useEffect(() => {
-    if (bootstrapped.current || allBricks.length === 0) return;
+    if (bootstrapped.current) return;
     bootstrapped.current = true;
     
-    // Auto-create initial assistant message instead of calling API immediately
-    // to give user a clean landing.
-    const introMsg: UIMessage = {
-      id: 'intro',
-      role: 'assistant',
-      content: "You've got enough pieces for a few small builds! Want my best option or something unexpected?"
-    };
-    setMessages([introMsg]);
+    // Scoped entirely to account
+    const userId = localStorage.getItem('hellobrick_user_id') || 'guest';
+    const storageKey = `hellobrick_ideas_chat_${userId}`;
+    
+    // Try to restore previous chat history
+    const savedChat = localStorage.getItem(storageKey);
+    if (savedChat) {
+      try {
+        const parsed = JSON.parse(savedChat);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Restore messages but clear loading states (images won't persist as data URIs are large)
+          const restored = parsed.map((m: UIMessage) => ({
+            ...m,
+            ideas: m.ideas?.map(idea => ({ ...idea, imageLoading: false }))
+          }));
+          setMessages(restored);
+          console.log('[IdeasGenerator] Restored', restored.length, 'messages from history for user', userId);
+          return;
+        }
+      } catch (e) {
+        console.warn('[IdeasGenerator] Failed to restore chat:', e);
+      }
+    }
+
+    // Fresh start — show intro message
+    if (allBricks.length > 0) {
+      const introMsg: UIMessage = {
+        id: 'intro',
+        role: 'assistant',
+        content: "You've got enough pieces for a few small builds! Want my best option or something unexpected?"
+      };
+      setMessages([introMsg]);
+    }
   }, [allBricks]);
+
+  // Persist chat history on every update
+  useEffect(() => {
+    if (messages.length > 0) {
+      const userId = localStorage.getItem('hellobrick_user_id') || 'guest';
+      const storageKey = `hellobrick_ideas_chat_${userId}`;
+      // Strip large data URIs to keep localStorage manageable
+      const toSave = messages.map(m => ({
+        ...m,
+        ideas: m.ideas?.map(idea => ({
+          ...idea,
+          imageUrl: idea.imageUrl?.startsWith('data:') ? undefined : idea.imageUrl,
+          imageLoading: false
+        }))
+      }));
+      localStorage.setItem(storageKey, JSON.stringify(toSave));
+    }
+  }, [messages]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -117,11 +160,9 @@ export const IdeasGeneratorScreen: React.FC<IdeasGeneratorScreenProps> = ({ onNa
         });
       }
       
-      // background parallel generation for max 2 ideas
+      // background parallel generation for all ideas
       if (assistantMsg.ideas && assistantMsg.ideas.length > 0) {
-        const generationPool = assistantMsg.ideas.slice(0, 2);
-        
-        generationPool.forEach(async (idea) => {
+        const imageGenerationPromises = assistantMsg.ideas.map(async (idea) => {
           const idx = assistantMsg.ideas!.findIndex(i => i.ideaName === idea.ideaName);
           if (idx === -1) return;
 
@@ -140,30 +181,22 @@ export const IdeasGeneratorScreen: React.FC<IdeasGeneratorScreenProps> = ({ onNa
                  imagePrompt: "${idea.imagePrompt}"
                }`);
 
-               // VALIDATION LAYER
+               // Allow all images to be requested (even if vault estimate is slightly off)
                if (estUse > vaultTotal && vaultTotal > 0) {
-                  console.warn(`[ImageGenerator] BLOCKER: ${idea.ideaName} uses too many bricks (${estUse} > ${vaultTotal})`);
-                  setMessages(current => current.map(m => {
-                    if (m.id === assistantMsg.id && m.ideas) {
-                      const updatedIdeas = [...m.ideas];
-                      updatedIdeas[idx] = { ...updatedIdeas[idx], imageLoading: false };
-                      return { ...m, ideas: updatedIdeas };
-                    }
-                    return m;
-                  }));
-                  return;
+                  console.warn(`[ImageGenerator] Note: ${idea.ideaName} might use more bricks than available (${estUse} > ${vaultTotal})`);
                }
 
                let finalPrompt = idea.imagePrompt;
                if (isRetry) {
-                 finalPrompt = `IMPORTANT: show ONLY a brick-built construction made from standard rectangular LEGO bricks with visible studs. Do not show symbols, graphics, scenery, or non-brick shapes. | ${finalPrompt}`;
+                 finalPrompt = `IMPORTANT: display ONLY a simple clean colorful LEGO brick drawing. No scenery, no text. | ${finalPrompt}`;
                }
 
                console.log(`[ImageGenerator] Dispatching for: ${idea.ideaName}`);
-               const result = await generateIdeaImage(finalPrompt);
+               // Provide idea.ideaName so the service can generate deterministic fallback colors and prompts
+               const result = await generateIdeaImage(finalPrompt, idea.ideaName);
                
                if (!result.ok && !isRetry) {
-                 console.log(`[ImageGenerator] Prompt drift or failure detected for ${idea.ideaName}. Retrying once with stricter rules.`);
+                 console.log(`[ImageGenerator] Image request failed for ${idea.ideaName}. Retrying once with fallback.`);
                  await attemptGeneration(true);
                  return;
                }
@@ -194,19 +227,11 @@ export const IdeasGeneratorScreen: React.FC<IdeasGeneratorScreenProps> = ({ onNa
             }
           };
 
-          await attemptGeneration();
+          return attemptGeneration();
         });
 
-        // Ensure rest of ideas (if > 2) are not stuck in loading
-        if (assistantMsg.ideas.length > 2) {
-           setMessages(current => current.map(m => {
-             if (m.id === assistantMsg.id && m.ideas) {
-               const updatedIdeas = m.ideas.map((idea, i) => i >= 2 ? { ...idea, imageLoading: false } : idea);
-               return { ...m, ideas: updatedIdeas };
-             }
-             return m;
-           }));
-        }
+        // Allow all concurrent generations
+        await Promise.all(imageGenerationPromises);
       }
 
       if (response.suggestedQuickReplies && response.suggestedQuickReplies.length > 0) {
@@ -311,21 +336,42 @@ export const IdeasGeneratorScreen: React.FC<IdeasGeneratorScreenProps> = ({ onNa
                                <img 
                                  src={idea.imageUrl} 
                                  alt={idea.ideaName} 
-                                 className="w-full h-full object-cover animate-in fade-in zoom-in-95 duration-1000" 
+                                 className="w-full h-full object-cover animate-in fade-in zoom-in-95 duration-1000"
+                                 onLoad={(e) => {
+                                   console.log(`[Image] Loaded: ${idea.ideaName}`);
+                                   // Hide the loading overlay once the browser finishes loading
+                                   const parent = (e.currentTarget as HTMLImageElement).parentElement;
+                                   const loader = parent?.querySelector('.img-loader');
+                                   if (loader) (loader as HTMLElement).style.display = 'none';
+                                 }}
+                                 onError={(e) => {
+                                   console.error(`[Image] Error: ${idea.ideaName}`);
+                                   const target = e.currentTarget as HTMLImageElement;
+                                   target.style.display = 'none';
+                                   const parent = target.parentElement;
+                                   const loader = parent?.querySelector('.img-loader');
+                                   if (loader) (loader as HTMLElement).style.display = 'none';
+                                   parent?.querySelector('.fallback-icon')?.classList.remove('hidden');
+                                 }}
                                />
-                             ) : idea.imageLoading ? (
-                               <div className="flex flex-col items-center gap-3">
-                                 <div className="flex gap-1.5">
+                             ) : null}
+                             
+                             {/* Show loading overlay only while generating */}
+                             {idea.imageLoading && (
+                               <div className="img-loader absolute inset-0 flex flex-col items-center justify-center bg-[#0a0f1e]/80 backdrop-blur-sm z-10 transition-opacity">
+                                 <div className="flex gap-1.5 mb-2">
                                    <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
                                    <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
                                    <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" />
                                  </div>
-                                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest animate-pulse">Generating preview...</span>
+                                 <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest animate-pulse">Generating...</span>
                                </div>
-                             ) : (
-                               <div className="flex flex-col items-center gap-2 opacity-40">
+                             )}
+
+                             {(!idea.imageUrl && !idea.imageLoading) && (
+                               <div className="fallback-icon flex flex-col items-center gap-2 opacity-40">
                                  <Box className="w-10 h-10 text-slate-600" />
-                                 <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">No preview available</span>
+                                 <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Brick Blueprint</span>
                                </div>
                              )}
                              <div className="absolute inset-0 bg-gradient-to-tr from-orange-500/5 to-transparent pointer-events-none" />

@@ -3,7 +3,10 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../services/supabaseService';
 
 const ALLOWED_ADMINS = [
-  'hellobrickar@gmail.com'
+  'hellobrickar@gmail.com',
+  'akeem@hellobrick.app',
+  'product@hellobrick.app',
+  'growth@hellobrick.app'
 ];
 
 interface AdminRouteProps {
@@ -26,7 +29,10 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
           return;
         }
 
-        if (!supabase) return;
+        if (!supabase) {
+          setLoading(false);
+          return;
+        }
         const { data: { user } } = await supabase.auth.getUser();
         
         if (user && user.email && ALLOWED_ADMINS.includes(user.email)) {

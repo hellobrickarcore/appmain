@@ -4,8 +4,8 @@
 
 @layer base {
   body {
-    @apply font-sans antialiased bg-brand-navy text-white;
-    background: #050A18; /* Ensure deep navy background */
+    @apply font-sans antialiased bg-brand-white text-brand-text-main;
+    background: #FFFFFF; /* New Premium Light Background */
   }
 }
 
@@ -19,16 +19,16 @@
   }
 
   .text-shadow-glow {
-    text-shadow: 0 0 20px rgba(255, 206, 74, 0.3);
+    text-shadow: 0 0 20px rgba(255, 206, 74, 0.2);
   }
 }
 
 .glass {
-  @apply bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl;
+  @apply bg-white/80 backdrop-blur-xl border border-slate-200/50 shadow-xl;
 }
 
 .glass-dark {
-  @apply bg-black/40 backdrop-blur-2xl border border-white/5 shadow-2xl;
+  @apply bg-slate-900/90 backdrop-blur-2xl border border-white/5 shadow-2xl;
 }
 /* Fix for Recharts ResponsiveContainer dimensions */
 .chart-container {

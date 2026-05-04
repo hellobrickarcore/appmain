@@ -44,10 +44,10 @@ export const FeatureIntroScreen: React.FC<FeatureIntroScreenProps> = ({ onNaviga
 
       <div className="px-8 pb-[max(env(safe-area-inset-bottom),2.5rem)] pt-10 bg-gradient-to-t from-[#050A18] via-[#050A18]/80 to-transparent">
         <button
-          onClick={() => onNavigate(Screen.HOW_TO_SCAN)}
+          onClick={() => onNavigate(Screen.BUILDING_INTRO)}
           className="w-full bg-white text-slate-950 py-6 rounded-[32px] font-black text-sm uppercase tracking-[0.2em] shadow-3xl active:scale-[0.98] transition-all flex items-center justify-center gap-3"
         >
-          Initialize Sync
+          Continue
           <ChevronRight className="w-4 h-4" />
         </button>
       </div>

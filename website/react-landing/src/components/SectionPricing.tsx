@@ -3,97 +3,107 @@ import { Check, Star } from 'lucide-react';
 
 export const SectionPricing: React.FC = () => {
   const features = [
-    "Infinite AI brick detection",
-    "Access to 1000+ build ideas",
-    "Step-by-step 3D instructions",
+    "Scan as many times as you want",
+    "Get advanced build ideas",
+    "Access exclusive mini-games",
     "Daily quest rewards",
     "Cloud vault synchronization",
     "Priority support"
   ];
 
   return (
-    <section id="pricing" className="bg-brand-navy py-40 px-6">
+    <section id="pricing" className="bg-slate-50/50 py-24 md:py-40 px-6 overflow-hidden">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-24 space-y-6">
-          <h2 className="text-[3.5rem] md:text-ui-header font-black tracking-tighter leading-none">Pricing</h2>
-          <p className="text-ui-body text-brand-text-dim font-medium max-w-xl mx-auto">
+          <div className="inline-flex items-center gap-2 mb-6 mx-auto">
+             <span className="w-2 h-2 rounded-full bg-brand-orange"></span>
+             <span className="text-[14px] uppercase tracking-widest font-black text-slate-500">Simple Pricing</span>
+          </div>
+          <h2 className="text-[2.5rem] md:text-ui-header font-black tracking-tight leading-[1.1] text-slate-900">Unlock unlimited builds</h2>
+          <p className="text-[18px] text-slate-500 font-medium max-w-xl mx-auto">
             Choose the plan that fits your building style. Start with a 14-day free trial on any Pro plan.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-5xl mx-auto items-stretch">
           {/* Free Plan */}
-          <div className="bg-brand-navy-light border border-white/5 p-12 rounded-[48px] flex flex-col items-start gap-8 hover:border-white/10 transition-all">
+          <div className="bg-white border border-slate-100 p-10 md:p-12 rounded-[40px] flex flex-col items-start gap-8 hover:shadow-xl transition-all h-full">
             <div className="space-y-2">
-              <h3 className="text-[24px] font-black text-white">Free</h3>
-              <p className="text-ui-body text-brand-text-dim font-medium">Basic access</p>
+              <h3 className="text-[24px] font-black text-slate-900">Free</h3>
+              <p className="text-[15px] text-slate-400 font-black uppercase tracking-widest">Base Access</p>
             </div>
             
             <div className="flex items-baseline gap-1">
-              <span className="text-[48px] font-black text-white">$0</span>
-              <span className="text-ui-body text-brand-text-dim font-medium">/ forever</span>
+              <span className="text-[48px] font-black text-slate-900">$0</span>
+              <span className="text-slate-400 text-[16px] font-bold">/ forever</span>
             </div>
 
-            <ul className="space-y-4 w-full pt-4 border-t border-white/5">
+            <ul className="space-y-4 w-full pt-4 border-t border-slate-50">
               {[
                 "1 basic scan per day",
                 "5 daily build ideas",
-                "Community feed",
+                "Community feed access",
                 "Basic build guides"
               ].map((f, i) => (
-                <li key={i} className="flex items-center gap-3 text-ui-body text-brand-text-dim font-medium">
-                  <Check className="w-5 h-5 text-white/20" /> {f}
+                <li key={i} className="flex items-center gap-3 text-[16px] text-slate-500 font-medium">
+                  <Check className="w-5 h-5 text-slate-200" /> {f}
                 </li>
               ))}
             </ul>
 
-            <button className="w-full bg-white/5 text-white py-5 rounded-2xl font-bold text-ui-body hover:bg-white/10 transition-all mt-auto">
+            <button className="w-full bg-slate-50 text-slate-400 py-5 rounded-2xl font-bold text-[16px] cursor-default mt-auto">
               Current plan
             </button>
           </div>
 
           {/* Pro Plan */}
-          <div className="bg-white p-12 rounded-[48px] flex flex-col items-start gap-8 relative overflow-hidden shadow-2xl scale-105">
-            <div className="absolute top-8 right-8 w-12 h-12 bg-brand-yellow rounded-2xl flex items-center justify-center text-black">
+          <div className="bg-white p-10 md:p-12 rounded-[40px] flex flex-col items-start gap-8 relative overflow-hidden shadow-2xl border-4 border-brand-orange/10 h-full">
+            <div className="absolute top-8 right-8 w-12 h-12 bg-brand-orange/10 rounded-2xl flex items-center justify-center text-brand-orange">
               <Star className="w-6 h-6 fill-current" />
             </div>
             
             <div className="space-y-2">
-              <h3 className="text-[24px] font-black text-brand-navy">Pro</h3>
-              <p className="text-ui-body text-brand-navy/60 font-black">Unlimited power</p>
+              <h3 className="text-[24px] font-black text-slate-900">Pro</h3>
+              <p className="text-[15px] text-brand-orange font-black uppercase tracking-widest">Unlimited Power</p>
             </div>
             
             <div className="space-y-1">
               <div className="flex items-baseline gap-1">
-                <span className="text-[48px] font-black text-brand-navy">$29.99</span>
-                <span className="text-ui-body text-brand-navy/60 font-bold">/ year</span>
+                <span className="text-[48px] font-black text-slate-900">$29.99</span>
+                <span className="text-slate-400 text-[16px] font-bold">/ year</span>
               </div>
               <p className="text-[14px] font-bold text-brand-orange">14 days free trial</p>
             </div>
 
-            <ul className="space-y-4 w-full pt-4 border-t border-brand-navy/5">
+            <ul className="space-y-4 w-full pt-4 border-t border-slate-50">
               {features.map((f, i) => (
-                <li key={i} className="flex items-center gap-3 text-ui-body text-brand-navy/80 font-bold">
+                <li key={i} className="flex items-center gap-3 text-[16px] text-slate-600 font-bold">
                   <Check className="w-5 h-5 text-brand-orange" /> {f}
                 </li>
               ))}
             </ul>
 
-            <a href="https://apps.apple.com/us/app/hellobrick/id6760016096" target="_blank" rel="noopener noreferrer" className="w-full bg-brand-navy text-white text-center py-5 rounded-2xl font-bold text-ui-body hover:bg-black transition-all shadow-xl mt-auto">
-              Start free trial
+            <a 
+              href="https://apps.apple.com/us/app/hellobrick/id6760016096" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="w-full bg-slate-900 text-white text-center py-5 rounded-2xl font-bold text-[16px] hover:bg-brand-orange transition-all shadow-xl mt-auto"
+              onClick={() => (window as any).trackConversion?.('Subscribe')}
+            >
+              Start building without limits
             </a>
           </div>
         </div>
         
         <div className="text-center mt-20">
-          <p className="text-ui-body text-brand-text-dim font-bold">
-            Or choose <span className="text-white">$3.99 / month</span> billed monthly.
+          <p className="text-[16px] text-slate-400 font-bold">
+            Or choose <span className="text-slate-900">$3.99 / month</span> billed monthly.
           </p>
         </div>
 
         {/* AEO-Optimized FAQ Section */}
         <div className="mt-40 max-w-4xl mx-auto">
-          <h2 className="text-[2.5rem] md:text-[3.5rem] font-black tracking-tighter leading-none mb-16 text-center">Frequently asked questions</h2>
+          <h2 className="text-[2.5rem] md:text-[3rem] font-black tracking-tight leading-[1.1] mb-16 text-center text-slate-900">Frequently asked questions</h2>
           
           <div className="grid grid-cols-1 gap-6">
             {[
@@ -118,9 +128,9 @@ export const SectionPricing: React.FC = () => {
                 a: "Yes. All Pro subscriptions come with a 14-day free trial. You can cancel through the App Store at any time with zero commitment."
               }
             ].map((faq, idx) => (
-              <div key={idx} className="bg-brand-navy-light/50 border border-white/5 rounded-3xl p-8 hover:border-brand-yellow/30 transition-all group">
-                <h3 className="text-xl font-bold text-white mb-4 group-hover:text-brand-yellow transition-colors">{faq.q}</h3>
-                <p className="text-ui-body text-brand-text-dim font-medium leading-relaxed">{faq.a}</p>
+              <div key={idx} className="bg-white border border-slate-100 rounded-[32px] p-8 hover:border-brand-orange/30 transition-all group shadow-sm">
+                <h3 className="text-xl font-bold text-slate-900 mb-4 group-hover:text-brand-orange transition-colors">{faq.q}</h3>
+                <p className="text-[16px] text-slate-500 font-medium leading-relaxed">{faq.a}</p>
               </div>
             ))}
           </div>

@@ -44,7 +44,12 @@ export const AdminLogin: React.FC = () => {
       if (loginError) throw loginError;
 
       // Verification check (for UI feedback, actual check is in AdminRoute)
-      const allowedAdmins = ['hellobrickar@gmail.com'];
+      const allowedAdmins = [
+        'hellobrickar@gmail.com',
+        'akeem@hellobrick.app',
+        'product@hellobrick.app',
+        'growth@hellobrick.app'
+      ];
       if (data.user && data.user.email && allowedAdmins.includes(data.user.email)) {
         navigate(from, { replace: true });
       } else {
@@ -67,8 +72,8 @@ export const AdminLogin: React.FC = () => {
           <div className="mb-4">
             <Logo size="lg" light={true} />
           </div>
-          <h1 className="text-3xl font-black text-white tracking-tighter">Admin Portal</h1>
-          <p className="text-brand-text-dim text-ui-body font-medium">Access the HelloBrick product brain</p>
+          <h1 className="text-3xl font-black text-white tracking-tighter">Admin Portal <span className="text-brand-yellow">V4.0</span></h1>
+          <p className="text-brand-text-dim text-ui-body font-medium">Advanced Intelligence & Production Brain</p>
         </div>
 
         <div className="bg-[#111] border border-white/5 p-8 rounded-[32px] shadow-2xl relative overflow-hidden group">
