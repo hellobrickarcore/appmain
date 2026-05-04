@@ -52,9 +52,9 @@ function getAnchoredTimestamp(daysAgo: number, hoursOffset = 0): number {
 function getRealisticOnlineCount(): number {
   const hour = new Date().getHours();
   // Higher during evening hours (18-23), lower overnight (0-6)
-  if (hour >= 18 && hour <= 23) return 28 + Math.floor(Math.random() * 17); // 28-44
-  if (hour >= 0 && hour <= 6) return 8 + Math.floor(Math.random() * 7);     // 8-14
-  return 15 + Math.floor(Math.random() * 15);                                 // 15-29
+  if (hour >= 18 && hour <= 23) return 485 + Math.floor(Math.random() * 30); // 485-514
+  if (hour >= 0 && hour <= 6) return 452 + Math.floor(Math.random() * 15);   // 452-466
+  return 468 + Math.floor(Math.random() * 25);                                // 468-492
 }
 
 export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
@@ -190,10 +190,73 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
       }));
 
       // Merge local user posts on top, sort by timestamp descending
-      const allPosts = [...local, ...postsWithLives]
+      const allPosts = [...local, ...postsWithLives];
+
+      // ── DAILY DRIP: Add 2-3 fresh Unsplash posts per day ──
+      const dailyNames = [
+        "BrickNinja", "AFOLJenny", "TechnicFan_UK", "ModularMike", "SpaceBuilder_",
+        "ClassicBricks", "BricksByJake", "PixelBricks", "MasterMOC", "LEGOdad_Mark",
+        "PlasticArchitect", "MinifigCollector", "NinjaBricks", "BrickQueen2", "StudShooter"
+      ];
+      const dailyCaptions = [
+        "Scanned my pile and built this in 15 minutes! 🔥",
+        "HelloBrick found bricks I forgot I had.",
+        "Sunday afternoon build — no sorting needed!",
+        "My kids designed this one after we scanned together ❤️",
+        "First build using HelloBrick — I'm hooked!",
+        "POV: you scan a messy pile and get 6 build ideas instantly",
+        "This app literally saved me 3 hours of sorting.",
+        "Just scanned 200+ bricks in under a minute. Wild.",
+        "Before HelloBrick I would've never found these pieces 🤯",
+        "Rainy day + messy bricks = perfect afternoon"
+      ];
+      const dailyImages = [
+        "https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?w=800&q=80",
+        "https://images.unsplash.com/photo-1472457897821-70d3819a0e24?w=800&q=80",
+        "https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=800&q=80",
+        "https://images.unsplash.com/photo-1558008258-3256797b43f3?w=800&q=80",
+        "https://images.unsplash.com/photo-1611145100085-f5e27a6f2eb5?w=800&q=80",
+        "https://images.unsplash.com/photo-1606760227091-3dd870d97f1d?w=800&q=80",
+        "https://images.unsplash.com/photo-1560961911-ba7ef651a56c?w=800&q=80",
+        "https://images.unsplash.com/photo-1596854407944-bf87f6fdd49e?w=800&q=80",
+        "https://images.unsplash.com/photo-1566140967404-b8b3932483f5?w=800&q=80",
+        "https://images.unsplash.com/photo-1595429035839-c99c298ffdde?w=800&q=80"
+      ];
+
+      const today = new Date().toISOString().split('T')[0];
+      const lastDrip = localStorage.getItem('hellobrick_community_last_drip');
+
+      if (lastDrip !== today) {
+        const numNew = 2 + Math.floor(Math.random() * 2); // 2-3
+        for (let j = 0; j < numNew; j++) {
+          const name = dailyNames[Math.floor(Math.random() * dailyNames.length)];
+          const hourOffset = Math.floor(Math.random() * 6) * 3600000;
+          allPosts.push({
+            id: `daily_${today}_${j}_${Math.random().toString(36).slice(2,7)}`,
+            userId: `user_${name.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
+            userName: name,
+            userAvatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}${j}`,
+            isPrivate: false,
+            image: dailyImages[Math.floor(Math.random() * dailyImages.length)],
+            title: dailyCaptions[Math.floor(Math.random() * dailyCaptions.length)].split('!')[0],
+            description: dailyCaptions[Math.floor(Math.random() * dailyCaptions.length)],
+            bricksUsed: Math.floor(Math.random() * 80) + 15,
+            baseLikes: Math.floor(Math.random() * 60) + 10,
+            isLiked: false,
+            postedAt: Date.now() - hourOffset,
+          } as any);
+        }
+        localStorage.setItem('hellobrick_community_last_drip', today);
+        // Persist the daily posts
+        const dailyOnly = allPosts.filter((p: any) => p.id?.startsWith('daily_'));
+        const existingLocal = JSON.parse(localStorage.getItem('hellobrick_feed_posts') || '[]');
+        localStorage.setItem('hellobrick_feed_posts', JSON.stringify([...existingLocal, ...dailyOnly]));
+      }
+
+      const sorted = allPosts
         .filter((p: any) => !p.isPending)
         .sort((a: any, b: any) => (b.postedAt || b.timestamp || 0) - (a.postedAt || a.timestamp || 0));
-      setPosts(allPosts as any);
+      setPosts(sorted as any);
       setLoading(false);
     };
 
@@ -206,7 +269,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
         const base = getRealisticOnlineCount();
         // Nudge towards the realistic base to prevent drift
         const nudged = prev + delta + Math.sign(base - prev);
-        return Math.max(5, Math.min(50, nudged));
+        return Math.max(450, Math.min(520, nudged));
       });
     }, 8000 + Math.random() * 7000);
 
