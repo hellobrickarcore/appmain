@@ -147,12 +147,10 @@ class AppStateService {
       Screen.AUTH, 
       Screen.EMAIL_SIGNUP, 
       Screen.EMAIL_LOGIN,
-      Screen.COLLECTION,
       Screen.QUESTS,
       Screen.PROFILE,
       Screen.LEADERBOARD,
-      Screen.MY_CREATIONS,
-      Screen.IDEAS
+      Screen.MY_CREATIONS
     ];
     if (!isAuthenticated && !publicScreens.includes(screen)) {
       console.log(`[AppState] Auth lock active for ${screen}`);
