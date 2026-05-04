@@ -29,18 +29,20 @@ const getAIInstance = (keyIndex = 0) => {
 };
 
 /**
- * EXECUTE GEMINI REQUEST with structured output and robust parsing
+ * EXECUTE GEMINI REQUEST with robust retry logic for cloud capacity issues
  */
 async function executeGeminiRequest(
   ai: GoogleGenerativeAI,
   systemPrompt: string,
   runtimePrompt: string,
-  chatHistory: any[]
+  chatHistory: any[],
+  retryCount = 0
 ): Promise<GPTBuilderResponse> {
   const modelName = GEMINI_TEXT_MODEL;
   const apiVersion = GEMINI_API_VERSION;
+  const MAX_RETRIES = 3;
 
-  console.log(`[Gemini] 🚀 Request Started. Model: ${modelName}, API Version: ${apiVersion}`);
+  console.log(`[Gemini] 🚀 Request Started. Model: ${modelName}, API Version: ${apiVersion}${retryCount > 0 ? ` (Retry #${retryCount})` : ''}`);
 
   const model = ai.getGenerativeModel({ model: modelName }, { apiVersion });
 
@@ -65,7 +67,6 @@ async function executeGeminiRequest(
     const text = apiResponse.response.text();
     console.log('[Gemini] 📥 Raw Response:', text.substring(0, 500));
     
-    // Strict JSON Extraction
     try {
       return JSON.parse(text);
     } catch (e) {
@@ -80,10 +81,18 @@ async function executeGeminiRequest(
       throw new Error(IdeasErrorType.INVALID_RESPONSE);
     }
   } catch (error: any) {
+    const status = error.status || 0;
     const errText = error.message?.toLowerCase() || "";
 
+    // 🔄 RETRY LOGIC for 503 (Capacity) and 500 (Internal)
+    if ((status === 503 || status === 500 || errText.includes("503") || errText.includes("capacity")) && retryCount < MAX_RETRIES) {
+      const delay = Math.pow(2, retryCount) * 1000 + Math.random() * 1000;
+      console.warn(`[Gemini] ⚠️ Cloud busy (503). Retrying in ${Math.round(delay)}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return executeGeminiRequest(ai, systemPrompt, runtimePrompt, chatHistory, retryCount + 1);
+    }
+
     if (errText.includes("404") || errText.includes("not found") || errText.includes("not supported")) {
-      console.error(`[Gemini] 🛑 Error Classifed: MODEL_NOT_FOUND (${modelName})`);
       throw new Error(IdeasErrorType.MODEL_NOT_FOUND);
     }
     if (errText.includes("quota") || errText.includes("429")) {
