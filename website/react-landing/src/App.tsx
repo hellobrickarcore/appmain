@@ -4,6 +4,7 @@ import VisualProof from './components/VisualProof';
 import BentoValueProps from './components/BentoValueProps';
 import AsymmetricBento from './components/AsymmetricBento';
 import Subscribe from './components/Subscribe';
+import Blog from './components/Blog';
 import Footer from './components/Footer';
 
 export default function App() {
@@ -23,6 +24,7 @@ export default function App() {
       </div>
       
       <Subscribe />
+      <Blog />
       <Footer />
     </div>
   );
