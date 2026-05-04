@@ -86,46 +86,93 @@ export const ConnectScreen: React.FC<ConnectScreenProps> = ({ onNavigate, isPro 
         const stored = localStorage.getItem('hellobrick_feed_posts');
         let allPosts = stored ? JSON.parse(stored) : [];
         
-        // FAKE ACTIVITY GENERATOR
-        if (allPosts.length < 15) {
-          const fakeNames = ["BrickMaster99", "LegoMom_Sarah", "AFOL_Dave", "BuildItBetter", "CreativeBlocks", "CityBuilder"];
-          const fakeCaptions = ["Just finished scanning my messy pile and built this!", "Can't believe the app found the exact pieces for this MOC.", "Weekend project complete 🔥", "My kids are obsessed with this scanner app.", "No sorting required, pure magic!"];
-          const legoImages = [
-            "https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?w=800&q=80",
-            "https://images.unsplash.com/photo-1472457897821-70d3819a0e24?w=800&q=80",
-            "https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=800&q=80",
-            "https://images.unsplash.com/photo-1558008258-3256797b43f3?w=800&q=80",
-            "https://images.unsplash.com/photo-1611145100085-f5e27a6f2eb5?w=800&q=80",
-            "https://images.unsplash.com/photo-1606760227091-3dd870d97f1d?w=800&q=80",
-            "https://images.unsplash.com/photo-1518331647614-7a1f04cd34ce?w=800&q=80",
-            "https://images.unsplash.com/photo-1533022137081-3bd426c19f5e?w=800&q=80"
-          ];
-          
-          for (let i = allPosts.length; i < 15; i++) {
-            const randomName = fakeNames[Math.floor(Math.random() * fakeNames.length)];
-            const randomCaption = fakeCaptions[Math.floor(Math.random() * fakeCaptions.length)];
-            const randomImage = legoImages[Math.floor(Math.random() * legoImages.length)];
-            const randomTime = Date.now() - (Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000));
-            
-            allPosts.push({
-              id: `fake_post_${Date.now()}_${i}`,
-              userId: `fake_user_${i}`,
-              userName: randomName,
-              userAvatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${randomName}`,
-              image: randomImage,
-              caption: randomCaption,
-              likes: Math.floor(Math.random() * 150) + 12,
-              comments: Math.floor(Math.random() * 30) + 2,
-              timestamp: randomTime,
-              liked: false,
-              status: 'approved',
-              commentList: []
-            });
+        // ── DAILY ACTIVITY GENERATOR ──────────────────────────────
+        // Adds 2-3 realistic new posts per day so the feed always looks fresh
+        const fakeNames = [
+          "BrickMaster99", "LegoMom_Sarah", "AFOL_Dave", "BuildItBetter", "CreativeBlocks",
+          "CityBuilder", "TechnicFan_UK", "MinifigCollector", "BricksByJake", "PixelBricks",
+          "MasterMOC", "StudShooter", "LEGOdad_Mark", "PlasticArchitect", "BrickQueen",
+          "NinjaBricks", "SpaceBuilder_", "AFOLJenny", "ClassicBricks", "ModularMike"
+        ];
+        const fakeCaptions = [
+          "Just finished scanning my messy pile and built this! 🔥",
+          "Can't believe the app found the exact pieces for this MOC.",
+          "Weekend project complete — no sorting needed!",
+          "My kids are obsessed with this scanner app 😂",
+          "No sorting required, pure magic! HelloBrick is insane.",
+          "Found 47 bricks in my pile I didn't even know I had!",
+          "This app literally saved me 3 hours of sorting.",
+          "Sunday builds hit different when you skip the sorting 🧱",
+          "Finally used all those random bricks in my drawer!",
+          "POV: you scan a messy pile and get 6 build ideas instantly",
+          "My daughter designed this one after we scanned together ❤️",
+          "First build using HelloBrick — I'm hooked!",
+          "Rainy day + messy bricks = perfect afternoon",
+          "Before HelloBrick I would've never found these pieces 🤯",
+          "Just scanned 200+ bricks in under a minute. Wild."
+        ];
+        const legoImages = [
+          "https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?w=800&q=80",
+          "https://images.unsplash.com/photo-1472457897821-70d3819a0e24?w=800&q=80",
+          "https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=800&q=80",
+          "https://images.unsplash.com/photo-1558008258-3256797b43f3?w=800&q=80",
+          "https://images.unsplash.com/photo-1611145100085-f5e27a6f2eb5?w=800&q=80",
+          "https://images.unsplash.com/photo-1606760227091-3dd870d97f1d?w=800&q=80",
+          "https://images.unsplash.com/photo-1518331647614-7a1f04cd34ce?w=800&q=80",
+          "https://images.unsplash.com/photo-1533022137081-3bd426c19f5e?w=800&q=80",
+          "https://images.unsplash.com/photo-1560961911-ba7ef651a56c?w=800&q=80",
+          "https://images.unsplash.com/photo-1596854407944-bf87f6fdd49e?w=800&q=80",
+          "https://images.unsplash.com/photo-1566140967404-b8b3932483f5?w=800&q=80",
+          "https://images.unsplash.com/photo-1595429035839-c99c298ffdde?w=800&q=80"
+        ];
+
+        const generatePost = (timestamp: number, index: number) => {
+          const name = fakeNames[Math.floor(Math.random() * fakeNames.length)];
+          const hourOffset = Math.floor(Math.random() * 8) * 60 * 60 * 1000; // spread across the day
+          return {
+            id: `auto_${timestamp}_${index}_${Math.random().toString(36).slice(2, 8)}`,
+            userId: `user_${name.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
+            userName: name,
+            userAvatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}${index}`,
+            image: legoImages[Math.floor(Math.random() * legoImages.length)],
+            caption: fakeCaptions[Math.floor(Math.random() * fakeCaptions.length)],
+            likes: Math.floor(Math.random() * 200) + 8,
+            comments: Math.floor(Math.random() * 35) + 1,
+            timestamp: timestamp - hourOffset,
+            liked: false,
+            status: 'approved',
+            commentList: []
+          };
+        };
+
+        // Step 1: Initial seed if empty (backfill 7 days of history)
+        if (allPosts.length < 10) {
+          for (let day = 0; day < 7; day++) {
+            const dayTimestamp = Date.now() - (day * 24 * 60 * 60 * 1000);
+            const postsPerDay = 2 + Math.floor(Math.random() * 2); // 2-3 per day
+            for (let j = 0; j < postsPerDay; j++) {
+              allPosts.push(generatePost(dayTimestamp, j));
+            }
           }
-          
-          allPosts.sort((a: any, b: any) => b.timestamp - a.timestamp);
-          localStorage.setItem('hellobrick_feed_posts', JSON.stringify(allPosts));
         }
+
+        // Step 2: Daily drip — check if we already added posts "today"
+        const today = new Date().toISOString().split('T')[0];
+        const lastDripDate = localStorage.getItem('hellobrick_feed_last_drip');
+        
+        if (lastDripDate !== today) {
+          const postsToday = 2 + Math.floor(Math.random() * 2); // 2-3 new posts
+          for (let j = 0; j < postsToday; j++) {
+            allPosts.push(generatePost(Date.now(), j));
+          }
+          localStorage.setItem('hellobrick_feed_last_drip', today);
+        }
+
+        // Sort newest first and persist
+        allPosts.sort((a: any, b: any) => b.timestamp - a.timestamp);
+        // Cap at 60 posts to prevent infinite growth
+        if (allPosts.length > 60) allPosts = allPosts.slice(0, 60);
+        localStorage.setItem('hellobrick_feed_posts', JSON.stringify(allPosts));
 
         setPosts(allPosts.filter((p: FeedPost) => p.status === 'approved' || !p.status));
       } catch (error) {
