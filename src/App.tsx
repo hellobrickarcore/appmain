@@ -33,6 +33,7 @@ import { FeatureIntroScreen } from './screens/FeatureIntroScreen';
 import { EmailAuthScreen } from './screens/EmailAuthScreen';
 import { AdminDashboardScreen } from './screens/AdminDashboardScreen';
 import { BottomNav } from './components/BottomNav';
+import { BootingScreen } from './components/BootingScreen';
 import { appStateService } from './services/appStateService';
 import { subscriptionService } from './services/subscriptionService';
 import { onAuthStateChange, supabase } from './services/supabaseService';
@@ -62,6 +63,7 @@ const App: React.FC = () => {
   const [battleResult, setBattleResult] = useState<BattleResult | null>(null);
   const [selectedMode, setSelectedMode] = useState<GameModeId>('TARGET');
   const [showNav, setShowNav] = useState(true);
+  const [isBooting, setIsBooting] = useState(true);
 
   // Sync with appStateService for unified navigation
   useEffect(() => {
@@ -98,11 +100,25 @@ const App: React.FC = () => {
         });
 
         // CRITICAL: Refresh Pro Status on startup to fix desync
-        await subscriptionService.getSubscriptionStatus().catch(() => {});
+        const snapshot = appStateService.getSnapshot();
+        if (snapshot.userId) {
+          await subscriptionService.getSubscriptionStatus().catch(() => {});
+        }
+
+        // Community Cleanup: Purge if old non-lego data exists
+        const feed = localStorage.getItem('hellobrick_feed_posts');
+        if (feed && (feed.includes('hijo') || feed.includes('apple') || feed.includes('kids'))) {
+           console.log('[App] Purging dirty community feed data...');
+           localStorage.removeItem('hellobrick_feed_posts');
+           localStorage.removeItem('hellobrick_community_last_drip');
+        }
+
+        setTimeout(() => setIsBooting(false), 1200);
         
         console.log('[App] ✅ Init Sequence Complete');
       } catch (err) {
         console.error('[App] 🛑 CRITICAL INIT ERROR:', err);
+        setIsBooting(false);
       }
     };
 
@@ -281,6 +297,7 @@ const App: React.FC = () => {
 
   return (
     <div className="dark bg-slate-950 h-[100dvh] overflow-hidden text-slate-100 selection:bg-orange-500/30 flex flex-col">
+      {isBooting && <BootingScreen />}
       <div className="flex-1 relative min-h-0 overflow-hidden">
         {renderScreen()}
       </div>

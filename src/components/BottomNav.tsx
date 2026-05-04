@@ -14,8 +14,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentScreen, onNavigate 
   const isActive = (screen: Screen) => currentScreen === screen;
 
   return (
-    <div className="fixed bottom-[max(2rem,env(safe-area-inset-bottom)+1rem)] left-0 right-0 px-6 flex justify-center z-[100]">
-      <div className="bg-[#0A0F1E]/80 backdrop-blur-3xl border border-white/5 rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] px-2 py-2 flex items-center justify-between w-full max-w-[380px] relative overflow-hidden">
+    <div className="fixed bottom-[max(2rem,env(safe-area-inset-bottom)+1rem)] left-0 right-0 px-6 flex justify-center z-[99999]">
+      <div className="bg-[#0A0F1E]/95 backdrop-blur-3xl border border-white/10 rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.8)] px-2 py-2 flex items-center justify-between w-full max-w-[380px] relative overflow-hidden">
         {/* Subtle glow effect */}
         <div className="absolute inset-0 bg-gradient-to-t from-orange-500/5 to-transparent opacity-50" />
         
