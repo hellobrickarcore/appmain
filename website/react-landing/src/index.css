@@ -1,43 +1,29 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+@import "tailwindcss";
 
-@layer base {
-  body {
-    @apply font-sans antialiased bg-brand-white text-brand-text-main;
-    background: #FFFFFF; /* New Premium Light Background */
-  }
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --color-brand: #FF7A30;
+  --color-brand-hover: #E66620;
+  --color-brand-yellow: #FFCE4A;
+  --color-brand-navy: #050A18;
+  --color-bg-subtle: #fcfcfc;
 }
 
-@layer utilities {
-  .hide-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-  .hide-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-
-  .text-shadow-glow {
-    text-shadow: 0 0 20px rgba(255, 206, 74, 0.2);
-  }
+body {
+  font-family: var(--font-sans);
+  background-color: #ffffff;
+  color: #111827;
+  -webkit-font-smoothing: antialiased;
 }
 
-.glass {
-  @apply bg-white/80 backdrop-blur-xl border border-slate-200/50 shadow-xl;
+h1, h2, h3, h4, .font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
 }
 
-.glass-dark {
-  @apply bg-slate-900/90 backdrop-blur-2xl border border-white/5 shadow-2xl;
-}
-/* Fix for Recharts ResponsiveContainer dimensions */
-.chart-container {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  min-height: 250px;
-}
-
-.recharts-responsive-container {
-  min-height: inherit;
+/* Custom rounded corners for that extra bubbly, friendly look */
+.rounded-bento {
+  border-radius: 32px;
 }
