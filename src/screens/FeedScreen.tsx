@@ -75,7 +75,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
           userName: 'TinyBuilder',
           userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Tiny',
           isPrivate: false,
-          image: houseImg,
+          image: 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?w=800&q=80',
           title: 'My First LEGO House',
           description: 'Used leftover 2x4 bricks after my son got tired of his castle set. This cottage took about 10 minutes! 🏠',
           bricksUsed: 42,
@@ -89,7 +89,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
           userName: 'NatureLover',
           userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Nature',
           isPrivate: false,
-          image: treeImg,
+          image: 'https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=800&q=80',
           title: 'Simple Desktop Tree',
           description: 'Just a few brown and green bricks — makes my desk look great during meetings!',
           bricksUsed: 18,
@@ -103,7 +103,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
           userName: 'レゴパパ',
           userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=legopapa',
           isPrivate: false,
-          image: carImg,
+          image: 'https://images.unsplash.com/photo-1558008258-3256797b43f3?w=800&q=80',
           title: '5分で作った車',
           description: '息子と一緒に作りました。スキャナーが本当に便利！次はトラックを作りたい 🚗',
           bricksUsed: 25,
@@ -117,7 +117,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
           userName: 'BrickQueen',
           userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Queen',
           isPrivate: false,
-          image: houseImg,
+          image: 'https://images.unsplash.com/photo-1596854407944-bf87f6fdd49e?w=800&q=80',
           title: 'Micro Apartment Block',
           description: 'Tried to recreate my NYC apartment. The scale is way off but the vibe is there 🏢',
           bricksUsed: 56,
@@ -131,7 +131,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
           userName: 'carlos_bricks',
           userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=carlos',
           isPrivate: false,
-          image: treeImg,
+          image: 'https://images.unsplash.com/photo-1560961911-ba7ef651a56c?w=800&q=80',
           title: 'Palmera para mi set de playa',
           description: 'El escáner encontró piezas verdes que ni sabía que tenía. Esta palmera queda perfecto al lado de mi minifig surfer 🌴',
           bricksUsed: 14,
@@ -145,7 +145,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
           userName: 'DadBuilds',
           userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Dad',
           isPrivate: false,
-          image: carImg,
+          image: 'https://images.unsplash.com/photo-1472457897821-70d3819a0e24?w=800&q=80',
           title: 'Monster Truck Attemp lol',
           description: 'The kids said it looks more like a box with wheels. Fair enought. Back to scaning for bigger tires lmao!',
           bricksUsed: 34,
@@ -159,7 +159,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
           userName: 'Bausteine_Max',
           userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Max',
           isPrivate: false,
-          image: houseImg,
+          image: 'https://images.unsplash.com/photo-1611145100085-f5e27a6f2eb5?w=800&q=80',
           title: 'Kirche mit Glockenturm',
           description: 'Meine Oma hat mich gebeten ihre Kirche zu bauen. Nicht mein bestes Werk aber sie hat sich gefreut ❤️',
           bricksUsed: 67,
@@ -173,7 +173,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
           userName: 'PixelArtPro',
           userAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Pixel',
           isPrivate: false,
-          image: treeImg,
+          image: 'https://images.unsplash.com/photo-1606760227091-3dd870d97f1d?w=800&q=80',
           title: 'Bonsai Tree (HelloBrick Idea!)',
           description: 'Got this idea from the AI after scanning my green and brown bricks. Turned out way better than expected 🌿',
           bricksUsed: 22,
@@ -403,7 +403,7 @@ export const FeedScreen: React.FC<FeedScreenProps> = ({ onNavigate }) => {
                     {/* Image Area */}
                     <div className="px-4">
                        <div className="relative rounded-[32px] overflow-hidden aspect-square border border-white/5">
-                         <img src={post.image} className="w-full h-full object-cover" alt={post.title} />
+                         <img src={post.image} className="w-full h-full object-cover" alt={post.title} style={{ filter: `brightness(${0.92 + (post.id.charCodeAt(post.id.length - 1) % 7) * 0.03}) saturate(${0.9 + (post.id.charCodeAt(0) % 5) * 0.06}) hue-rotate(${(post.id.charCodeAt(2) || 0) % 8}deg)` }} />
                          <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-xl px-3 py-1 rounded-full border border-white/10 flex items-center gap-2">
                            <Sparkles className="w-3 h-3 text-yellow-400" />
                            <span className="text-[9px] font-black text-white uppercase tracking-widest">Featured</span>
