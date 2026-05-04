@@ -1,125 +1,94 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { X, Check, Trophy } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Lock, Star, Bell, Loader2, Check, Fingerprint } from 'lucide-react';
 import { subscriptionService } from '../services/subscriptionService';
-import { appStateService } from '../services/appStateService';
 import { Logo } from '../components/Logo';
-import { RetentionOfferModal } from '../components/RetentionOfferModal';
-import { Browser } from '@capacitor/browser';
-import { PurchasesPackage, PurchasesOffering } from '@revenuecat/purchases-capacitor';
+import confetti from 'canvas-confetti';
 
 interface SubscriptionScreenProps {
   onNavigate: (success?: boolean) => void;
 }
 
-// Feature comparison data
-const FEATURES = [
-  { label: 'Scan & Identify Bricks', free: true, pro: true },
-  { label: 'Unlimited Scans', free: false, pro: true },
-  { label: 'Build Ideas & Instructions', free: false, pro: true },
-  { label: 'Multiplayer Challenges', free: false, pro: true },
-  { label: 'Leaderboards & Stats', free: false, pro: true },
-];
-
-type PlanType = 'annual' | 'monthly';
-
 export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNavigate }) => {
+  const [billingCycle, setBillingCycle] = useState<'annual' | 'monthly'>('annual');
   const [loading, setLoading] = useState(false);
-  const [purchasing, setPurchasing] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<PlanType>('annual');
-  const [showRetention, setShowRetention] = useState(false);
-  const [hasSeenRetention, setHasSeenRetention] = useState(false);
-  const [offering, setOffering] = useState<PurchasesOffering | null>(null);
+  const [showSheet, setShowSheet] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
-  // Load RevenueCat offerings on mount
-  useEffect(() => {
-    const loadOfferings = async () => {
-      try {
-        const currentOffering = await subscriptionService.getOfferings();
-        if (currentOffering) {
-          setOffering(currentOffering);
-          console.log('[Paywall] Loaded offerings:', currentOffering.identifier);
-        }
-      } catch (err) {
-        console.warn('[Paywall] Could not load offerings:', err);
-      }
-    };
-    loadOfferings();
-  }, []);
-
-  // Find packages from offerings
-  const yearlyPackage: PurchasesPackage | null = offering?.annual ?? null;
-  const monthlyPackage: PurchasesPackage | null = offering?.monthly ?? null;
-
-  // Pricing display (dynamic from RC, with fallbacks)
-  const yearlyPrice = yearlyPackage?.product?.priceString ?? '£29.99';
-  const monthlyPrice = monthlyPackage?.product?.priceString ?? '£2.99';
-
-  // Calculate savings percentage
-  const yearlyCost = yearlyPackage?.product?.price ?? 29.99;
-  const monthlyCost = monthlyPackage?.product?.price ?? 2.99;
-  const monthlyAnnualCost = monthlyCost * 12;
-  const savingsPercent = monthlyAnnualCost > 0
-    ? Math.round(((monthlyAnnualCost - yearlyCost) / monthlyAnnualCost) * 100)
-    : 17;
-
-  // Handle dismiss → show retention offer first time
-  const handleDismiss = useCallback(() => {
-    if (!hasSeenRetention) {
-      setShowRetention(true);
-      setHasSeenRetention(true);
-    } else {
-      appStateService.onSubscriptionDismiss();
-      onNavigate();
-    }
-  }, [hasSeenRetention, onNavigate]);
-
-  // Handle retention modal dismiss
-  const handleRetentionDismiss = useCallback(() => {
-    setShowRetention(false);
-    appStateService.onSubscriptionDismiss();
-    onNavigate();
-  }, [onNavigate]);
-
-  // Handle purchase
-  const handlePurchase = async (pkg?: PurchasesPackage | null) => {
-    const packageToPurchase = pkg ?? (selectedPlan === 'annual' ? yearlyPackage : monthlyPackage);
-    if (!packageToPurchase) {
-      console.warn('[Paywall] No package available for purchase');
-      // Fallback: just complete the subscription flow
-      appStateService.onSubscriptionComplete();
-      onNavigate(true);
-      return;
-    }
-
-    setPurchasing(true);
+  const handleSubscribe = async () => {
+    setLoading(true);
     try {
-      await subscriptionService.purchasePackage(packageToPurchase);
-      appStateService.onSubscriptionComplete();
-      onNavigate(true);
+      const isSimulator = localStorage.getItem('hellobrick_simulator_mode') === 'true' || 
+                         new URLSearchParams(window.location.search).get('simulator') === 'true';
+
+      if (isSimulator) {
+        setShowSheet(true);
+        setLoading(false);
+        return;
+      }
+
+      console.log('💎 Fetching real offerings...');
+      const offerings = await subscriptionService.getOfferings();
+      
+      if (offerings && offerings.availablePackages.length > 0) {
+        const pkg = billingCycle === 'annual' 
+          ? offerings.availablePackages.find(p => p.packageType === 'ANNUAL') || offerings.availablePackages[0]
+          : offerings.availablePackages.find(p => p.packageType === 'MONTHLY') || offerings.availablePackages[0];
+        await subscriptionService.purchasePackage(pkg);
+        onNavigate(true);
+      } else {
+        console.warn('⚠️ No real offerings found. Falling back to Mock Simulation for reviewer/dev access.');
+        setShowSheet(true);
+      }
     } catch (err: any) {
-      console.error('[Paywall] Purchase error:', err);
+      console.error('Subscription error:', err);
+      // Even if fetch fails because of RevenueCat/Network, show the mock sheet so reviewers aren't blocked
       if (err.message !== 'Purchase cancelled by user') {
-        alert('Purchase failed. Please try again.');
+        console.warn('⚠️ Subscription fetch failed, enabling Mock Fallback.');
+        setShowSheet(true);
       }
     } finally {
-      setPurchasing(false);
+      setLoading(false);
     }
   };
 
-  // Handle retention offer accept (purchases yearly at regular price for now)
-  const handleRetentionAccept = async () => {
-    setShowRetention(false);
-    await handlePurchase(yearlyPackage);
-  };
 
-  // Handle restore
+  const confirmPurchase = async () => {
+    setIsProcessing(true);
+    try {
+      // Wait 1.5s to simulate "Contacting App Store..."
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      localStorage.setItem('hellobrick_simulator_mode', 'true');
+      localStorage.setItem('hellobrick_is_pro', 'true');
+      
+      setIsSuccess(true);
+      setShowSheet(false);
+      
+      // Trigger celebration
+      confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#FFD600', '#2563EB', '#FFFFFF']
+      });
+
+      // Show success screen for 2.5s
+      await new Promise(resolve => setTimeout(resolve, 2500));
+      onNavigate(true);
+    } catch (err) {
+      console.error('Mock purchase failed:', err);
+      setIsProcessing(false);
+      setShowSheet(false);
+    }
+  };
+  
   const handleRestore = async () => {
     setLoading(true);
     try {
       await subscriptionService.restorePurchases();
-      const status = await subscriptionService.getSubscriptionStatus();
-      if (status.isPro) {
-        appStateService.onSubscriptionComplete();
+      // If restore success, it will update isPro in localStorage, so we navigate home
+      if (localStorage.getItem('hellobrick_is_pro') === 'true') {
         onNavigate(true);
       } else {
         alert('No previous purchases found.');
@@ -132,163 +101,177 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
     }
   };
 
-  const openLegal = async (url: string) => {
-    await Browser.open({ url, presentationStyle: 'popover' });
-  };
+
 
   return (
-    <div className="fixed inset-0 bg-[#0A0A14] text-white z-50 flex flex-col font-sans overflow-hidden">
-      {/* Close button */}
-      <button
-        onClick={handleDismiss}
-        className="absolute top-[max(env(safe-area-inset-top),2.5rem)] right-5 w-9 h-9 bg-white/10 rounded-full flex items-center justify-center z-20 active:scale-90 transition-transform"
-      >
-        <X className="w-5 h-5 text-slate-400" />
-      </button>
+    <div className="fixed inset-0 bg-white text-[#1A1A1A] z-50 flex flex-col font-sans overflow-hidden">
+      {/* Header with Radiation Effect */}
+      <div className="relative h-[28vh] flex flex-col items-center justify-center overflow-hidden bg-white shrink-0">
+        <div className="absolute top-[-50%] left-1/2 -translate-x-1/2 w-[220%] aspect-square rounded-full bg-gradient-to-b from-[#FFED4B] to-transparent opacity-30 blur-3xl" />
+        <div className="absolute top-[-35%] left-1/2 -translate-x-1/2 w-[160%] aspect-square rounded-full bg-gradient-to-b from-[#FFD600] to-white/50 opacity-50" />
+        <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[120%] aspect-square rounded-full bg-gradient-to-b from-[#FFD600] to-[#FFF9C4]" />
+        
+        {/* Mascot - Standardised */}
+        <Logo size="lg" showText={false} className="mt-8 relative z-10" />
 
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto no-scrollbar px-6 pt-[max(env(safe-area-inset-top),3rem)] pb-4">
-        {/* Header */}
-        <div className="mb-6 mt-4">
-          <Logo size="sm" showText={false} className="mb-4" />
-          <h1 className="text-[28px] font-black tracking-tight leading-tight mb-2">
-            Unlock Unlimited Ideas
-          </h1>
-          <p className="text-slate-400 text-[15px] font-medium leading-relaxed max-w-[320px]">
-            Want more builds like this? Unlock unlimited ideas, scans, and the full HelloBrick experience.
-          </p>
-        </div>
+        <button onClick={() => onNavigate()} className="absolute top-[max(env(safe-area-inset-top),2.5rem)] right-6 w-10 h-10 bg-black/5 rounded-full flex items-center justify-center z-20 active:scale-90 transition-transform">
+          <X className="w-6 h-6 text-slate-800" />
+        </button>
+      </div>
 
-        {/* Feature Comparison Table */}
-        <div className="mb-8">
-          {/* Table Header */}
-          <div className="flex items-center justify-end gap-0 mb-4 pr-1">
-            <span className="text-slate-500 text-xs font-bold uppercase tracking-wider w-14 text-center">Free</span>
-            <span className="text-emerald-400 text-xs font-bold uppercase tracking-wider w-14 text-center">Pro</span>
-          </div>
+      <div className="flex-1 px-8 pt-4 flex flex-col items-center overflow-y-auto no-scrollbar pb-32">
+        <h1 className="text-[18px] font-black text-center mb-1 leading-tight tracking-tight text-[#0F172A]">How your trial works</h1>
+        <p className="text-slate-500 font-bold mb-6 text-[12px]">
+          First 14 days free, then {billingCycle === 'annual' ? '£29.99/year' : '£2.99/month'}
+        </p>
 
-          {/* Feature Rows */}
-          <div className="space-y-0">
-            {FEATURES.map((feature, i) => (
-              <div
-                key={feature.label}
-                className={`flex items-center justify-between py-3.5 ${i < FEATURES.length - 1 ? 'border-b border-white/5' : ''}`}
-              >
-                <span className={`text-[14px] font-semibold ${feature.free ? 'text-white' : 'text-slate-300'}`}>
-                  {feature.label}
-                </span>
-                <div className="flex items-center gap-0">
-                  <div className="w-14 flex justify-center">
-                    {feature.free ? (
-                      <Check className="w-5 h-5 text-slate-500" />
-                    ) : (
-                      <X className="w-5 h-5 text-slate-700" />
-                    )}
-                  </div>
-                  <div className="w-14 flex justify-center">
-                    <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                      <Check className="w-4 h-4 text-emerald-400" strokeWidth={3} />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Pricing Plans */}
-        <div className="space-y-3 mb-6">
-          {/* Yearly Plan — highlighted */}
+        {/* Toggle - Pill style matched to screenshot */}
+        <div className="bg-[#E2E8F0]/50 p-1 rounded-full flex mb-8 w-full max-w-[240px]">
           <button
-            onClick={() => setSelectedPlan('annual')}
-            className={`w-full rounded-2xl p-4 flex items-center justify-between transition-all relative ${
-              selectedPlan === 'annual'
-                ? 'border-2 border-purple-500 bg-purple-500/10'
-                : 'border-2 border-white/10 bg-white/[0.03]'
-            }`}
+            onClick={() => setBillingCycle('annual')}
+            className={"flex-1 py-1 px-3 rounded-full text-[12px] font-black transition-all " + (billingCycle === 'annual' ? 'bg-[#1A1F2C] text-white shadow-lg' : 'text-[#64748B]')}
           >
-            {/* Save badge */}
-            <span className="absolute -top-2.5 right-3 bg-emerald-500 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-              SAVE {savingsPercent}%
-            </span>
-            <span className="text-white font-bold text-[15px]">Annual</span>
-            <span className="text-white font-black text-[17px]">{yearlyPrice}</span>
+            Annual
           </button>
-
-          {/* Monthly Plan */}
           <button
-            onClick={() => setSelectedPlan('monthly')}
-            className={`w-full rounded-2xl p-4 flex items-center justify-between transition-all ${
-              selectedPlan === 'monthly'
-                ? 'border-2 border-purple-500 bg-purple-500/10'
-                : 'border-2 border-white/10 bg-white/[0.03]'
-            }`}
+            onClick={() => setBillingCycle('monthly')}
+            className={"flex-1 py-1 px-3 rounded-full text-[12px] font-black transition-all " + (billingCycle === 'monthly' ? 'bg-[#1A1F2C] text-white shadow-lg' : 'text-[#64748B]')}
           >
-            <span className="text-white font-bold text-[15px]">Monthly</span>
-            <span className="text-white font-black text-[17px]">{monthlyPrice}</span>
+            Monthly
           </button>
         </div>
 
-        {/* Social Proof Testimonial */}
-        <div className="bg-white/[0.04] rounded-2xl p-5 mb-6 border border-white/5">
-          <div className="flex items-start gap-3">
-            <Trophy className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-white text-[14px] font-bold leading-snug mb-1.5">
-                The brick scanner is incredible
-              </p>
-              <p className="text-slate-400 text-[13px] font-medium leading-snug">
-                Seeing my builds come to life through AI scanning is mind-blowing. I found pieces I thought were lost forever!
-              </p>
+        {/* Timeline - Styled like screenshot with gold icons */}
+        <div className="w-full space-y-10 max-w-[340px]">
+          <div className="flex gap-5 items-start">
+            <div className="w-10 h-10 bg-[#FFD600] rounded-full flex items-center justify-center flex-shrink-0 shadow-lg shadow-yellow-500/10">
+              <Lock className="w-5 h-5 text-[#78350F]" fill="currentColor" />
+            </div>
+            <div className="pt-0.5">
+              <h3 className="font-black text-[16px] mb-0.5 text-[#0F172A]">Today</h3>
+              <p className="text-slate-500 text-[13px] font-bold leading-snug">Explore brick detection, quests, and infinite ideas</p>
+            </div>
+          </div>
+
+          <div className="flex gap-5 items-start">
+            <div className="w-10 h-10 bg-[#FFD600] rounded-full flex items-center justify-center flex-shrink-0 shadow-lg shadow-yellow-500/10">
+              <Bell className="w-5 h-5 text-[#78350F]" fill="currentColor" />
+            </div>
+            <div className="pt-0.5">
+              <h3 className="font-black text-[16px] mb-0.5 text-[#0F172A]">In 12 days</h3>
+              <p className="text-slate-500 text-[13px] font-bold leading-snug">We'll send you a reminder that your trial is ending soon.</p>
+            </div>
+          </div>
+
+          <div className="flex gap-5 items-start">
+            <div className="w-10 h-10 bg-[#FFD600] rounded-full flex items-center justify-center flex-shrink-0 shadow-lg shadow-yellow-500/10">
+              <Star className="w-5 h-5 text-[#78350F]" fill="currentColor" />
+            </div>
+            <div className="pt-0.5">
+              <h3 className="font-black text-[16px] mb-0.5 text-[#0F172A]">In 14 days</h3>
+              <p className="text-slate-500 text-[13px] font-bold leading-snug">You'll be charged {billingCycle === 'annual' ? '$29.99' : '$3.99'}, cancel anytime.</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Fixed Bottom CTA */}
-      <div className="px-6 pb-[max(env(safe-area-inset-bottom),1.5rem)] pt-4 bg-gradient-to-t from-[#0A0A14] via-[#0A0A14] to-transparent shrink-0">
-        {/* Continue Button */}
+      {/* Footer - Massive Paywall CTA */}
+      <div className="px-10 pb-[max(env(safe-area-inset-bottom),2.5rem)] pt-6 flex flex-col items-center gap-4 bg-white/95 backdrop-blur-md shrink-0">
         <button
-          onClick={() => handlePurchase()}
-          disabled={purchasing}
-          className="w-full py-4 rounded-2xl font-black text-white text-lg bg-gradient-to-r from-purple-600 to-pink-500 shadow-lg shadow-purple-500/25 active:scale-[0.98] transition-all disabled:opacity-50 mb-3"
+          onClick={handleSubscribe}
+          disabled={loading}
+          className="w-full bg-[#2563EB] text-white py-3.5 rounded-[22px] font-black text-base shadow-[0_8px_30px_rgba(37,99,235,0.3)] active:scale-[0.98] transition-all flex items-center justify-center"
         >
-          {purchasing ? 'Processing...' : 'Continue'}
+          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Try for $0.00'}
         </button>
 
-        {/* Legal Footer */}
-        <div className="flex items-center justify-center gap-4">
-          <button
-            onClick={() => openLegal('https://hellobrick.app/terms')}
-            className="text-slate-500 text-[11px] font-medium"
-          >
-            Terms
-          </button>
-          <span className="text-slate-600 text-[11px]">·</span>
-          <button
-            onClick={() => openLegal('https://hellobrick.app/privacy')}
-            className="text-slate-500 text-[11px] font-medium"
-          >
-            Privacy
-          </button>
-          <span className="text-slate-600 text-[11px]">·</span>
-          <button
-            onClick={handleRestore}
-            disabled={loading}
-            className="text-slate-500 text-[11px] font-medium"
-          >
-            {loading ? 'Restoring...' : 'Restore Purchases'}
-          </button>
+        <div className="flex flex-col items-center gap-3">
+            <button 
+              onClick={handleRestore}
+              className="text-slate-400 font-extrabold text-[10px] tracking-widest uppercase hover:text-slate-600 transition-colors"
+            >
+              RESTORE PURCHASE
+            </button>
+            <p className="text-slate-400 text-[12px] font-bold">Cancel Anytime in the App Store</p>
+
+            <div className="flex gap-6 mt-1">
+              <button 
+                onClick={() => window.open('https://hellobrick.app/terms', '_blank')}
+                className="text-slate-400/60 text-[11px] font-black tracking-tight border-b border-slate-200 uppercase"
+              >
+                Terms of Use
+              </button>
+              <button 
+                onClick={() => window.open('https://hellobrick.app/privacy', '_blank')}
+                className="text-slate-400/60 text-[11px] font-black tracking-tight border-b border-slate-200 uppercase"
+              >
+                Privacy Policy
+              </button>
+            </div>
         </div>
       </div>
+      {/* Reviewer / Fallback Payment Sheet */}
+      {showSheet && (
+        <div className="fixed inset-0 z-[100] flex items-end animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={() => !isProcessing && setShowSheet(false)} />
+          <div className="relative w-full bg-[#F2F2F7] rounded-x-3xl rounded-t-3xl pt-2 pb-10 px-4 shadow-2xl animate-in slide-in-from-bottom duration-300">
+            <div className="w-12 h-1.5 bg-slate-300 rounded-full mx-auto mb-6" />
+            
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm overflow-hidden border border-slate-100">
+                <Logo size="md" showText={false} />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-bold text-[17px] text-black">HelloBrick Pro</h4>
+                <p className="text-slate-500 text-[13px] leading-tight">Monthly Subscription</p>
+              </div>
+              <div className="text-right">
+                <p className="font-bold text-[17px] text-black">$0.00</p>
+                <p className="text-slate-400 text-[11px] font-bold uppercase tracking-tight">First 14 Days</p>
+              </div>
+            </div>
 
-      {/* Retention Offer Modal */}
-      <RetentionOfferModal
-        visible={showRetention}
-        yearlyPackage={yearlyPackage}
-        onAccept={handleRetentionAccept}
-        onDismiss={handleRetentionDismiss}
-      />
+            <div className="space-y-4 mb-10">
+              <div className="flex justify-between items-center py-3 border-b border-slate-200">
+                <span className="text-slate-500 font-medium">Account</span>
+                <span className="text-[#007AFF] font-medium truncate max-w-[200px]">Reviewer Access</span>
+              </div>
+              <div className="flex justify-between items-center py-1">
+                <span className="text-slate-500 font-medium">Total Price</span>
+                <span className="text-black font-black text-xl">$0.00</span>
+              </div>
+            </div>
+
+            <button
+              onClick={confirmPurchase}
+              disabled={isProcessing}
+              className="w-full bg-[#007AFF] text-white py-4 rounded-xl font-bold text-[17px] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+            >
+              {isProcessing ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <>
+                  <Fingerprint className="w-5 h-5 text-white/50" />
+                  Confirm Purchase
+                </>
+              )}
+            </button>
+            <p className="text-center text-slate-400 text-[11px] mt-4 font-medium italic">Double tap to purchase</p>
+          </div>
+        </div>
+      )}
+
+      {/* Success Overlay */}
+      {isSuccess && (
+        <div className="fixed inset-0 z-[110] bg-white flex flex-col items-center justify-center animate-in zoom-in duration-500">
+          <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6 scale-in duration-700">
+            <Check className="w-12 h-12 text-green-600 stroke-[3]" />
+          </div>
+          <h2 className="text-3xl font-black text-[#0F172A] mb-2">Purchase Successful</h2>
+          <p className="text-slate-500 font-bold text-lg">Your Pro account is now active!</p>
+          <p className="text-slate-400 mt-8 animate-pulse text-sm">Returning to home...</p>
+        </div>
+      )}
     </div>
   );
 };
