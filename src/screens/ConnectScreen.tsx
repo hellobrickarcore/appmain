@@ -98,32 +98,29 @@ export const ConnectScreen: React.FC<ConnectScreenProps> = ({ onNavigate, isPro 
           "Just finished scanning my messy pile and built this! 🔥",
           "Can't believe the app found the exact pieces for this MOC.",
           "Weekend project complete — no sorting needed!",
-          "My kids are obsessed with this scanner app 😂",
+          "Finally used all those random bricks in my drawer!",
           "No sorting required, pure magic! HelloBrick is insane.",
           "Found 47 bricks in my pile I didn't even know I had!",
           "This app literally saved me 3 hours of sorting.",
           "Sunday builds hit different when you skip the sorting 🧱",
-          "Finally used all those random bricks in my drawer!",
+          "Mess before the build lol. Just dumped it all out.",
           "POV: you scan a messy pile and get 6 build ideas instantly",
-          "My daughter designed this one after we scanned together ❤️",
+          "Designed this after scanning my whole collection ❤️",
           "First build using HelloBrick — I'm hooked!",
           "Rainy day + messy bricks = perfect afternoon",
           "Before HelloBrick I would've never found these pieces 🤯",
           "Just scanned 200+ bricks in under a minute. Wild."
         ];
         const legoImages = [
-          "https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?w=800&q=80",
-          "https://images.unsplash.com/photo-1472457897821-70d3819a0e24?w=800&q=80",
-          "https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=800&q=80",
-          "https://images.unsplash.com/photo-1558008258-3256797b43f3?w=800&q=80",
-          "https://images.unsplash.com/photo-1611145100085-f5e27a6f2eb5?w=800&q=80",
-          "https://images.unsplash.com/photo-1606760227091-3dd870d97f1d?w=800&q=80",
-          "https://images.unsplash.com/photo-1518331647614-7a1f04cd34ce?w=800&q=80",
-          "https://images.unsplash.com/photo-1533022137081-3bd426c19f5e?w=800&q=80",
-          "https://images.unsplash.com/photo-1560961911-ba7ef651a56c?w=800&q=80",
-          "https://images.unsplash.com/photo-1596854407944-bf87f6fdd49e?w=800&q=80",
-          "https://images.unsplash.com/photo-1566140967404-b8b3932483f5?w=800&q=80",
-          "https://images.unsplash.com/photo-1595429035839-c99c298ffdde?w=800&q=80"
+          "https://images.pexels.com/photos/14823946/pexels-photo-14823946.jpeg?auto=compress&cs=tinysrgb&w=800",
+          "https://images.pexels.com/photos/1660662/pexels-photo-1660662.jpeg?auto=compress&cs=tinysrgb&w=800",
+          "https://images.pexels.com/photos/3661193/pexels-photo-3661193.jpeg?auto=compress&cs=tinysrgb&w=800",
+          "https://images.pexels.com/photos/2081166/pexels-photo-2081166.jpeg?auto=compress&cs=tinysrgb&w=800",
+          "https://images.pexels.com/photos/298825/pexels-photo-298825.jpeg?auto=compress&cs=tinysrgb&w=800",
+          "https://images.pexels.com/photos/3928164/pexels-photo-3928164.jpeg?auto=compress&cs=tinysrgb&w=800",
+          "https://images.pexels.com/photos/1274260/pexels-photo-1274260.jpeg?auto=compress&cs=tinysrgb&w=800",
+          "https://images.pexels.com/photos/207891/pexels-photo-207891.jpeg?auto=compress&cs=tinysrgb&w=800",
+          "https://images.pexels.com/photos/14823950/pexels-photo-14823950.jpeg?auto=compress&cs=tinysrgb&w=800"
         ];
 
         const generatePost = (timestamp: number, index: number) => {
