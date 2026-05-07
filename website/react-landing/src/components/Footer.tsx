@@ -38,7 +38,7 @@ export default function Footer() {
             <ul className="space-y-4 font-medium">
               <li><a href="#features" className="hover:text-brand transition-colors">Features</a></li>
               <li><a href="#pro" className="hover:text-brand transition-colors">HelloBrick Pro</a></li>
-              <li><a href="https://apps.apple.com/app/hellobrick" className="hover:text-brand transition-colors">Download</a></li>
+              <li><a href="https://apps.apple.com/app/id6760016096" className="hover:text-brand transition-colors">Download</a></li>
             </ul>
           </div>
           <div>

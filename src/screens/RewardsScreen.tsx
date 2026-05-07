@@ -49,7 +49,8 @@ export const RewardsScreen: React.FC<RewardsScreenProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar px-6 pt-10 pb-[max(env(safe-area-inset-bottom),120px)] overscroll-contain">
+      <div className="flex-1 relative overflow-hidden">
+        <div className="absolute inset-0 overflow-y-auto overscroll-contain touch-pan-y [webkit-overflow-scrolling:touch] no-scrollbar px-6 pt-10 pb-[max(env(safe-area-inset-bottom),120px)]">
         <div className="max-w-2xl mx-auto space-y-12">
           <div className="text-left">
             <h2 className="text-4xl font-black text-white tracking-tight leading-none mb-4">Vault Rewards</h2>

@@ -26,7 +26,7 @@ export default function Navbar() {
           <span>EN</span>
         </button>
         <a 
-          href="https://apps.apple.com/app/hellobrick" 
+          href="https://apps.apple.com/app/id6760016096" 
           className="bg-brand text-white px-6 py-3 rounded-full font-bold hover:bg-brand-hover transition-colors shadow-lg shadow-brand/20"
         >
           Get App

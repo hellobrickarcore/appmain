@@ -62,7 +62,7 @@ export default function AsymmetricBento() {
               </li>
             </ul>
 
-            <a href="https://apps.apple.com/app/hellobrick" className="inline-flex items-center font-medium text-brand hover:text-brand-hover transition-colors gap-1">
+            <a href="https://apps.apple.com/app/id6760016096" className="inline-flex items-center font-medium text-brand hover:text-brand-hover transition-colors gap-1">
               Start building <ArrowRight className="w-4 h-4 ml-1" />
             </a>
           </div>
@@ -86,7 +86,7 @@ export default function AsymmetricBento() {
                 </li>
               </ul>
 
-              <a href="https://apps.apple.com/app/hellobrick" className="inline-flex items-center font-medium text-brand hover:text-brand-hover text-sm gap-1">
+              <a href="https://apps.apple.com/app/id6760016096" className="inline-flex items-center font-medium text-brand hover:text-brand-hover text-sm gap-1">
                 Download Now <ArrowRight className="w-3.5 h-3.5 ml-1" />
               </a>
             </div>

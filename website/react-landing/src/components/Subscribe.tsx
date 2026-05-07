@@ -20,7 +20,7 @@ export default function Subscribe() {
           <p className="text-white/80 text-xl font-medium max-w-lg mx-auto">
             Join thousands of builders who use HelloBrick to unlock their collections.
           </p>
-          <a href="https://apps.apple.com/app/hellobrick" className="inline-block bg-white text-brand px-12 py-5 rounded-full font-bold text-xl hover:bg-gray-50 transition-colors shadow-2xl">
+          <a href="https://apps.apple.com/app/id6760016096" className="inline-block bg-white text-brand px-12 py-5 rounded-full font-bold text-xl hover:bg-gray-50 transition-colors shadow-2xl">
             Download on the App Store
           </a>
         </div>

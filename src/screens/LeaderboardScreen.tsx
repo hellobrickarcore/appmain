@@ -163,7 +163,8 @@ export const LeaderboardScreen: React.FC<LeaderboardScreenProps> = ({ onNavigate
         <div className="w-10" />
       </div>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar pb-48">
+      <div className="flex-1 relative overflow-hidden">
+        <div className="absolute inset-0 overflow-y-auto overscroll-contain touch-pan-y [webkit-overflow-scrolling:touch] no-scrollbar pb-64">
         {/* Top 3 Podium Area */}
         <div className="px-6 pt-10 pb-12 flex items-end justify-center gap-4 relative">
            {/* Rank 2 */}

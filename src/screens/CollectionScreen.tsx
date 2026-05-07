@@ -3,6 +3,7 @@ import { Search, Filter, Box, X, Palette, Brain, ChevronRight, Sparkles, Trash2 
 import { TopBar } from '../components/TopBar';
 import { ZoomableImageViewer } from '../components/ZoomableImageViewer';
 import { Screen, Brick } from '../types';
+import { valuationService } from '../services/valuationService';
 import confetti from 'canvas-confetti';
 
 interface CollectionScreenProps {
@@ -21,7 +22,9 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
     const [realCollection, setRealCollection] = useState<Brick[]>([]);
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
     const [showAddModal, setShowAddModal] = useState(false);
+    const [showAddModal, setShowAddModal] = useState(false);
     const [manualBrick, setManualBrick] = useState({ name: '', color: 'Gray', count: 1, category: 'Bricks' });
+    const [portfolioValue, setPortfolioValue] = useState(0);
 
     const loadCollection = async () => {
         try {
@@ -29,7 +32,19 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
             if (stored) {
                 try {
                     const parsed = JSON.parse(stored);
-                    setRealCollection(parsed.bricks || []);
+                    const bricks = parsed.bricks || [];
+                    
+                    // Hydrate values for all bricks that don't have them yet
+                    const hydratedBricks = await Promise.all(bricks.map(async (b: Brick) => {
+                       if (b.estimatedValueUsd === undefined) {
+                           b.estimatedValueUsd = await valuationService.estimateItemValue(b);
+                       }
+                       return b;
+                    }));
+
+                    setRealCollection(hydratedBricks);
+                    const totalValue = await valuationService.calculatePortfolioValue(hydratedBricks);
+                    setPortfolioValue(totalValue);
                 } catch (e) { }
             }
         } catch (error) {
@@ -83,11 +98,16 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
             <main className="flex-1 px-6 pt-8 pb-40 relative z-10 overflow-y-auto no-scrollbar overscroll-contain">
                 <div className="px-6 pt-8 pb-2">
                     <div className="flex items-center justify-between mb-8">
-                       <h1 className="text-4xl font-black text-white tracking-tight">Vault</h1>
+                       <div>
+                         <h1 className="text-4xl font-black text-white tracking-tight">Portfolio</h1>
+                         <p className="text-sm font-black text-green-400 mt-1 flex items-center gap-1">
+                           <span className="text-white/50">$</span>{portfolioValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                         </p>
+                       </div>
                        <div className="flex items-center gap-2">
                           <div className="bg-white/5 border border-white/10 px-4 py-2 rounded-2xl flex items-center gap-3 shadow-xl">
                              <div className="flex flex-col items-end">
-                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Total</span>
+                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Total Parts</span>
                                 <span className="text-sm font-black text-white leading-none">{realCollection.reduce((s, b) => s + b.count, 0).toLocaleString()}</span>
                              </div>
                              <Box className="w-5 h-5 text-orange-500" />
@@ -278,6 +298,9 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                                 <div className="absolute top-0 right-0 bg-white text-slate-950 px-2.5 py-1 rounded-2xl shadow-lg text-[10px] font-black z-20 border-2 border-[#050A18]">
                                     x{brick.count}
                                 </div>
+                                <div className="absolute bottom-0 left-0 bg-green-500/20 backdrop-blur-md text-green-400 px-2.5 py-1 rounded-2xl shadow-lg text-[10px] font-black z-20 border border-green-500/30">
+                                    ${brick.estimatedValueUsd?.toFixed(2) || '0.00'}
+                                </div>
                             </div>
 
                             <div className="w-full text-center">
@@ -342,9 +365,13 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                                     }}
                                     className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-center text-2xl font-black text-white focus:border-orange-500 transition-all outline-none mb-2"
                                 />
-                                <div className="flex justify-center gap-2">
+                                <div className="flex justify-center gap-2 mb-4">
                                     <span className="px-4 py-1.5 bg-white/5 rounded-full text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] border border-white/5">{selectedBrick.category}</span>
                                     <span className="px-4 py-1.5 bg-white/5 rounded-full text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] border border-white/5">{selectedBrick.dimensions}</span>
+                                </div>
+                                <div className="flex items-center justify-center gap-2 bg-green-500/10 border border-green-500/20 px-6 py-3 rounded-2xl w-max mx-auto">
+                                   <span className="text-xs font-black text-green-500/70 uppercase tracking-widest">Est. Value</span>
+                                   <span className="text-xl font-black text-green-400">${selectedBrick.estimatedValueUsd?.toFixed(2) || '0.00'}</span>
                                 </div>
                             </div>
                         </div>

@@ -67,7 +67,7 @@ export default function Hero() {
         >
           {/* Classic App Store Format Button */}
           <a 
-            href="https://apps.apple.com/app/hellobrick" 
+            href="https://apps.apple.com/app/id6760016096" 
             className="flex items-center gap-4 bg-brand-navy text-white px-8 py-5 rounded-[24px] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-2xl group"
           >
             <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center p-1.5 shrink-0">

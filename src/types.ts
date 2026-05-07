@@ -63,6 +63,11 @@ export interface Brick {
 
   isUncertain?: boolean;
   labelDisplayStatus?: 'hidden' | 'tentative' | 'confirmed';
+  
+  // Market & Valuation Features
+  estimatedValueUsd?: number;
+  itemType?: 'brick' | 'minifigure' | 'set';
+  isListedForSale?: boolean;
 }
 
 export interface LegoSet {
