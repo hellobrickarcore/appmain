@@ -30,7 +30,11 @@ export enum Screen {
   CREATE_POST = 'CREATE_POST',
   ADMIN = 'ADMIN',
   TERMS = 'TERMS',
-  ONBOARDING_QUESTIONNAIRE = 'ONBOARDING_QUESTIONNAIRE'
+  ONBOARDING_QUESTIONNAIRE = 'ONBOARDING_QUESTIONNAIRE',
+  WISHLIST = 'WISHLIST',
+  SET_DETAIL = 'SET_DETAIL',
+  PORTFOLIO_ANALYTICS = 'PORTFOLIO_ANALYTICS',
+  LEGO_MAP = 'LEGO_MAP'
 }
 
 export type GameModeId = 'TARGET' | 'SPRINT' | 'MIRROR';
@@ -256,3 +260,76 @@ export interface GPTBuilderResponse {
   topIdeas: BuildIdea[];
   suggestedQuickReplies: string[];
 }
+
+export interface LegoSetModel {
+  id: string;
+  setNum: string;           // e.g. '10270-1'
+  name: string;             // e.g. 'Bookshop'
+  year: number;
+  theme: string;
+  themeId?: number;
+  pieces: number;
+  minifigs?: number;
+  imageUrl: string;
+  retailPrice: number | null;
+  isRetired: boolean;
+  type: 'set' | 'minifig';  // To support dual asset selectors
+}
+
+export interface MinifigureModel {
+  id: string;
+  figNum: string;           // e.g. 'sw0012' or 'fig-0012'
+  name: string;
+  year: number;
+  theme: string;
+  imageUrl: string;
+  resaleValue: number;
+  rarityScore: number;
+}
+
+export interface SetValuation {
+  setNum: string;
+  sealedValue: number;
+  usedValue: number;
+  resaleAvg: number;
+  sealedChange24h: number;  // percentage
+  usedChange24h: number;
+  sealedChange7d: number;
+  usedChange7d: number;
+  sealedChange30d: number;
+  usedChange30d: number;
+  rarityScore: number;      // 1-10
+  demandScore: number;      // 1-10
+  priceHistory: PricePoint[];
+  lastUpdated: string;
+}
+
+export interface PricePoint {
+  date: string;  // ISO date string
+  sealed: number;
+  used: number;
+}
+
+export interface CollectionItem {
+  id: string;
+  userId: string;
+  setNum: string;           // Maps to setNum or figNum depending on condition
+  condition: 'sealed' | 'used' | 'opened';
+  quantity: number;         // Dynamic amount tracker
+  purchasePrice: number | null;
+  purchaseDate: string | null;
+  notes: string;
+  addedAt: string;
+  itemType: 'set' | 'minifig';
+}
+
+export interface WishlistItem {
+  id: string;
+  userId: string;
+  setNum: string;
+  targetPrice: number | null;
+  alertEnabled: boolean;
+  addedAt: string;
+  itemType: 'set' | 'minifig';
+}
+

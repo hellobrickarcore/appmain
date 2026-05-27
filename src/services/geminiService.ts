@@ -86,14 +86,14 @@ export const getConversationalIdeas = async (
     return {
         topIdeas: [
             {
-                title: "Space Exploration Base",
-                description: "Using your current bricks, create a micro-scale lunar outpost with a landing pad.",
+                ideaName: "Space Exploration Base",
+                whyItFitsYourVault: "Using your current bricks, create a micro-scale lunar outpost with a landing pad.",
                 difficulty: "Medium",
-                buildTime: "15 mins",
-                xp: 300
+                imagePrompt: "lunar outpost with a landing pad micro-scale, lego brick style"
             }
-        ]
-    };
+        ],
+        assistantMessage: "I'm having a bit of trouble connecting to the cloud right now, but here's a fallback idea you can build with your pieces!"
+    } as any;
   }
 };
 

@@ -1,421 +1,534 @@
 import React, { useState, useEffect } from 'react';
 import { Screen } from '../types';
-import { Logo } from '../components/Logo';
 import { 
   ChevronRight, 
   ChevronLeft, 
+  Search, 
   Box, 
   Sparkles, 
-  Layers, 
-  Search, 
-  Zap,
-  CheckCircle2,
-  Users,
-  Star
+  Star, 
+  Zap, 
+  Check, 
+  TrendingUp, 
+  Lock, 
+  Shield, 
+  DollarSign, 
+  Camera, 
+  Compass, 
+  Award,
+  Layers
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { appStateService } from '../services/appStateService';
 
-interface OnboardingQuestionnaireProps {
-}
+export const OnboardingQuestionnaire: React.FC = () => {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [scanPulse, setScanPulse] = useState(true);
 
-type StepId = 'welcome' | 'quantity' | 'interest' | 'problem' | 'analyzing' | 'email' | 'social' | 'success';
-
-interface QuestionOption {
-  id: string;
-  label: string;
-  icon: React.ReactNode;
-  description?: string;
-}
-
-const QUANTITY_OPTIONS: QuestionOption[] = [
-  { id: 'sets', label: 'A few sets', icon: <Box className="w-6 h-6" />, description: 'Under 1,000 bricks' },
-  { id: 'bins', label: 'Big bins', icon: <Layers className="w-6 h-6" />, description: '1,000 - 10,000 bricks' },
-  { id: 'mountain', label: 'A brick mountain', icon: <Layers className="w-6 h-6 text-orange-500" />, description: '10,000+ bricks' },
-  { id: 'unknown', label: 'Not sure yet', icon: <Search className="w-6 h-6" />, description: "Let's find out!" },
-];
-
-const INTEREST_OPTIONS: QuestionOption[] = [
-  { id: 'technic', label: 'Technic & Cars', icon: <Zap className="w-6 h-6 text-blue-400" /> },
-  { id: 'architecture', label: 'City & Houses', icon: <Box className="w-6 h-6 text-emerald-400" /> },
-  { id: 'mocs', label: 'MOCs & Custom', icon: <Sparkles className="w-6 h-6 text-yellow-400" /> },
-  { id: 'starwars', label: 'Star Wars / Sci-Fi', icon: <Star className="w-6 h-6 text-purple-400" /> },
-];
-
-const PROBLEM_OPTIONS: QuestionOption[] = [
-  { id: 'finding', label: 'Finding specific parts', icon: <Search className="w-6 h-6" />, description: 'Searching for that one 2x4...' },
-  { id: 'ideas', label: 'Lack of inspiration', icon: <Sparkles className="w-6 h-6" />, description: 'What can I build with this?' },
-  { id: 'sorting', label: 'Sorting chaos', icon: <Layers className="w-6 h-6" />, description: 'The bin is a mess' },
-  { id: 'cataloging', label: 'Tracking my collection', icon: <Box className="w-6 h-6" />, description: "Don't know what I own" },
-];
-
-export const OnboardingQuestionnaire: React.FC<OnboardingQuestionnaireProps> = () => {
-  const [currentStep, setCurrentStep] = useState<StepId>('welcome');
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [email, setEmail] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [analyzingProgress, setAnalyzingProgress] = useState(0);
-
-  const steps: StepId[] = ['welcome', 'quantity', 'interest', 'problem', 'analyzing', 'email', 'social', 'success'];
-  const currentStepIndex = steps.indexOf(currentStep);
-  const progress = (currentStepIndex / (steps.length - 1)) * 100;
-
+  // Auto-pulse scan effects on Slide 2
   useEffect(() => {
-    if (currentStep === 'analyzing') {
+    if (currentSlide === 1) {
       const interval = setInterval(() => {
-        setAnalyzingProgress((prev: number) => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            setTimeout(() => setCurrentStep('social'), 500);
-            return 100;
-          }
-          return prev + 2;
-        });
-      }, 50);
+        setScanPulse(prev => !prev);
+      }, 2000);
       return () => clearInterval(interval);
     }
-  }, [currentStep]);
+  }, [currentSlide]);
 
+  // Trigger confetti on slide 3 (portfolio reveal) and slide 5 (final push)
   useEffect(() => {
-    if (currentStep === 'success') {
+    if (currentSlide === 2) {
       confetti({
-        particleCount: 150,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#FFD600', '#FF7A30', '#2563EB', '#FFFFFF']
+        particleCount: 80,
+        spread: 60,
+        origin: { y: 0.65 },
+        colors: ['#C9A84C', '#FF7A30', '#2563EB', '#FFFFFF']
+      });
+    } else if (currentSlide === 4) {
+      confetti({
+        particleCount: 100,
+        spread: 80,
+        origin: { y: 0.7 },
+        colors: ['#C9A84C', '#E2E8F0', '#F59E0B']
       });
     }
-  }, [currentStep]);
+  }, [currentSlide]);
 
-  const handleSelect = (questionId: string, optionId: string) => {
-    setAnswers(prev => ({ ...prev, [questionId]: optionId }));
-    const nextStepMap: Record<string, StepId> = {
-      welcome: 'quantity',
-      quantity: 'interest',
-      interest: 'problem',
-      problem: 'analyzing',
-      analyzing: 'email',
-      email: 'social',
-      social: 'success'
-    };
-    setTimeout(() => setCurrentStep(nextStepMap[currentStep]), 300);
+  // Swipe logic
+  const minSwipeDistance = 50;
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
   };
-
-  const goBack = () => {
-    const prevStepIndex = currentStepIndex - 1;
-    if (prevStepIndex >= 0) {
-      setCurrentStep(steps[prevStepIndex]);
+  const onTouchMove = (e: React.TouchEvent) => setTouchEnd(e.targetTouches[0].clientX);
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    
+    if (isLeftSwipe && currentSlide < 4) {
+      setCurrentSlide(curr => curr + 1);
+    }
+    if (isRightSwipe && currentSlide > 0) {
+      setCurrentSlide(curr => curr - 1);
     }
   };
 
-  const finishOnboarding = () => {
-    appStateService.navigate(Screen.SUBSCRIPTION);
+  const handleNext = () => {
+    if (currentSlide < 4) {
+      setCurrentSlide(curr => curr + 1);
+    } else {
+      activateTrial();
+    }
   };
 
-  const renderWelcome = () => (
-    <div className="flex-1 flex flex-col items-center justify-center text-center px-8 animate-in fade-in zoom-in duration-500">
-      <div className="mb-12 relative group">
-        <div className="absolute inset-0 bg-white/10 blur-[40px] rounded-full animate-pulse" />
-        <Logo size="xl" showText={false} className="relative z-10 transform -rotate-3" />
-      </div>
-      <h1 className="text-5xl font-black mb-6 tracking-tighter leading-none">
-        Welcome to <br />
-        <span className="text-orange-500">HelloBrick</span>
-      </h1>
-      <p className="text-slate-400 text-lg font-bold mb-12 max-w-[280px]">
-        Let's turn your brick collection into a building powerhouse.
-      </p>
-      <div className="flex flex-col w-full gap-4">
-        <button
-          onClick={() => setCurrentStep('quantity')}
-          className="w-full bg-blue-600 text-white py-6 rounded-[32px] font-black text-xl shadow-2xl active:scale-[0.98] transition-all flex items-center justify-center gap-3 group"
-        >
-          Let's Go!
-          <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
-        </button>
+  const handlePrev = () => {
+    if (currentSlide > 0) {
+      setCurrentSlide(curr => curr - 1);
+    }
+  };
 
-        <button
-          onClick={() => appStateService.navigate(Screen.AUTH)}
-          className="w-full py-4 text-slate-500 font-bold text-sm uppercase tracking-widest hover:text-white transition-colors"
-        >
-          Already have an account? <span className="text-white">Log In</span>
-        </button>
-      </div>
-    </div>
-  );
-
-  const renderQuestion = (title: string, subtitle: string, options: QuestionOption[], questionId: string) => (
-    <div className="flex-1 flex flex-col justify-start pt-12 px-8 animate-in slide-in-from-right-8 duration-500">
-      <h2 className="text-3xl font-black mb-3 tracking-tight leading-none">{title}</h2>
-      <p className="text-slate-400 font-bold text-lg mb-10">{subtitle}</p>
-      
-      <div className="space-y-4">
-        {options.map(option => (
-          <button
-            key={option.id}
-            onClick={() => handleSelect(questionId, option.id)}
-            className={`w-full p-6 rounded-[28px] border-2 transition-all flex items-center gap-5 text-left active:scale-[0.97] ${
-              answers[questionId] === option.id 
-                ? 'border-orange-500 bg-orange-500/10' 
-                : 'border-white/10 bg-white/5 hover:border-white/20'
-            }`}
-          >
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
-              answers[questionId] === option.id ? 'bg-orange-500 text-white' : 'bg-slate-800 text-slate-300'
-            }`}>
-              {option.icon}
-            </div>
-            <div>
-              <div className="font-black text-lg text-white leading-tight">{option.label}</div>
-              {option.description && (
-                <div className="text-slate-500 font-bold text-xs mt-0.5">{option.description}</div>
-              )}
-            </div>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-
-  const renderAnalyzing = () => (
-    <div className="flex-1 flex flex-col items-center justify-center px-10 text-center animate-in fade-in duration-500">
-      <div className="w-24 h-24 mb-8 relative">
-        <div className="absolute inset-0 border-4 border-white/10 rounded-full" />
-        <div 
-          className="absolute inset-0 border-4 border-orange-500 rounded-full border-t-transparent animate-spin" 
-          style={{ animationDuration: '1.5s' }}
-        />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <BrainCircuit className="w-10 h-10 text-orange-500" />
-        </div>
-      </div>
-      
-      <h2 className="text-3xl font-black mb-4 tracking-tight leading-none">
-        Mapping your <br />
-        <span className="text-orange-500">brick potential</span>
-      </h2>
-      
-      <div className="w-full bg-white/5 h-3 rounded-full mb-6 overflow-hidden border border-white/10">
-        <div 
-          className="h-full bg-gradient-to-r from-blue-600 to-orange-500 transition-all duration-300 ease-out"
-          style={{ width: `${analyzingProgress}%` }}
-        />
-      </div>
-      
-      <div className="space-y-3">
-        <p className={`text-slate-400 font-bold transition-opacity duration-300 ${analyzingProgress > 10 ? 'opacity-100' : 'opacity-0'}`}>
-          {analyzingProgress < 40 ? 'Analyzing inventory size...' : 
-           analyzingProgress < 70 ? 'Optimizing building paths...' : 
-           'Generating custom ideas...'}
-        </p>
-      </div>
-    </div>
-  );
-
-  const renderEmail = () => (
-    <div className="flex-1 flex flex-col items-center justify-center p-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="w-20 h-20 bg-blue-600/20 rounded-2xl flex items-center justify-center mb-8">
-        <Users className="w-10 h-10 text-blue-400" />
-      </div>
-      <h2 className="text-3xl font-black text-center mb-4 leading-tight text-white">Create your Account</h2>
-      <p className="text-slate-400 text-center mb-8 font-bold">
-        Enter your email to save your collection and build progress.
-      </p>
-      
-      <div className="w-full max-w-sm space-y-4">
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value);
-            setEmailError('');
-          }}
-          placeholder="builder@hellobrick.app"
-          className="w-full bg-slate-800/50 border-2 border-slate-700 rounded-2xl px-6 py-4 text-lg font-bold text-white focus:border-blue-500 outline-none transition-all placeholder:text-slate-600"
-        />
-        {emailError && (
-          <p className="text-red-400 text-sm font-bold text-center">{emailError}</p>
-        )}
-        
-        <button
-          onClick={() => {
-            if (!email || !email.includes('@')) {
-              setEmailError('Please enter a valid email address');
-              return;
-            }
-            localStorage.setItem('hellobrick_userEmail', email);
-            setCurrentStep('social');
-          }}
-          className="w-full bg-blue-600 hover:bg-blue-500 text-white py-5 rounded-3xl font-black text-xl shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4"
-        >
-          Confirm Email
-          <ChevronRight className="w-6 h-6" />
-        </button>
-      </div>
-    </div>
-  );
-
-  const renderSocial = () => (
-    <div className="flex-1 flex flex-col justify-center px-8 animate-in slide-in-from-bottom-8 duration-700">
-      <div className="bg-gradient-to-br from-blue-600/20 to-purple-600/20 p-8 rounded-[40px] border border-white/10 relative overflow-hidden mb-12">
-        <div className="absolute top-0 right-0 p-4 opacity-10">
-          <Users className="w-32 h-32" />
-        </div>
-        
-        <div className="flex gap-1 mb-6">
-          {[1, 2, 3, 4, 5].map(i => (
-            <Star key={i} className="w-6 h-6 text-yellow-400 fill-current" />
-          ))}
-        </div>
-        
-        <h2 className="text-3xl font-black mb-4 tracking-tight leading-tight">
-          Join 50,000+ <br />
-          Master Builders
-        </h2>
-        
-        <p className="text-slate-300 font-bold text-lg mb-8 italic">
-          "HelloBrick changed how I build. I found pieces I thought were lost forever!"
-          <br />
-          <span className="text-slate-500 text-sm not-italic uppercase tracking-widest mt-2 block">— Alex, Lego Enthusiast</span>
-        </p>
-        
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-500">
-              <CheckCircle2 className="w-4 h-4" />
-            </div>
-            <span className="text-slate-300 font-bold">Top 10 Education App</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-500">
-              <CheckCircle2 className="w-4 h-4" />
-            </div>
-            <span className="text-slate-300 font-bold">Industry leading AI detection</span>
-          </div>
-        </div>
-      </div>
-      
-      <button
-        onClick={() => setCurrentStep('success')}
-        className="w-full bg-orange-600 text-white py-6 rounded-[32px] font-black text-xl shadow-2xl active:scale-[0.98] transition-all flex items-center justify-center gap-3 group"
-      >
-        Continue
-        <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
-      </button>
-    </div>
-  );
-
-  const renderSuccess = () => (
-    <div className="flex-1 flex flex-col items-center justify-center text-center px-10 animate-in zoom-in duration-500">
-      <div className="w-32 h-32 bg-orange-500 rounded-[40px] flex items-center justify-center mb-10 shadow-3xl transform rotate-6 hover:rotate-0 transition-transform">
-        <CheckCircle2 className="w-16 h-16 text-white" strokeWidth={3} />
-      </div>
-      
-      <h2 className="text-5xl font-black mb-6 tracking-tighter leading-none">
-        You're all set!
-      </h2>
-      
-      <p className="text-slate-400 text-xl font-bold mb-12 max-w-[280px]">
-        We've personalized your HelloBrick experience. Let's start building.
-      </p>
-      
-      <button
-        onClick={finishOnboarding}
-        className="w-full bg-blue-600 text-white py-6 rounded-[32px] font-black text-xl shadow-2xl active:scale-[0.98] transition-all flex items-center justify-center gap-3"
-      >
-        Enter Workspace
-        <Zap className="w-6 h-6 fill-current" />
-      </button>
-    </div>
-  );
+  const activateTrial = () => {
+    console.log('[Onboarding] Activating 14-day free trial...');
+    // Lock in Pro status and complete onboarding
+    localStorage.setItem('hellobrick_onboarding_finished', 'true');
+    localStorage.setItem('hellobrick_is_pro', 'true');
+    
+    // Automatically drop them into the scanner screen immediately
+    appStateService.navigate(Screen.SCANNER);
+  };
 
   return (
-    <div className="fixed inset-0 bg-[#050A18] flex flex-col font-sans overflow-hidden text-white">
-      {/* Background Decor */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 blur-[120px] rounded-full -mr-32 -mt-32 pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-orange-500/10 blur-[120px] rounded-full -ml-32 -mb-32 pointer-events-none" />
-      
-      {/* Progress Bar & Header */}
-      {currentStep !== 'welcome' && currentStep !== 'success' && currentStep !== 'analyzing' && (
-        <div className="relative z-20 px-8 pt-[max(env(safe-area-inset-top),2rem)] shrink-0">
-          <div className="flex justify-between items-center mb-6">
-            <button 
-              onClick={goBack}
-              className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 active:scale-90 transition-transform"
-            >
-              <ChevronLeft className="w-6 h-6" />
-            </button>
-            <div className="text-slate-500 font-black text-xs uppercase tracking-widest">
-              Step {currentStepIndex} of {steps.length - 2}
-            </div>
-            <div className="w-10" /> {/* Spacer */}
-          </div>
-          
-          <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-blue-600 transition-all duration-500 ease-out"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </div>
-      )}
+    <div 
+      className="fixed inset-0 bg-[#0D111A] flex flex-col font-sans overflow-hidden text-white select-none"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
+      {/* Premium ambient backdrop radial lights */}
+      <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/[0.04] blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#C9A84C]/[0.03] blur-[120px] rounded-full pointer-events-none" />
 
-      {/* Main Content Area */}
-      <div className="flex-1 relative z-10 flex flex-col overflow-hidden">
-        {currentStep === 'welcome' && renderWelcome()}
-        {currentStep === 'quantity' && renderQuestion(
-          "Great to meet you!", 
-          "Roughly how many bricks do you own?", 
-          QUANTITY_OPTIONS, 
-          'quantity'
+      {/* Top Header */}
+      <div className="relative z-20 px-6 pt-[max(env(safe-area-inset-top),2rem)] flex justify-between items-center shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#C9A84C] to-[#E5C158] flex items-center justify-center shadow-lg shadow-[#C9A84C]/10">
+            <Layers className="w-4 h-4 text-[#0D111A]" strokeWidth={2.5} />
+          </div>
+          <span className="font-sans font-black text-lg tracking-wider text-white">
+            HELLO<span className="text-[#C9A84C]">BRICK</span>
+          </span>
+        </div>
+        {currentSlide < 4 && (
+          <button 
+            onClick={activateTrial}
+            className="text-slate-400 font-bold text-xs uppercase tracking-widest px-4 py-2 bg-white/5 rounded-full border border-white/10 active:scale-95 transition-all"
+          >
+            Skip
+          </button>
         )}
-        {currentStep === 'interest' && renderQuestion(
-          "What's your vibe?", 
-          "Selection helps us tailor your build paths.", 
-          INTEREST_OPTIONS, 
-          'interest'
-        )}
-        {currentStep === 'problem' && renderQuestion(
-          "The struggle is real.", 
-          "What's the hardest part of building for you?", 
-          PROBLEM_OPTIONS, 
-          'problem'
-        )}
-        {currentStep === 'analyzing' && renderAnalyzing()}
-        {currentStep === 'email' && renderEmail()}
-        {currentStep === 'social' && renderSocial()}
-        {currentStep === 'success' && renderSuccess()}
       </div>
 
-      {/* Footer Branding */}
-      <div className="p-8 flex justify-center opacity-20 relative z-10 shrink-0">
-        <Logo size="sm" showText={false} light />
+      {/* Main Slide Carousel viewport */}
+      <div className="flex-1 flex flex-col justify-center items-center px-6 relative z-10 min-h-0 py-4">
+        
+        {/* Carousel Transition Area */}
+        <div className="w-full max-w-sm flex-1 flex flex-col justify-center items-center transition-all duration-500 ease-out">
+          
+          {/* SLIDE 1: Hero Welcome (Emotional Hook) */}
+          {currentSlide === 0 && (
+            <div className="w-full flex-1 flex flex-col justify-between items-center py-2 animate-in fade-in zoom-in-95 duration-500">
+              <div className="text-center w-full mt-2">
+                <h1 className="text-3xl font-black tracking-tight leading-[1.1] text-white">
+                  Your LEGO Collection <br />
+                  Is Secretly Worth <span className="text-[#C9A84C]">Thousands</span>
+                </h1>
+                <p className="text-slate-400 font-semibold text-sm mt-3 px-4 leading-snug">
+                  Unlock hidden financial value in your sets and minifigures instantly.
+                </p>
+              </div>
+
+              {/* Phone Mockup Frame */}
+              <div className="w-[230px] h-[370px] bg-[#161B26] border-[6px] border-[#2A303F] rounded-[38px] relative overflow-hidden shadow-2xl flex flex-col items-center justify-center p-3 my-4">
+                {/* Simulated Phone Camera Notch */}
+                <div className="absolute top-2 w-20 h-4 bg-[#2A303F] rounded-full z-30" />
+                
+                {/* Simulated Background */}
+                <div className="absolute inset-0 bg-[#0A0D14]" />
+                <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-500/10 blur-[40px] rounded-full" />
+                <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-[#C9A84C]/5 blur-[40px] rounded-full" />
+
+                {/* Floating assets inside phone */}
+                <div className="w-full h-full relative flex flex-col justify-center items-center z-10">
+                  {/* Fiat Red Car */}
+                  <div className="absolute top-8 left-2 w-[120px] transition-all hover:scale-105 duration-300">
+                    <img 
+                      src="https://cdn.rebrickable.com/media/sets/10271-1.jpg" 
+                      alt="Lego Fiat 500" 
+                      className="w-full h-auto rounded-xl shadow-lg border border-white/5"
+                    />
+                    <div className="absolute -bottom-2 -right-2 bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-full border border-[#C9A84C]/50 shadow-md">
+                      <span className="font-mono text-xs font-black text-[#C9A84C]">$150</span>
+                    </div>
+                  </div>
+
+                  {/* Passenger Train */}
+                  <div className="absolute bottom-8 right-2 w-[120px] transition-all hover:scale-105 duration-300">
+                    <img 
+                      src="https://cdn.rebrickable.com/media/sets/60197-1.jpg" 
+                      alt="Lego Train" 
+                      className="w-full h-auto rounded-xl shadow-lg border border-white/5"
+                    />
+                    <div className="absolute -bottom-2 -left-2 bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-full border border-[#C9A84C]/50 shadow-md">
+                      <span className="font-mono text-xs font-black text-[#C9A84C]">$100</span>
+                    </div>
+                  </div>
+
+                  {/* Airplane (Centered overlap) */}
+                  <div className="absolute top-[120px] right-2 w-[120px] transition-all hover:scale-105 duration-300 z-20">
+                    <img 
+                      src="https://cdn.rebrickable.com/media/sets/60262-1.jpg" 
+                      alt="Lego Plane" 
+                      className="w-full h-auto rounded-xl shadow-lg border border-white/5"
+                    />
+                    <div className="absolute -bottom-2 -right-2 bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-full border border-emerald-400/50 shadow-md">
+                      <span className="font-mono text-xs font-black text-emerald-400">$200</span>
+                    </div>
+                  </div>
+
+                  {/* Brand Tag Overlay */}
+                  <div className="absolute bottom-3 bg-white/5 border border-white/10 px-3 py-1 rounded-full backdrop-blur-md">
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Collector Portfolio</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="w-full text-center mt-2 px-4">
+                <span className="text-xs text-slate-500 font-bold">Swipe left to proceed</span>
+              </div>
+            </div>
+          )}
+
+          {/* SLIDE 2: Instant Scan Teaser (Magic Scan) */}
+          {currentSlide === 1 && (
+            <div className="w-full flex-1 flex flex-col justify-between items-center py-2 animate-in slide-in-from-right-12 duration-500">
+              <div className="text-center w-full mt-2">
+                <h1 className="text-3xl font-black tracking-tight leading-[1.1] text-white">
+                  Scan Any Set → See <br />
+                  Its <span className="text-emerald-400">Real Value</span> Instantly
+                </h1>
+                <p className="text-slate-400 font-semibold text-sm mt-3 px-4 leading-snug">
+                  Point the camera at any LEGO box. Our AI scanner catalogs and values it in seconds.
+                </p>
+              </div>
+
+              {/* Phone Mockup Frame containing Simulated Viewfinder */}
+              <div className="w-[230px] h-[370px] bg-[#161B26] border-[6px] border-[#2A303F] rounded-[38px] relative overflow-hidden shadow-2xl flex flex-col items-center justify-center p-3 my-4">
+                {/* Phone Notch */}
+                <div className="absolute top-2 w-20 h-4 bg-[#2A303F] rounded-full z-30" />
+                
+                {/* Viewfinder Background (Razor Crest Box Photo) */}
+                <div className="absolute inset-0 z-0 bg-slate-900">
+                  <img 
+                    src="https://cdn.rebrickable.com/media/sets/75292-1.jpg" 
+                    alt="Lego Razor Crest Box" 
+                    className="w-full h-full object-cover opacity-70 filter brightness-[0.7] contrast-125"
+                  />
+                  {/* Sweep Laser animation overlay */}
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-lg shadow-emerald-400 animate-scan-sweep" />
+                </div>
+
+                {/* Viewfinder crop bracket highlights */}
+                <div className="absolute inset-x-8 inset-y-16 border-2 border-dashed border-emerald-400/40 rounded-2xl pointer-events-none z-10">
+                  {/* Crop corners */}
+                  <div className="absolute -top-1.5 -left-1.5 w-4 h-4 border-t-4 border-l-4 border-emerald-400" />
+                  <div className="absolute -top-1.5 -right-1.5 w-4 h-4 border-t-4 border-r-4 border-emerald-400" />
+                  <div className="absolute -bottom-1.5 -left-1.5 w-4 h-4 border-b-4 border-l-4 border-emerald-400" />
+                  <div className="absolute -bottom-1.5 -right-1.5 w-4 h-4 border-b-4 border-r-4 border-emerald-400" />
+                </div>
+
+                {/* Dynamic scan card reveal */}
+                <div className={`absolute bottom-6 left-3 right-3 bg-[#111622]/90 border border-white/10 rounded-2xl p-3 backdrop-blur-md z-20 shadow-xl transition-all duration-700 ${scanPulse ? 'transform translate-y-0 opacity-100' : 'transform translate-y-4 opacity-0'}`}>
+                  <div className="flex justify-between items-start">
+                    <span className="text-[8px] font-black bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full">SEALED</span>
+                    <span className="font-mono text-xs font-black text-emerald-400 leading-none">$280.00</span>
+                  </div>
+                  <h3 className="font-black text-[10px] text-white mt-1 leading-tight truncate">LEGO Star Wars</h3>
+                  <p className="text-slate-400 text-[8px] font-bold leading-tight truncate">The Razor Crest (75292)</p>
+                </div>
+              </div>
+
+              <div className="w-full text-center mt-2 px-4">
+                <span className="text-xs text-slate-500 font-bold">Try swiping left to see the dashboard</span>
+              </div>
+            </div>
+          )}
+
+          {/* SLIDE 3: Magic Value Reveal & Portfolio Tease */}
+          {currentSlide === 2 && (
+            <div className="w-full flex-1 flex flex-col justify-between items-center py-2 animate-in slide-in-from-right-12 duration-500">
+              <div className="text-center w-full mt-2">
+                <h1 className="text-3xl font-black tracking-tight leading-[1.1] text-white">
+                  Watch Your <br />
+                  Collection <span className="text-[#C9A84C]">Come Alive</span>
+                </h1>
+                <p className="text-slate-400 font-semibold text-sm mt-3 px-4 leading-snug">
+                  Your sets assemble into an active investment portfolio. Live appreciation, cost-basis, and total return.
+                </p>
+              </div>
+
+              {/* Phone Mockup Dashboard */}
+              <div className="w-[230px] h-[370px] bg-[#161B26] border-[6px] border-[#2A303F] rounded-[38px] relative overflow-hidden shadow-2xl flex flex-col p-2 my-4 justify-between">
+                {/* Phone Notch */}
+                <div className="absolute top-2 left-1/2 transform -translate-x-1/2 w-20 h-4 bg-[#2A303F] rounded-full z-30" />
+                
+                {/* Content background */}
+                <div className="absolute inset-0 bg-[#0A0D14]" />
+
+                {/* Dashboard layout */}
+                <div className="relative z-10 flex-1 flex flex-col pt-6 px-1.5 justify-between">
+                  {/* Title card */}
+                  <div>
+                    <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest block">PORTFOLIO BALANCE</span>
+                    <div className="flex items-center justify-between mt-0.5">
+                      <span className="font-mono text-xl font-black text-white leading-none">$18,740</span>
+                      <span className="text-[9px] font-black bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full flex items-center gap-0.5 shadow-sm animate-pulse">
+                        <TrendingUp className="w-2.5 h-2.5" />
+                        +4.2%
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Seeded cards list */}
+                  <div className="flex-1 flex flex-col gap-1.5 justify-center py-2">
+                    <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest block text-left">RECENT GAINERS</span>
+                    
+                    {/* Item Row 1 */}
+                    <div className="flex items-center gap-2 p-1.5 bg-white/5 border border-white/5 rounded-xl">
+                      <img src="https://cdn.rebrickable.com/media/sets/10270-1.jpg" className="w-7 h-7 rounded-md object-cover" alt="Bookshop" />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[8px] font-black text-white truncate leading-tight">Creator Bookshop</div>
+                        <div className="text-[7px] font-bold text-slate-500 truncate leading-none">10270 • $1,200</div>
+                      </div>
+                      <span className="font-mono text-[9px] font-black text-emerald-400 leading-none">+25%</span>
+                    </div>
+
+                    {/* Item Row 2 */}
+                    <div className="flex items-center gap-2 p-1.5 bg-white/5 border border-white/5 rounded-xl">
+                      <img src="https://cdn.rebrickable.com/media/sets/75292-1.jpg" className="w-7 h-7 rounded-md object-cover" alt="Razor Crest" />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[8px] font-black text-white truncate leading-tight">Star Wars Crest</div>
+                        <div className="text-[7px] font-bold text-slate-500 truncate leading-none">75292 • $1,700</div>
+                      </div>
+                      <span className="font-mono text-[9px] font-black text-[#C9A84C] leading-none">+12%</span>
+                    </div>
+
+                    {/* Item Row 3 */}
+                    <div className="flex items-center gap-2 p-1.5 bg-white/5 border border-white/5 rounded-xl opacity-60">
+                      <img src="https://cdn.rebrickable.com/media/sets/42083-1.jpg" className="w-7 h-7 rounded-md object-cover" alt="Bugatti" />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[8px] font-black text-white truncate leading-tight">Bugatti Chiron</div>
+                        <div className="text-[7px] font-bold text-slate-500 truncate leading-none">42083 • $800</div>
+                      </div>
+                      <span className="font-mono text-[9px] font-black text-slate-400 leading-none">0.0%</span>
+                    </div>
+                  </div>
+
+                  {/* Graph preview */}
+                  <div className="h-10 bg-[#C9A84C]/5 border border-[#C9A84C]/10 rounded-xl flex items-center justify-center p-1.5">
+                    <svg viewBox="0 0 100 30" className="w-full h-full stroke-[#C9A84C]" fill="none" strokeWidth="2">
+                      <path d="M0,25 C20,25 40,15 60,18 C80,21 90,5 100,2" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <div className="w-full text-center mt-2 px-4">
+                <span className="text-xs text-slate-500 font-bold">Discover our gamification leaderboard next</span>
+              </div>
+            </div>
+          )}
+
+          {/* SLIDE 4: Fun Leaderboard Preview (Stickiness Booster) */}
+          {currentSlide === 3 && (
+            <div className="w-full flex-1 flex flex-col justify-between items-center py-2 animate-in slide-in-from-right-12 duration-500">
+              <div className="text-center w-full mt-2">
+                <h1 className="text-3xl font-black tracking-tight leading-[1.1] text-white">
+                  LEGO <span className="text-[#C9A84C]">Value Kings</span>
+                </h1>
+                <p className="text-slate-400 font-semibold text-sm mt-3 px-4 leading-snug">
+                  See how you rank among serious collectors worldwide. Rotates categories weekly for ultimate bragging rights.
+                </p>
+              </div>
+
+              {/* Phone Mockup Leaderboard */}
+              <div className="w-[230px] h-[370px] bg-[#161B26] border-[6px] border-[#2A303F] rounded-[38px] relative overflow-hidden shadow-2xl flex flex-col p-2 my-4 justify-between">
+                {/* Phone Notch */}
+                <div className="absolute top-2 left-1/2 transform -translate-x-1/2 w-20 h-4 bg-[#2A303F] rounded-full z-30" />
+                
+                {/* Content background */}
+                <div className="absolute inset-0 bg-[#0A0D14]" />
+
+                {/* Dashboard layout */}
+                <div className="relative z-10 flex-1 flex flex-col pt-6 px-1.5 justify-between">
+                  <div>
+                    <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest block">LEADERBOARD TOP</span>
+                    <h2 className="font-sans font-black text-sm text-[#C9A84C] mt-0.5">LEGO VALUE KINGS</h2>
+                  </div>
+
+                  {/* Leaderboard Table */}
+                  <div className="flex-1 flex flex-col gap-1 justify-center py-2">
+                    {/* Rank 1 */}
+                    <div className="flex items-center gap-2 p-1.5 bg-[#C9A84C]/5 border border-[#C9A84C]/25 rounded-xl relative overflow-hidden">
+                      <div className="absolute top-0 right-0 bg-[#C9A84C] text-[#0D111A] text-[6px] font-black px-1.5 py-0.5 rounded-bl-lg uppercase tracking-wide">#1 Gainer</div>
+                      <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-[#C9A84C] to-yellow-300 flex items-center justify-center font-black text-[9px] text-[#0D111A]">1</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[8px] font-black text-white truncate leading-tight">BrickBaron87</div>
+                        <div className="text-[6px] font-semibold text-slate-500 leading-none">Rarity Score: 98</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-mono text-[8px] font-black text-[#C9A84C]">$12,450</div>
+                        <div className="font-mono text-[6px] font-bold text-emerald-400">+5.2%</div>
+                      </div>
+                    </div>
+
+                    {/* Rank 2 */}
+                    <div className="flex items-center gap-2 p-1.5 bg-white/5 border border-white/5 rounded-xl">
+                      <div className="w-5 h-5 rounded-full bg-slate-300 flex items-center justify-center font-black text-[9px] text-[#0D111A]">2</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[8px] font-black text-white truncate leading-tight">ModularMaster42</div>
+                        <div className="text-[6px] font-semibold text-slate-500 leading-none">Rarity Score: 94</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-mono text-[8px] font-black text-white">$12,450</div>
+                        <div className="font-mono text-[6px] font-bold text-emerald-400">+5.2%</div>
+                      </div>
+                    </div>
+
+                    {/* Rank 3 */}
+                    <div className="flex items-center gap-2 p-1.5 bg-white/5 border border-white/5 rounded-xl">
+                      <div className="w-5 h-5 rounded-full bg-amber-700 flex items-center justify-center font-black text-[9px] text-white">3</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[8px] font-black text-white truncate leading-tight">MiniFigureFanatic</div>
+                        <div className="text-[6px] font-semibold text-slate-500 leading-none">Rarity Score: 89</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-mono text-[8px] font-black text-white">$10,230</div>
+                        <div className="font-mono text-[6px] font-bold text-emerald-400">+1.2%</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Foot badge */}
+                  <div className="bg-white/5 border border-white/10 p-2 rounded-xl text-center">
+                    <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest block">YOUR POSITION</span>
+                    <span className="text-[8px] text-white font-bold block mt-0.5">Beat the average collector to enter Top 10</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="w-full text-center mt-2 px-4">
+                <span className="text-xs text-slate-500 font-bold">One slide remaining to start scanning</span>
+              </div>
+            </div>
+          )}
+
+          {/* SLIDE 5: Final Trial Push */}
+          {currentSlide === 4 && (
+            <div className="w-full flex-1 flex flex-col justify-between items-center py-2 animate-in zoom-in-95 duration-500">
+              <div className="text-center w-full mt-2">
+                <h1 className="text-3xl font-black tracking-tight leading-[1.1] text-white">
+                  Discover Your Collection's <br />
+                  <span className="text-[#C9A84C]">True Value Today</span>
+                </h1>
+                <p className="text-slate-400 font-semibold text-sm mt-3 px-4 leading-snug">
+                  Join serious collectors. Start scanning and build your portfolio now.
+                </p>
+              </div>
+
+              {/* High-Impact Glass Card */}
+              <div className="w-full bg-[#161B26]/80 border-2 border-white/5 rounded-3xl p-6 relative overflow-hidden my-4 shadow-xl">
+                {/* Confetti icon absolute placement */}
+                <div className="absolute -top-6 -right-6 w-20 h-20 bg-[#C9A84C]/10 rounded-full flex items-center justify-center blur-md" />
+                
+                <h2 className="text-xl font-black text-[#C9A84C] mb-4">HelloBrick Premium</h2>
+                
+                <ul className="space-y-3.5 mb-2">
+                  <li className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-lg bg-emerald-500/20 flex items-center justify-center shrink-0">
+                      <Check className="w-4 h-4 text-emerald-400" strokeWidth={3} />
+                    </div>
+                    <span className="text-slate-200 text-sm font-semibold">⚡ **Unlimited instant AI scanning**</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-lg bg-emerald-500/20 flex items-center justify-center shrink-0">
+                      <Check className="w-4 h-4 text-emerald-400" strokeWidth={3} />
+                    </div>
+                    <span className="text-slate-200 text-sm font-semibold">📈 **Live BrickEconomy price index**</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-lg bg-[#C9A84C]/20 flex items-center justify-center shrink-0">
+                      <Check className="w-4 h-4 text-[#C9A84C]" strokeWidth={3} />
+                    </div>
+                    <span className="text-slate-200 text-sm font-semibold">🏆 **LEGO Value Kings leaderboard**</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-lg bg-[#C9A84C]/20 flex items-center justify-center shrink-0">
+                      <Check className="w-4 h-4 text-[#C9A84C]" strokeWidth={3} />
+                    </div>
+                    <span className="text-slate-200 text-sm font-semibold">🔒 **Secure cloud portfolio vault**</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="w-full text-center mt-2 px-4">
+                <span className="text-xs text-slate-500 font-bold">14 days free • Cancel anytime in settings</span>
+              </div>
+            </div>
+          )}
+
+        </div>
+
+      </div>
+
+      {/* Dot Indicators Footer */}
+      <div className="pb-4 flex flex-col items-center justify-end shrink-0 gap-4 relative z-20">
+        
+        {/* Carousel pagination dots */}
+        <div className="flex gap-2">
+          {[0, 1, 2, 3, 4].map((idx) => (
+            <button
+              key={idx}
+              onClick={() => setCurrentSlide(idx)}
+              className={`h-2 rounded-full transition-all duration-300 ${idx === currentSlide ? 'w-6 bg-[#C9A84C]' : 'w-2 bg-white/20'}`}
+              aria-label={`Go to slide ${idx + 1}`}
+            />
+          ))}
+        </div>
+
+        {/* CTA Button at the bottom */}
+        <div className="w-full max-w-sm px-6 pb-[max(env(safe-area-inset-bottom),1.5rem)]">
+          <button
+            onClick={handleNext}
+            className="w-full bg-gradient-to-r from-[#C9A84C] to-[#E5C158] text-[#0D111A] py-5 rounded-[24px] font-black text-lg shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 group border border-yellow-300/30"
+          >
+            {currentSlide === 4 ? (
+              <>
+                Start 14-Day Free Trial
+                <Zap className="w-5 h-5 fill-current animate-pulse text-[#0D111A]" />
+              </>
+            ) : (
+              <>
+                Continue
+                <ChevronRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
 };
-
-// Add BrainCircuit to lucide imports since I used it manually but forgot to include it in the top destructured import
-const BrainCircuit = ({ className }: { className?: string }) => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    width="24" 
-    height="24" 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
-    strokeLinejoin="round" 
-    className={className}
-  >
-    <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .52 8.105 3 3 0 1 0 5.32 0 4 4 0 0 0 .52-8.105 4 4 0 0 0-2.527-5.77A3 3 0 0 0 12 5Z"/>
-    <path d="M9 13a4.5 4.5 0 0 0 3-4"/>
-    <path d="M6.003 5.125A3 3 0 1 0 12 5"/>
-    <path d="M11 12h2"/>
-    <path d="M11 16h2"/>
-    <path d="M15 12h2"/>
-    <path d="M15 16h2"/>
-    <path d="M8 8a3 3 0 1 0 6 0 3 3 0 0 0-6 0"/>
-  </svg>
-);

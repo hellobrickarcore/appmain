@@ -1,856 +1,666 @@
-import { detectBricks, DetectionStabilizer, brickDetectionService } from '../services/brickDetectionService';
-import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { X, AlertCircle, Zap, ShieldCheck, ShieldAlert, Shield } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { X, Search, Scan, Camera, Sparkles, ChevronRight, Check, Trash2, Trash, User, Layers, Box, Bell, QrCode } from 'lucide-react';
+import { Screen, CollectionItem, WishlistItem } from '../types';
+import { mockSets, mockValuations, mockMinifigs, generatePriceHistory } from '../lib/mock-data';
 import confetti from 'canvas-confetti';
-import { Screen } from '../types';
-import { FrameDetection, ScanFrameResponse, bboxToRenderBox } from '../types/detection';
-import { saveCollectionToSupabase } from '../services/trainingDataService';
-import { usageService } from '../services/usageService';
-import { analytics } from '../services/analyticsService';
-import { CONFIG } from '../services/configService';
-import { recordScan } from '../services/supabaseService';
 
 interface ScannerScreenProps {
   onNavigate: (screen: Screen, params?: any) => void;
-  challenge?: any;
-  onPhaseChange?: (phase: 'preview' | 'scanning' | 'results') => void;
-  mode?: 'scan' | 'h2h';
+  focusSearch?: boolean;
+  mode?: 'minifig' | 'set' | 'bulk_minifig' | 'cmf_qr';
 }
 
-const COLORS = ['#3B82F6', '#60A5FA', '#93C5FD', '#2563EB', '#1D4ED8'];
+export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, focusSearch = false, mode = 'set' }) => {
+  const [search, setSearch] = useState('');
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanProgress, setScanProgress] = useState(0);
+  const [detectedResult, setDetectedResult] = useState<any | null>(null);
+  const [selectedAsset, setSelectedAsset] = useState<any | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
-const cropBrickImage = (sourceBase64: string, bbox: { xMin: number; yMin: number; xMax: number; yMax: number }): Promise<string> => {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.src = sourceBase64;
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const x = Math.max(0, bbox.xMin);
-      const y = Math.max(0, bbox.yMin);
-      const width = Math.min(img.width - x, bbox.xMax - bbox.xMin);
-      const height = Math.min(img.height - y, bbox.yMax - bbox.yMin);
-
-      canvas.width = Math.max(100, width);
-      canvas.height = Math.max(100, height);
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        resolve(sourceBase64);
-        return;
-      }
-      
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      ctx.drawImage(img, x, y, width, height, 0, 0, canvas.width, canvas.height);
-      resolve(canvas.toDataURL('image/jpeg', 0.8));
-    };
-    img.onerror = () => resolve(sourceBase64);
-  });
-};
-
-// ─── NMS Deduplication for multi-pass merge ───────────────────────
-function nmsDedup(detections: FrameDetection[], iouThreshold = 0.35): FrameDetection[] {
-  const sorted = [...detections].sort((a, b) =>
-    b.prediction.identityConfidence - a.prediction.identityConfidence
-  );
-  const kept: FrameDetection[] = [];
-
-  sorted.forEach(curr => {
-    const isDuplicate = kept.some(existing => {
-      const b1 = curr.geometry.bbox;
-      const b2 = existing.geometry.bbox;
-
-      const xIn1 = Math.max(b1.xMin, b2.xMin);
-      const yIn1 = Math.max(b1.yMin, b2.yMin);
-      const xIn2 = Math.min(b1.xMax, b2.xMax);
-      const yIn2 = Math.min(b1.yMax, b2.yMax);
-
-      if (xIn2 <= xIn1 || yIn2 <= yIn1) return false;
-
-      const intersection = (xIn2 - xIn1) * (yIn2 - yIn1);
-      const area1 = (b1.xMax - b1.xMin) * (b1.yMax - b1.yMin);
-      const area2 = (b2.xMax - b2.xMin) * (b2.yMax - b2.yMin);
-      const union = area1 + area2 - intersection;
-      const iou = intersection / union;
-      const containment1 = intersection / area1;
-      const containment2 = intersection / area2;
-
-      return iou > iouThreshold || containment1 > 0.95 || containment2 > 0.95;
-    });
-
-    if (!isDuplicate) {
-      kept.push(curr);
+  useEffect(() => {
+    if (focusSearch && searchInputRef.current) {
+      searchInputRef.current.focus();
     }
-  });
+  }, [focusSearch]);
 
-  return kept;
-}
+  // Handle Scan Simulation Start
+  const handleStartScan = () => {
+    setIsScanning(true);
+    setScanProgress(0);
+    setDetectedResult(null);
+  };
 
-// ─── Color correction: analyze actual pixels to fix misclassified white bricks ───
-function correctBrickColors(detections: FrameDetection[], frameCanvas: HTMLCanvasElement): FrameDetection[] {
-  const ctx = frameCanvas.getContext('2d');
-  if (!ctx) return detections;
-
-  return detections.map(det => {
-    const bbox = det.geometry.bbox;
-    const x = Math.max(0, Math.floor(bbox.xMin));
-    const y = Math.max(0, Math.floor(bbox.yMin));
-    const w = Math.min(frameCanvas.width - x, Math.floor(bbox.xMax - bbox.xMin));
-    const h = Math.min(frameCanvas.height - y, Math.floor(bbox.yMax - bbox.yMin));
-
-    if (w <= 0 || h <= 0) return det;
-
-    try {
-      // Sample a grid of pixels from the center 60% of the brick (avoid edges/shadows)
-      const cx = x + Math.floor(w * 0.2);
-      const cy = y + Math.floor(h * 0.2);
-      const cw = Math.floor(w * 0.6);
-      const ch = Math.floor(h * 0.6);
-      
-      if (cw <= 0 || ch <= 0) return det;
-      
-      const imageData = ctx.getImageData(cx, cy, cw, ch);
-      const pixels = imageData.data;
-      const sampleCount = Math.min(100, Math.floor(pixels.length / 4));
-      const step = Math.max(1, Math.floor(pixels.length / 4 / sampleCount));
-
-      let totalR = 0, totalG = 0, totalB = 0;
-      let actualSamples = 0;
-
-      for (let i = 0; i < pixels.length; i += step * 4) {
-        totalR += pixels[i];
-        totalG += pixels[i + 1];
-        totalB += pixels[i + 2];
-        actualSamples++;
-      }
-
-      if (actualSamples === 0) return det;
-
-      const avgR = totalR / actualSamples;
-      const avgG = totalG / actualSamples;
-      const avgB = totalB / actualSamples;
-      const brightness = (avgR + avgG + avgB) / 3;
-
-      // Calculate saturation (how colorful vs gray the pixel is)
-      const maxC = Math.max(avgR, avgG, avgB);
-      const minC = Math.min(avgR, avgG, avgB);
-      const saturation = maxC > 0 ? ((maxC - minC) / maxC) * 255 : 0;
-
-      // White brick detection: high brightness, low saturation
-      if (brightness > 180 && saturation < 40) {
-        console.log(`[ColorCorrect] Brick at (${x},${y}) → WHITE (brightness=${brightness.toFixed(0)}, sat=${saturation.toFixed(0)}, was: ${det.prediction.brickColorName})`);
+  // Get matching scanner labels depending on mode
+  const getScannerLabels = () => {
+    switch (mode) {
+      case 'minifig':
         return {
-          ...det,
-          prediction: {
-            ...det.prediction,
-            brickColorName: 'White',
-            colorConfidence: 0.95,
-          }
+          title: 'Minifig Scanner',
+          instruction: 'Align a single Minifigure inside the capsule reticle',
+          actionText: 'Simulate Minifig Scan',
+          progressText: 'ANALYZING PRINT PATTERNS...',
+          reticleStyle: 'capsule'
         };
-      }
-    } catch (e) {
-      // Ignore pixel sampling errors
-    }
-
-    return det;
-  });
-}
-
-// ─── Crop-based detection: send a cropped region to the API and remap coords ───
-async function detectFromRegion(
-  canvas: HTMLCanvasElement,
-  region: { x: number; y: number; w: number; h: number },
-  _originalWidth?: number,
-  _originalHeight?: number
-): Promise<FrameDetection[]> {
-  // _originalWidth/_originalHeight reserved for future use
-  void _originalWidth; void _originalHeight;
-  const cropCanvas = document.createElement('canvas');
-  cropCanvas.width = region.w;
-  cropCanvas.height = region.h;
-  const ctx = cropCanvas.getContext('2d');
-  if (!ctx) return [];
-
-  ctx.drawImage(canvas, region.x, region.y, region.w, region.h, 0, 0, region.w, region.h);
-
-  try {
-    const response = await detectBricks(cropCanvas);
-    // Remap bounding boxes back to full-frame coordinates
-    return response.detections.map(det => ({
-      ...det,
-      detectionId: `${det.detectionId}_r${region.x}_${region.y}`,
-      geometry: {
-        ...det.geometry,
-        bbox: {
-          ...det.geometry.bbox,
-          xMin: det.geometry.bbox.xMin + region.x,
-          yMin: det.geometry.bbox.yMin + region.y,
-          xMax: det.geometry.bbox.xMax + region.x,
-          yMax: det.geometry.bbox.yMax + region.y,
-        }
-      }
-    }));
-  } catch (err) {
-    console.warn('[MultiPass] Region scan failed:', err);
-    return [];
-  }
-}
-
-export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, challenge, onPhaseChange, mode = 'scan' }) => {
-  // Refs
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const isDetectingRef = useRef(false);
-  const overlayContainerRef = useRef<HTMLDivElement>(null);
-
-  // State
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [detectedObjects, setDetectedObjects] = useState<FrameDetection[]>([]);
-  const [lastResponse, setLastResponse] = useState<ScanFrameResponse | null>(null);
-  const [selectedBricks, setSelectedBricks] = useState<Set<string>>(new Set());
-  const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [saveSuccess, setSaveSuccess] = useState(false);
-  const [qualityAdvice, setQualityAdvice] = useState<string | null>(mode === 'h2h' ? 'Position opponent QR code' : null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [phase, setPhase] = useState<'preview' | 'scanning' | 'results'>('preview');
-
-  // Multi-pass state
-  const [multiPassActive, setMultiPassActive] = useState(false);
-  const [passNumber, setPassNumber] = useState(0);
-  const [laserDirection, setLaserDirection] = useState<'horizontal' | 'vertical' | null>(null);
-  // Store the captured frame dimensions so overlays map correctly when <video> is unmounted
-  const frameDimsRef = useRef<{ w: number; h: number }>({ w: 1280, h: 720 });
-
-  useEffect(() => {
-    onPhaseChange?.(phase);
-  }, [phase, onPhaseChange]);
-
-  // ─── Camera Setup ───────────────────────────────────────────────
-  useEffect(() => {
-    let stream: MediaStream | null = null;
-    const startCamera = async () => {
-      try {
-        const isSecureContext = window.isSecureContext || location.protocol === 'https:';
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-        if (isMobile && !isSecureContext) {
-          setHasPermission(false);
-          setQualityAdvice('Camera requires HTTPS on mobile.');
-          return;
-        }
-
-        if (!navigator.mediaDevices?.getUserMedia) {
-          setHasPermission(false);
-          setQualityAdvice('Camera API not supported.');
-          return;
-        }
-
-        try {
-          const { getCameraStream } = await import('../services/cameraService');
-          stream = await getCameraStream();
-        } catch {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
-          });
-        }
-
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          setHasPermission(true);
-        }
-      } catch (err: any) {
-        console.error("Camera error:", err);
-        setHasPermission(false);
-        setQualityAdvice(err.name === 'NotAllowedError' ? 'Permission denied.' : 'Camera error.');
-      }
-    };
-
-    startCamera();
-    return () => {
-      if (stream) stream.getTracks().forEach(t => t.stop());
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(t => t.stop());
-        streamRef.current = null;
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (streamRef.current && videoRef.current && (phase === 'scanning' || phase === 'preview')) {
-      if (videoRef.current.srcObject !== streamRef.current) {
-        videoRef.current.srcObject = streamRef.current;
-        videoRef.current.play().catch(e => console.warn('[Scanner] Play error:', e));
-      }
-    }
-  }, [phase, hasPermission]);
-
-  useEffect(() => {
-    if (hasPermission && phase === 'preview') {
-      setPhase('scanning');
-      analytics.track('scan_started');
-    }
-  }, [hasPermission]);
-
-  const stabilizerRef = useRef<DetectionStabilizer>(new DetectionStabilizer(2000, 0.18, 15));
-  const [apiStatus, setApiStatus] = useState<'connected' | 'error' | 'connecting'>('connecting');
-
-  // Diagnostic Health Check
-  useEffect(() => {
-    const checkHealth = async () => {
-      try {
-        const healthUrl = `${new URL(CONFIG.DETECT_IMAGE).origin}/api/health`;
-        const resp = await fetch(healthUrl, { method: 'GET' });
-        setApiStatus(resp.ok ? 'connected' : 'error');
-      } catch {
-        setApiStatus('error');
-      }
-    };
-    checkHealth();
-    const interval = setInterval(checkHealth, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // ─── API Detection Loop ────────────────
-  useEffect(() => {
-    if (phase !== 'scanning' || !hasPermission || multiPassActive) return;
-
-    let timeoutId: any;
-    let isActive = true;
-
-    const detectLoop = async () => {
-      if (!isActive || phase !== 'scanning' || !videoRef.current || isDetectingRef.current) {
-        if (isActive) timeoutId = setTimeout(detectLoop, 200);
-        return;
-      }
-
-      if (videoRef.current.readyState < 2) {
-        timeoutId = setTimeout(detectLoop, 200);
-        return;
-      }
-
-      try {
-        isDetectingRef.current = true;
-        const response: ScanFrameResponse = await detectBricks(videoRef.current);
-
-        if (phase === 'scanning' && !isProcessing && isActive) {
-          const stabilizedDetections = stabilizerRef.current.stabilize(response.detections);
-          setDetectedObjects(stabilizedDetections);
-          setLastResponse(response);
-
-          if (challenge) {
-            const target = challenge.target?.toLowerCase() || '';
-            const goalMet = response.detections.some(obj => {
-              const name = obj.prediction.brickName?.toLowerCase() || '';
-              const color = obj.prediction.brickColorName?.toLowerCase() || '';
-              return (obj.prediction.identityConfidence || 0) >= 0.7 && (name.includes(target) || color.includes(target));
-            });
-
-            if (goalMet && !saveSuccess) {
-               confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#F97316', '#FB923C', '#FFFFFF'] });
-               setSaveSuccess(true);
-               import('../services/xpService').then(({ xpHelpers }) => { xpHelpers.challengeCompleted(challenge.id, 'daily'); });
-               setTimeout(() => setPhase('results'), 2000);
-            }
-          }
-        }
-        const nextDelay = Math.max(150, Math.min(1000, (response.rttMs || 150) + 50));
-        if (isActive) timeoutId = setTimeout(detectLoop, nextDelay);
-      } catch (err) {
-        console.error('Detection error:', err);
-        if (isActive) timeoutId = setTimeout(detectLoop, 500);
-      } finally {
-        isDetectingRef.current = false;
-      }
-    };
-
-    detectLoop();
-    return () => {
-      isActive = false;
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [phase, hasPermission, isProcessing, challenge, saveSuccess, multiPassActive]);
-
-  const captureImage = useCallback((): string | null => {
-    if (!videoRef.current) return null;
-    const { videoWidth, videoHeight } = videoRef.current;
-    if (videoWidth === 0) return null;
-    const canvas = document.createElement('canvas');
-    canvas.width = videoWidth;
-    canvas.height = videoHeight;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
-    ctx.drawImage(videoRef.current, 0, 0);
-    return canvas.toDataURL('image/jpeg', 0.95);
-  }, []);
-
-  // ─── MULTI-PASS CAPTURE ─────────────────────────────────────────
-  // Strategy: Tile the camera frame into overlapping regions.
-  // Each region gets sent to YOLO at full 1024px resolution,
-  // so bricks that were 40-60px in the full frame become 80-120px
-  // in a quadrant — well within YOLO's reliable detection range.
-  const handleCapture = useCallback(async () => {
-    if (!videoRef.current || multiPassActive) return;
-    
-    // 1. Freeze the frame
-    const { videoWidth, videoHeight } = videoRef.current;
-    if (videoWidth === 0) return;
-
-    const frameCanvas = document.createElement('canvas');
-    frameCanvas.width = videoWidth;
-    frameCanvas.height = videoHeight;
-    const ctx = frameCanvas.getContext('2d');
-    if (!ctx) return;
-    ctx.drawImage(videoRef.current, 0, 0);
-    // Store dimensions before the video element gets unmounted
-    frameDimsRef.current = { w: videoWidth, h: videoHeight };
-
-    const imageDataUrl = frameCanvas.toDataURL('image/jpeg', 0.95);
-    setCapturedImage(imageDataUrl);
-    setMultiPassActive(true);
-    setIsProcessing(true);
-    isDetectingRef.current = true;
-
-    analytics.track('multipass_scan_started');
-
-    let allDetections: FrameDetection[] = [];
-
-    try {
-      // ── PASS 1: Full frame — catches obvious/large bricks ──
-      setPassNumber(1);
-      setLaserDirection('horizontal');
-
-      const pass1Response = await detectBricks(frameCanvas);
-      allDetections = [...pass1Response.detections];
-      console.log(`[MultiPass] Pass 1 (full frame): ${pass1Response.detections.length} detections`);
-      
-      setDetectedObjects(nmsDedup(allDetections));
-      setLastResponse(pass1Response);
-      await new Promise(r => setTimeout(r, 400));
-
-      // ── PASS 2: 6 Overlapping Sectors (3 rows, 2 columns) ──
-      // This is the key pass. Mobile video is tall (e.g. 1080x1920).
-      // YOLO expects square inputs. If we use a 2x2 grid, each chunk is tall and gets severely 
-      // squished by YOLO, hiding edge bricks. A 3x2 grid makes each chunk nearly perfectly square!
-      setPassNumber(2);
-      setLaserDirection('vertical');
-
-      const colW = videoWidth / 2;
-      const rowH = videoHeight / 3;
-      // Increased overlap ensures bricks on boundaries aren't missed
-      const oX = 150; 
-      const oY = 150;
-
-      const sectors = [
-        // Top Row
-        { x: 0, y: 0, w: colW + oX, h: rowH + oY },
-        { x: colW - oX, y: 0, w: colW + oX, h: rowH + oY },
-        // Middle Row
-        { x: 0, y: rowH - oY, w: colW + oX, h: rowH + oY * 2 },
-        { x: colW - oX, y: rowH - oY, w: colW + oX, h: rowH + oY * 2 },
-        // Bottom Row
-        { x: 0, y: rowH * 2 - oY, w: colW + oX, h: rowH + oY },
-        { x: colW - oX, y: rowH * 2 - oY, w: colW + oX, h: rowH + oY },
-      ];
-
-      // Run sectors in pairs to avoid server overload
-      const [s1, s2] = await Promise.all([
-        detectFromRegion(frameCanvas, sectors[0]),
-        detectFromRegion(frameCanvas, sectors[1]),
-      ]);
-      allDetections = [...allDetections, ...s1, ...s2];
-      setDetectedObjects(nmsDedup(allDetections));
-
-      const [s3, s4] = await Promise.all([
-        detectFromRegion(frameCanvas, sectors[2]),
-        detectFromRegion(frameCanvas, sectors[3]),
-      ]);
-      allDetections = [...allDetections, ...s3, ...s4];
-      setDetectedObjects(nmsDedup(allDetections));
-
-      const [s5, s6] = await Promise.all([
-        detectFromRegion(frameCanvas, sectors[4]),
-        detectFromRegion(frameCanvas, sectors[5]),
-      ]);
-      allDetections = [...allDetections, ...s5, ...s6];
-      setDetectedObjects(nmsDedup(allDetections));
-      console.log(`[MultiPass] Pass 2 (6 sectors): +${s1.length + s2.length + s3.length + s4.length + s5.length + s6.length} detections`);
-
-
-      await new Promise(r => setTimeout(r, 300));
-
-      // ── PASS 3: Edge border strips — catches bricks at the outer edges of the camera ──
-      // Bricks at the very edge of the frame often get clipped by quadrant boundaries.
-      // These 4 strips scan the outer 35% of each border at full resolution.
-      setPassNumber(3);
-      setLaserDirection('horizontal');
-
-      const edgeDepthX = Math.floor(videoWidth * 0.35);
-      const edgeDepthY = Math.floor(videoHeight * 0.35);
-
-      const edgeStrips = [
-        // Top strip (full width × top 35%)
-        { x: 0, y: 0, w: videoWidth, h: edgeDepthY },
-        // Bottom strip (full width × bottom 35%)
-        { x: 0, y: videoHeight - edgeDepthY, w: videoWidth, h: edgeDepthY },
-        // Left strip (left 35% × full height)
-        { x: 0, y: 0, w: edgeDepthX, h: videoHeight },
-        // Right strip (right 35% × full height)
-        { x: videoWidth - edgeDepthX, y: 0, w: edgeDepthX, h: videoHeight },
-      ];
-
-      // Run edges in pairs
-      const [edgeTop, edgeBottom] = await Promise.all([
-        detectFromRegion(frameCanvas, edgeStrips[0]),
-        detectFromRegion(frameCanvas, edgeStrips[1]),
-      ]);
-      allDetections = [...allDetections, ...edgeTop, ...edgeBottom];
-
-      const [edgeLeft, edgeRight] = await Promise.all([
-        detectFromRegion(frameCanvas, edgeStrips[2]),
-        detectFromRegion(frameCanvas, edgeStrips[3]),
-      ]);
-      allDetections = [...allDetections, ...edgeLeft, ...edgeRight];
-      setDetectedObjects(nmsDedup(allDetections));
-      console.log(`[MultiPass] Pass 3 (edges): +${edgeTop.length + edgeBottom.length + edgeLeft.length + edgeRight.length} detections`);
-
-      // ── BONUS PASS: White brick boost — darkened frame helps YOLO see white bricks ──
-      try {
-        const darkCanvas = document.createElement('canvas');
-        darkCanvas.width = frameCanvas.width;
-        darkCanvas.height = frameCanvas.height;
-        const darkCtx = darkCanvas.getContext('2d');
-        if (darkCtx) {
-          darkCtx.filter = 'brightness(0.7) contrast(1.3)';
-          darkCtx.drawImage(frameCanvas, 0, 0);
-          const darkDetections = await detectFromRegion(darkCanvas, { x: 0, y: 0, w: darkCanvas.width, h: darkCanvas.height });
-          allDetections = [...allDetections, ...darkDetections];
-          console.log(`[MultiPass] White brick boost: +${darkDetections.length} detections`);
-        }
-      } catch (boostErr) {
-        console.warn('[MultiPass] White brick boost failed:', boostErr);
-      }
-
-    } catch (err) {
-      console.error('[MultiPass] Error during passes:', err);
-    }
-
-    // ── FINAL: deduplication, color correction, and show results ──
-    // Relaxed NMS to 0.60 so tightly clustered/overlapping bricks aren't instantly merged
-    let finalDetections = nmsDedup(allDetections, 0.60);
-    finalDetections = correctBrickColors(finalDetections, frameCanvas);
-    console.log(`[MultiPass] FINAL: ${finalDetections.length} unique bricks (from ${allDetections.length} raw across all passes)`);
-
-    // Now process like the old single-pass did
-    setPhase('results');
-    setMultiPassActive(false);
-    setLaserDirection(null);
-    setPassNumber(0);
-
-    // Defer expensive cropping
-    setTimeout(async () => {
-      try {
-        const capturedBricks = finalDetections.filter(b => (b.prediction.identityConfidence || 0) >= 0.1);
-
-        const enrichedBricks = await Promise.all(capturedBricks.map(async (b, idx) => {
-          let snippet;
-          if (imageDataUrl && idx < 30) {
-            try { snippet = await cropBrickImage(imageDataUrl, b.geometry.bbox); } catch (e) {}
-          }
-          return { ...b, snippet };
-        }));
-
-        setDetectedObjects(enrichedBricks);
-        setSelectedBricks(new Set(capturedBricks.map(b => b.detectionId)));
-        analytics.track('multipass_scan_completed', { brick_count: capturedBricks.length, raw_count: allDetections.length });
-      } catch (err) {
-        console.error("Capture processing failed:", err);
-      } finally {
-        setIsProcessing(false);
-      }
-    }, 100);
-  }, [captureImage, detectedObjects, multiPassActive]);
-
-  const handleSaveSelected = async () => {
-    const bricksToSave = detectedObjects.filter(obj => selectedBricks.has(obj.detectionId));
-    if (bricksToSave.length === 0) return;
-
-    setIsProcessing(true);
-    const userId = localStorage.getItem('hellobrick_userId') || `user_${Date.now()}`;
-    localStorage.setItem('hellobrick_userId', userId);
-
-    try {
-      const bricksWithMetaData = await Promise.all(bricksToSave.map(async (obj) => {
-        const pred = obj.prediction;
-        const bbox = obj.geometry.bbox;
-        const partId = pred.brickPartNum;
-        let brickImage = `https://cdn.rebrickable.com/media/parts/elements/${partId}.jpg`;
-        if (capturedImage) {
-          try { brickImage = await cropBrickImage(capturedImage, bbox); } catch (e) { console.warn('Crop failed:', e); }
-        }
+      case 'bulk_minifig':
         return {
-          id: obj.detectionId,
-          name: pred.brickName,
-          type: 'Part',
-          category: 'Bricks',
-          color: pred.brickColorName,
-          partNumber: partId,
-          confidence: pred.identityConfidence,
-          count: 1,
-          image: brickImage,
-          addedAt: Date.now(),
-          bbox: { x: bbox.xMin, y: bbox.yMin, width: bbox.xMax - bbox.xMin, height: bbox.yMax - bbox.yMin }
+          title: 'Bulk Minifig Scanner',
+          instruction: 'Spread out multiple characters to detect in parallel',
+          actionText: 'Simulate Bulk Scan',
+          progressText: 'DETECTING MULTIPLE ENTITIES...',
+          reticleStyle: 'bulk'
         };
-      }));
-
-      const stored = localStorage.getItem('hellobrick_collection');
-      let existingBricks: any[] = [];
-      if (stored) {
-        try { existingBricks = JSON.parse(stored).bricks || []; } catch { }
-      }
-
-      const brickMap = new Map<string, any>();
-      existingBricks.forEach(b => {
-        const key = `${b.name || b.type}-${b.color}-${b.partNumber}`;
-        brickMap.set(key, { ...b });
-      });
-      bricksWithMetaData.forEach(b => {
-        const key = `${b.name}-${b.color}-${b.partNumber}`;
-        if (brickMap.has(key)) {
-          brickMap.get(key).count = (brickMap.get(key).count || 1) + 1;
-        } else {
-          brickMap.set(key, { ...b });
-        }
-      });
-
-      localStorage.setItem('hellobrick_collection', JSON.stringify({
-        bricks: Array.from(brickMap.values()),
-        lastUpdated: Date.now()
-      }));
-
-      usageService.incrementScanCount();
-      import('../services/xpService').then(({ xpHelpers }) => { xpHelpers.scanDetection(bricksToSave.length, bricksToSave.length); });
-      window.dispatchEvent(new CustomEvent('hellobrick:collection-updated'));
-      
-      // Phase 11 Admin Fix: Record scan telemetry to Supabase 'scans' table via Bridge
-      const avgConf = bricksToSave.length > 0 
-        ? bricksToSave.reduce((acc, b) => acc + (b.prediction?.identityConfidence || 0), 0) / bricksToSave.length 
-        : 0;
-      recordScan(bricksToSave.length, bricksToSave.map(b => b.detectionId), avgConf, lastResponse?.inferenceMs || 0).catch(() => {});
-
-      saveCollectionToSupabase(userId, bricksWithMetaData).catch(() => { });
-
-      confetti({ particleCount: 150, spread: 70, origin: { y: 0.7 }, colors: ['#F59E0B', '#EF4444', '#3B82F6', '#10B981'] });
-      setSaveSuccess(true);
-      setTimeout(() => onNavigate(Screen.COLLECTION), 2000);
-    } catch (error) {
-      console.warn('Failed to save:', error);
-    } finally {
-      setIsProcessing(false);
+      case 'cmf_qr':
+        return {
+          title: 'CMF QR Code Decoder',
+          instruction: 'Position collectible box bottom QR directly in frame',
+          actionText: 'Simulate QR Scan',
+          progressText: 'DECODING MATRIX CODE...',
+          reticleStyle: 'qr'
+        };
+      case 'set':
+      default:
+        return {
+          title: 'Box Art Scanner',
+          instruction: 'Point camera lens at the front box face to identify',
+          actionText: 'Simulate Box Scan',
+          progressText: 'MATCHING CATALOG INDEX...',
+          reticleStyle: 'wide'
+        };
     }
   };
 
+  const labels = getScannerLabels();
+
+  // Progress counter simulation
+  useEffect(() => {
+    if (!isScanning) return;
+    const interval = setInterval(() => {
+      setScanProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          
+          setTimeout(() => {
+            setIsScanning(false);
+            
+            // Match simulation depending on scanning mode
+            if (mode === 'minifig') {
+              const minifig = mockMinifigs.find(m => m.figNum === 'njo0108'); // Lloyd DX
+              if (minifig) {
+                setDetectedResult({
+                  type: 'minifig',
+                  item: minifig,
+                  valuation: {
+                    sealedValue: minifig.resaleValue,
+                    usedValue: minifig.resaleValue,
+                    resaleAvg: minifig.resaleValue,
+                    sealedChange30d: 7.9,
+                    usedChange30d: 7.9,
+                    rarityScore: minifig.rarityScore,
+                    demandScore: minifig.rarityScore,
+                    priceHistory: generatePriceHistory(minifig.resaleValue * 0.9, 12, 'up'),
+                    lastUpdated: new Date().toISOString()
+                  }
+                });
+              }
+            } else if (mode === 'bulk_minifig') {
+              // Match 3 minifigures at once!
+              const minifig1 = mockMinifigs.find(m => m.figNum === 'njo0108'); // Lloyd DX
+              const minifig2 = mockMinifigs.find(m => m.figNum === 'sp124');   // Shuttle Astronaut
+              const minifig3 = mockMinifigs.find(m => m.figNum === 'njo0186'); // Kai Dragon
+              
+              setDetectedResult({
+                type: 'bulk',
+                items: [
+                  { minifig: minifig1, confidence: 99 },
+                  { minifig: minifig2, confidence: 97 },
+                  { minifig: minifig3, confidence: 94 }
+                ]
+              });
+            } else if (mode === 'cmf_qr') {
+              // Match Series Collectible Minifigure
+              const minifig = mockMinifigs.find(m => m.figNum === 'njo0186'); // Kai Dragon
+              if (minifig) {
+                setDetectedResult({
+                  type: 'minifig',
+                  item: minifig,
+                  valuation: {
+                    sealedValue: minifig.resaleValue,
+                    usedValue: minifig.resaleValue,
+                    resaleAvg: minifig.resaleValue,
+                    sealedChange30d: 9.2,
+                    usedChange30d: 9.2,
+                    rarityScore: minifig.rarityScore,
+                    demandScore: minifig.rarityScore,
+                    priceHistory: generatePriceHistory(minifig.resaleValue * 0.95, 12, 'up'),
+                    lastUpdated: new Date().toISOString()
+                  }
+                });
+              }
+            } else {
+              // Match standard box Set (Bookshop)
+              const set = mockSets.find(s => s.setNum === '10270-1');
+              const val = mockValuations.get('10270-1');
+              if (set && val) {
+                setDetectedResult({
+                  type: 'set',
+                  item: set,
+                  valuation: val
+                });
+              }
+            }
+
+            confetti({ 
+              particleCount: 120, 
+              spread: 70, 
+              origin: { y: 0.8 }, 
+              colors: ['#C9A84C', '#FFFFFF', '#3B82F6'] 
+            });
+
+          }, 400);
+          return 100;
+        }
+        return prev + 4;
+      });
+    }, 85);
+    return () => clearInterval(interval);
+  }, [isScanning, mode]);
+
+  // Unified Catalog Debounced search
+  const searchResults = useMemo(() => {
+    if (!search.trim()) return [];
+    const setsFiltered = mockSets.filter(s =>
+      s.name.toLowerCase().includes(search.toLowerCase()) ||
+      s.setNum.toLowerCase().includes(search.toLowerCase())
+    );
+    const figsFiltered = mockMinifigs.filter(f =>
+      f.name.toLowerCase().includes(search.toLowerCase()) ||
+      f.figNum.toLowerCase().includes(search.toLowerCase())
+    );
+
+    return [
+      ...setsFiltered.map(s => ({ ...s, itemType: 'set' })),
+      ...figsFiltered.map(f => ({ ...f, itemType: 'minifig', setNum: f.figNum }))
+    ].slice(0, 5);
+  }, [search]);
+
+  // Bulk Save all detected characters to collection
+  const handleBulkSave = () => {
+    if (!detectedResult || detectedResult.type !== 'bulk') return;
+    const stored = localStorage.getItem('hellobrick_collection_sets');
+    let currentColl = [];
+    if (stored) {
+      try { currentColl = JSON.parse(stored); } catch(e){}
+    }
+
+    const newItems = detectedResult.items.map((entry: any, index: number) => {
+      const m = entry.minifig;
+      return {
+        id: `scan_add_bulk_${Date.now()}_${index}`,
+        userId: 'user-1',
+        setNum: m.figNum,
+        condition: 'used',
+        purchasePrice: m.resaleValue * 0.8,
+        purchaseDate: new Date().toISOString().split('T')[0],
+        addedAt: new Date().toISOString(),
+        notes: 'Sourced via bulk camera scan',
+        itemType: 'minifig',
+        quantity: 1
+      };
+    });
+
+    const updated = [...newItems, ...currentColl];
+    localStorage.setItem('hellobrick_collection_sets', JSON.stringify(updated));
+    setDetectedResult(null);
+    window.dispatchEvent(new CustomEvent('hellobrick:collection-updated'));
+    confetti({ particleCount: 150, spread: 80, origin: { y: 0.8 }, colors: ['#A855F7', '#FFFFFF'] });
+  };
+
+  // Sparkline generator
+  const getSparklinePoints = (history: any[] | undefined, width: number, height: number, condition: string) => {
+    if (!history || history.length === 0) return '';
+    const values = history.map(h => condition === 'sealed' ? h.sealed : h.used);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = max - min || 1;
+
+    const points = history.map((h, i) => {
+      const val = condition === 'sealed' ? h.sealed : h.used;
+      const x = (i / (history.length - 1)) * width;
+      const y = height - ((val - min) / range) * height;
+      return `${x},${y}`;
+    });
+
+    return `M ${points.join(' L ')}`;
+  };
+
   return (
-    <div className="fixed inset-0 bg-black text-white z-50 flex flex-col font-sans">
-      <canvas ref={canvasRef} className="hidden" />
-      <div className="absolute top-[max(env(safe-area-inset-top),16px)] left-0 right-0 px-6 flex justify-between items-center z-50">
-        <button onClick={() => onNavigate(Screen.HOME)} className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/10 text-white shadow-lg active:scale-95 transition-all">
-          <X className="w-5 h-5" />
-        </button>
-        <button className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/10 shadow-lg active:scale-95 transition-all">
-          <Zap className="w-5 h-5" />
-        </button>
+    <div className="flex flex-col h-full bg-[#0D111A] font-sans text-white overflow-hidden relative select-none">
+      {/* Ambient backgrounds */}
+      <div className="absolute top-0 left-1/4 w-80 h-80 rounded-full bg-[#C9A84C]/5 blur-[120px] pointer-events-none z-0" />
+      <div className="absolute bottom-10 right-1/4 w-80 h-80 rounded-full bg-blue-600/5 blur-[120px] pointer-events-none z-0" />
+
+      {/* HEADER SECTION */}
+      <div className="pt-[max(1.5rem,env(safe-area-inset-top))] px-6 pb-4 flex items-center justify-between border-b border-[#2A3144]/40 bg-[#0D111A]/95 backdrop-blur-md z-40 relative">
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => onNavigate(Screen.HOME)}
+            className="w-10 h-10 bg-[#161A2B] border border-[#2A3144] rounded-xl flex items-center justify-center text-slate-400 hover:text-white"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <span className="font-bold text-base text-white">{labels.title}</span>
+        </div>
+        <span className="text-[9px] font-black text-[#C9A84C] border border-[#C9A84C]/35 bg-[#C9A84C]/5 px-2.5 py-1 rounded-full uppercase tracking-wider">
+          LIVE LENS
+        </span>
       </div>
 
-      {(phase === 'preview' || phase === 'scanning') && (
-        <>
-          <div className="relative flex-1 bg-black overflow-hidden" ref={overlayContainerRef}>
-            {hasPermission === false && (
-              <div className="absolute inset-0 flex items-center justify-center text-center p-6 z-50">
-                <div className="bg-black/80 backdrop-blur-md rounded-2xl p-8 max-w-sm">
-                  <AlertCircle className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
-                  <h3 className="text-white font-bold text-lg mb-2">{qualityAdvice || 'Camera Access Required'}</h3>
-                  <button onClick={() => window.location.reload()} className="mt-2 w-full bg-orange-500 text-white font-bold py-3 rounded-lg">Retry</button>
-                </div>
-              </div>
-            )}
-
-            {/* Live video or frozen multi-pass frame */}
-            {multiPassActive && capturedImage ? (
-              <img src={capturedImage} className="absolute inset-0 w-full h-full object-cover opacity-90" alt="Scanning..." />
-            ) : (
-              <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover opacity-90" />
-            )}
-
-            <div className="absolute top-0 left-0 right-0 p-6 pt-[max(env(safe-area-inset-top),2.5rem)] flex items-center justify-between z-50 pointer-events-none">
-                <div className="flex flex-col items-start gap-1">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                    <span className="text-[14px] font-black text-white/90 uppercase tracking-[0.15em]">
-                      {multiPassActive ? `DEEP SCAN ${passNumber}/3` : 'LIVE SCANNER'}
-                    </span>
-                  </div>
-                </div>
-                {/* AI Connection Health */}
-                <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/5 pointer-events-auto">
-                    {apiStatus === 'connected' ? (
-                      <ShieldCheck className="w-3.5 h-3.5 text-green-400" />
-                    ) : apiStatus === 'error' ? (
-                      <ShieldAlert className="w-3.5 h-3.5 text-red-400" />
-                    ) : (
-                      <Shield className="w-3.5 h-3.5 text-white/20 animate-pulse" />
-                    )}
-                    <span className={`text-[9px] font-black uppercase tracking-widest ${apiStatus === 'connected' ? 'text-green-400/80' : apiStatus === 'error' ? 'text-red-400/80' : 'text-white/30'}`}>
-                      {apiStatus === 'connected' ? 'DO: ENCRYPTED' : apiStatus === 'error' ? 'DO: OFFLINE' : 'DO: SYNCING...'}
-                    </span>
-                </div>
-            </div>
-
-            {/* ─── Laser Scan Animation ──────────────────── */}
-            {multiPassActive && laserDirection === 'horizontal' && (
-              <div className="absolute inset-0 pointer-events-none z-40 overflow-hidden">
-                <div
-                  className="absolute left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_20px_rgba(34,211,238,0.6)]"
-                  style={{
-                    animation: 'laserSweepV 2s ease-in-out infinite',
-                  }}
-                />
-                <style>{`
-                  @keyframes laserSweepV {
-                    0% { top: 5%; opacity: 0; }
-                    10% { opacity: 1; }
-                    90% { opacity: 1; }
-                    100% { top: 95%; opacity: 0; }
-                  }
-                `}</style>
-              </div>
-            )}
-            {multiPassActive && laserDirection === 'vertical' && (
-              <div className="absolute inset-0 pointer-events-none z-40 overflow-hidden">
-                <div
-                  className="absolute top-0 bottom-0 w-[3px] bg-gradient-to-b from-transparent via-orange-400 to-transparent shadow-[0_0_20px_rgba(251,146,60,0.6)]"
-                  style={{
-                    animation: 'laserSweepH 2s ease-in-out infinite',
-                  }}
-                />
-                <style>{`
-                  @keyframes laserSweepH {
-                    0% { left: 5%; opacity: 0; }
-                    10% { opacity: 1; }
-                    90% { opacity: 1; }
-                    100% { left: 95%; opacity: 0; }
-                  }
-                `}</style>
-              </div>
-            )}
-
-            {/* Detection overlays */}
-            <div className="absolute inset-0 pointer-events-none overflow-hidden">
-              {detectedObjects.map((obj, i) => {
-                const container = overlayContainerRef.current;
-                if (!container) return null;
-                // Use stored frame dimensions (stable even when <video> is unmounted during multi-pass)
-                const sourceW = multiPassActive ? frameDimsRef.current.w : (videoRef.current?.videoWidth || frameDimsRef.current.w);
-                const sourceH = multiPassActive ? frameDimsRef.current.h : (videoRef.current?.videoHeight || frameDimsRef.current.h);
-                const renderBox = bboxToRenderBox(obj.geometry.bbox, sourceW, sourceH, container.clientWidth, container.clientHeight, 'cover');
-                return (
-                  <div key={obj.detectionId || i} className="absolute" style={{ top: `${renderBox.top}%`, left: `${renderBox.left}%`, width: `${renderBox.width}%`, height: `${renderBox.height}%`, border: '1.5px solid #3B82F6', borderRadius: '6px', backgroundColor: 'rgba(59, 130, 246, 0.05)' }}>
-                    {obj.prediction.identityConfidence > 0.15 && (
-                      <div className="absolute -top-7 left-0 bg-[#3B82F6]/90 backdrop-blur-sm px-2 py-1 rounded-md text-[10px] font-black text-white uppercase truncate">
-                        {brickDetectionService.generationFallbackLabel(obj)}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Capture button - hidden during multi-pass */}
-          {!multiPassActive && (
-            <div className="absolute bottom-32 left-0 right-0 flex items-center justify-center z-50">
-                <button onClick={handleCapture} disabled={isProcessing} className="w-24 h-24 rounded-full border-[6px] border-white flex items-center justify-center group active:scale-95 transition-all shadow-2xl">
-                  <div className="w-[70px] h-[70px] rounded-full bg-white group-active:bg-slate-100 transition-colors shadow-inner" />
+      <div className="flex-1 relative flex flex-col justify-between p-6 z-10 overflow-y-auto no-scrollbar">
+        
+        {/* A. SEARCH BAR INPUT AT TOP */}
+        <div className="relative z-50 mb-4">
+          <div className="bg-[#161A2B] rounded-2xl p-1.5 flex items-center border border-[#2A3144] focus-within:border-[#C9A84C] transition-colors shadow-2xl">
+            <div className="flex-1 flex items-center px-3 gap-3">
+              <Search className="w-4 h-4 text-slate-500" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Search set number, minifig theme..."
+                className="bg-transparent border-none outline-none text-white font-semibold text-xs py-3 w-full placeholder:text-slate-600"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              {search && (
+                <button onClick={() => setSearch('')} className="p-1 hover:text-white text-slate-500">
+                  <X className="w-4 h-4" />
                 </button>
-            </div>
-          )}
-
-          {/* Multi-pass progress indicator */}
-          {multiPassActive && (
-            <div className="absolute bottom-32 left-0 right-0 flex flex-col items-center justify-center z-50 gap-3">
-              <div className="bg-black/60 backdrop-blur-xl px-6 py-3 rounded-2xl border border-white/10 flex items-center gap-3">
-                <div className="w-5 h-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
-                <span className="text-sm font-black text-white uppercase tracking-wider">
-                  Deep Scanning — Pass {passNumber}/3
-                </span>
-              </div>
-              <div className="flex gap-1.5">
-                {[1, 2, 3].map(n => (
-                  <div
-                    key={n}
-                    className={`w-10 h-1 rounded-full transition-all duration-500 ${
-                      n <= passNumber ? 'bg-cyan-400' : 'bg-white/10'
-                    }`}
-                  />
-                ))}
-              </div>
-              <span className="text-[10px] font-bold text-slate-500">
-                {detectedObjects.length} bricks found so far
-              </span>
-            </div>
-          )}
-        </>
-      )}
-
-      {phase === 'results' && (
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Compact image preview — just enough to see the photo, rest is for brick list */}
-          <div className="relative flex-[2] bg-black overflow-hidden min-h-[140px]">
-            {capturedImage && <img id="captured-result-image" src={capturedImage} className="absolute inset-0 w-full h-full object-contain" alt="Captured" />}
-            <div className="absolute inset-0 pointer-events-none">
-              {detectedObjects.map((obj, i) => {
-                const img = document.getElementById('captured-result-image') as HTMLImageElement;
-                if (!img?.parentElement) return null;
-                const renderBox = bboxToRenderBox(obj.geometry.bbox, lastResponse?.frameWidth || frameDimsRef.current.w, lastResponse?.frameHeight || frameDimsRef.current.h, img.parentElement.clientWidth, img.parentElement.clientHeight, 'contain');
-                const isSelected = selectedBricks.has(obj.detectionId);
-                return (
-                  <div key={obj.detectionId || i} className="absolute border-2 rounded-md" style={{ top: `${renderBox.top}%`, left: `${renderBox.left}%`, width: `${renderBox.width}%`, height: `${renderBox.height}%`, borderColor: isSelected ? COLORS[i % COLORS.length] : `${COLORS[i % COLORS.length]}50`, opacity: isSelected ? 1 : 0.4 }} />
-                );
-              })}
+              )}
             </div>
           </div>
-          {/* Brick list — maximized space for 5-6 rows visible */}
-          <div className="flex-[6] bg-slate-900 border-t border-white/10 rounded-t-[24px] -mt-4 px-4 pt-4 pb-2 flex flex-col overflow-hidden">
-            <h2 className="text-base font-black text-white mb-2">{detectedObjects.length} Bricks Found</h2>
-            <div className="flex-1 overflow-y-auto space-y-1.5">
-              {detectedObjects.map((obj, i) => {
-                const isSelected = selectedBricks.has(obj.detectionId);
-                const partNum = obj.prediction.brickPartNum || '3001';
+
+          {/* Debounced Search Dropdown */}
+          {search && (
+            <div className="absolute top-16 left-0 right-0 bg-[#161A2B] border border-[#2A3144] rounded-3xl p-3.5 shadow-3xl space-y-2 mt-1 animate-in fade-in duration-200">
+              <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest px-3 mb-2">
+                UNIFIED INDEX ({searchResults.length})
+              </p>
+              {searchResults.map(entry => {
+                const entryAny = entry as any;
+                const val = entry.itemType === 'minifig' 
+                  ? {
+                      sealedValue: entryAny.resaleValue,
+                      usedValue: entryAny.resaleValue,
+                      resaleAvg: entryAny.resaleValue,
+                      sealedChange30d: 7.9,
+                      usedChange30d: 7.9,
+                      rarityScore: entryAny.rarityScore,
+                      demandScore: entryAny.rarityScore,
+                      priceHistory: generatePriceHistory(entryAny.resaleValue * 0.9, 12, 'up'),
+                      lastUpdated: new Date().toISOString()
+                    }
+                  : mockValuations.get(entry.setNum);
+
                 return (
-                  <div key={obj.detectionId || i} onClick={() => { const s = new Set(selectedBricks); isSelected ? s.delete(obj.detectionId) : s.add(obj.detectionId); setSelectedBricks(s); }} className={`flex gap-2.5 p-2 rounded-lg border cursor-pointer ${isSelected ? 'bg-orange-500/10 border-orange-500/50' : 'bg-white/5 border-white/10'}`}>
-                    <img src={(obj as any).snippet || `https://cdn.rebrickable.com/media/parts/elements/${partNum}.jpg`} className="w-10 h-10 object-contain bg-white rounded-md p-0.5" />
-                    <div className="flex-1 min-w-0 flex items-center justify-between">
-                      <div className="min-w-0">
-                        <p className="font-bold text-[13px] text-white truncate">{brickDetectionService.generationFallbackLabel(obj)}</p>
-                        <p className="text-[9px] text-slate-500">{Math.round(obj.prediction.identityConfidence * 100)}% match</p>
+                  <div
+                    key={entry.id}
+                    onClick={() => {
+                      setSelectedAsset({ set: entry, val });
+                      setSearch('');
+                    }}
+                    className="flex items-center justify-between p-2.5 rounded-xl hover:bg-[#1E233B] cursor-pointer group active:bg-[#1E233B]"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-[#0D111A] rounded-lg flex items-center justify-center border border-[#2A3144] overflow-hidden">
+                        <img src={entry.imageUrl} alt={entry.name} className="w-8 h-8 object-contain" />
                       </div>
-                      <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${isSelected ? 'border-orange-500 bg-orange-500' : 'border-white/20'}`}>
-                        {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
+                      <div className="text-left">
+                        <h4 className="font-black text-white text-xs truncate max-w-[150px]">{entry.name}</h4>
+                        <span className="text-[9px] font-mono text-slate-500">
+                          #{entry.setNum.split('-')[0]} · {entry.theme} ({entry.itemType})
+                        </span>
                       </div>
                     </div>
+                    <ChevronRight className="w-4 h-4 text-slate-600 group-hover:translate-x-0.5 transition-transform" />
                   </div>
                 );
               })}
+              {searchResults.length === 0 && (
+                <p className="text-center text-xs text-slate-500 py-4 font-bold">No catalog item matched this query.</p>
+              )}
             </div>
-            <div className="pt-3 pb-[max(env(safe-area-inset-bottom),8rem)] flex gap-3">
-              <button onClick={() => setPhase('scanning')} className="flex-1 py-3 rounded-2xl bg-white/5 text-white font-bold text-sm">Rescan</button>
-              <button onClick={handleSaveSelected} className="flex-[2] py-3 rounded-2xl bg-orange-500 text-white font-bold text-sm">Add {selectedBricks.size} to Collection</button>
+          )}
+        </div>
+
+        {/* B. SIMULATED CAMERA VIEWPORT CONTROLS */}
+        {!isScanning && !detectedResult && (
+          <div className="flex-1 flex flex-col items-center justify-center my-4 relative">
+            
+            {/* HOLOGRAPHIC CAMERA TARGETING GRID BASED ON SELECTOR MODE */}
+            {labels.reticleStyle === 'capsule' && (
+              /* MINIFIG: Vertical capsule target */
+              <div className="w-48 h-72 border-2 border-dashed border-[#C9A84C]/35 rounded-[48px] flex items-center justify-center relative bg-gradient-to-tr from-[#C9A84C]/5 to-transparent shadow-3xl overflow-hidden group">
+                <div className="absolute top-6 left-6 w-6 h-6 border-t-4 border-l-4 border-[#C9A84C]/65 rounded-tl-lg" />
+                <div className="absolute top-6 right-6 w-6 h-6 border-t-4 border-r-4 border-[#C9A84C]/65 rounded-tr-lg" />
+                <div className="absolute bottom-6 left-6 w-6 h-6 border-b-4 border-l-4 border-[#C9A84C]/65 rounded-bl-lg" />
+                <div className="absolute bottom-6 right-6 w-6 h-6 border-b-4 border-r-4 border-[#C9A84C]/65 rounded-br-lg" />
+                <Camera className="w-12 h-12 text-[#C9A84C]/45 animate-pulse" />
+                <div className="absolute left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-[#C9A84C]/70 to-transparent animate-bounce top-1/2" />
+              </div>
+            )}
+
+            {labels.reticleStyle === 'wide' && (
+              /* SET: Wide horizontal box target */
+              <div className="w-72 h-52 border-2 border-dashed border-blue-500/35 rounded-[32px] flex items-center justify-center relative bg-gradient-to-tr from-blue-500/5 to-transparent shadow-3xl overflow-hidden group">
+                <div className="absolute top-5 left-5 w-6 h-6 border-t-4 border-l-4 border-blue-500/65 rounded-tl-lg" />
+                <div className="absolute top-5 right-5 w-6 h-6 border-t-4 border-r-4 border-blue-500/65 rounded-tr-lg" />
+                <div className="absolute bottom-5 left-5 w-6 h-6 border-b-4 border-l-4 border-blue-500/65 rounded-bl-lg" />
+                <div className="absolute bottom-5 right-5 w-6 h-6 border-b-4 border-r-4 border-blue-500/65 rounded-br-lg" />
+                <Camera className="w-12 h-12 text-blue-500/45 animate-pulse" />
+                <div className="absolute left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-blue-500/70 to-transparent animate-bounce top-1/2" />
+              </div>
+            )}
+
+            {labels.reticleStyle === 'bulk' && (
+              /* BULK: Multiple coordinate tracer bounding boxes */
+              <div className="w-68 h-68 border border-white/5 rounded-3xl flex items-center justify-center relative bg-[#161A2B]/20 shadow-2xl overflow-hidden">
+                {/* 3 mock active tracking grids bouncing in reticle */}
+                <div className="absolute top-8 left-8 w-20 h-20 border border-purple-500/50 bg-purple-500/5 rounded-2xl flex flex-col justify-between p-1.5 animate-pulse">
+                  <div className="text-[7px] font-mono text-purple-400 font-bold">LENS A: DETECTING</div>
+                  <div className="self-end text-[8px] font-mono text-purple-400 font-black">98%</div>
+                </div>
+                <div className="absolute bottom-10 right-6 w-24 h-24 border border-purple-500/50 bg-purple-500/5 rounded-2xl flex flex-col justify-between p-1.5 animate-pulse" style={{ animationDelay: '300ms' }}>
+                  <div className="text-[7px] font-mono text-purple-400 font-bold">LENS B: DETECTING</div>
+                  <div className="self-end text-[8px] font-mono text-purple-400 font-black">94%</div>
+                </div>
+                <div className="absolute top-20 right-8 w-16 h-16 border border-purple-500/30 bg-purple-500/5 rounded-xl flex flex-col justify-between p-1.5 animate-pulse" style={{ animationDelay: '600ms' }}>
+                  <div className="text-[7px] font-mono text-purple-400 font-bold">LENS C</div>
+                  <div className="self-end text-[8px] font-mono text-purple-400 font-black">91%</div>
+                </div>
+                <Camera className="w-12 h-12 text-purple-500/30" />
+              </div>
+            )}
+
+            {labels.reticleStyle === 'qr' && (
+              /* QR SCAN: Centered precision square targeting */
+              <div className="w-56 h-56 border-2 border-dashed border-orange-500/35 rounded-2xl flex items-center justify-center relative bg-gradient-to-tr from-orange-500/5 to-transparent shadow-3xl overflow-hidden">
+                <div className="absolute top-4 left-4 w-5 h-5 border-t-4 border-l-4 border-orange-500/65" />
+                <div className="absolute top-4 right-4 w-5 h-5 border-t-4 border-r-4 border-orange-500/65" />
+                <div className="absolute bottom-4 left-4 w-5 h-5 border-b-4 border-l-4 border-orange-500/65" />
+                <div className="absolute bottom-4 right-4 w-5 h-5 border-b-4 border-r-4 border-orange-500/65" />
+                
+                <QrCode className="w-16 h-16 text-orange-500/30" />
+                <div className="absolute left-4 right-4 h-0.5 bg-orange-500/60 animate-bounce top-1/2" />
+              </div>
+            )}
+
+            <div className="text-center max-w-[250px] mt-6">
+              <h3 className="font-black text-white text-xs uppercase tracking-widest">{labels.title}</h3>
+              <p className="text-xs text-slate-500 mt-2 font-bold leading-normal">
+                {labels.instruction}
+              </p>
+            </div>
+
+            <button
+              onClick={handleStartScan}
+              className={`mt-6 font-black w-52 py-4 rounded-full text-xs uppercase tracking-widest active:scale-95 transition-all shadow-xl flex items-center justify-center gap-2 ${
+                mode === 'minifig' 
+                  ? 'bg-[#C9A84C] text-[#0D111A] shadow-[#C9A84C]/5' 
+                  : mode === 'bulk_minifig'
+                    ? 'bg-purple-600 text-white shadow-purple-600/5'
+                    : mode === 'cmf_qr'
+                      ? 'bg-orange-600 text-white shadow-orange-600/5'
+                      : 'bg-blue-600 text-white shadow-blue-600/5'
+              }`}
+            >
+              <Scan className="w-4 h-4" strokeWidth={2.5} />
+              {labels.actionText}
+            </button>
+          </div>
+        )}
+
+        {/* C. SCANNING PROGRESS VIEW */}
+        {isScanning && (
+          <div className="flex-1 flex flex-col items-center justify-center my-4">
+            <div className={`w-64 h-64 border-2 rounded-[36px] flex flex-col items-center justify-center relative bg-[#161A2B]/40 shadow-inner overflow-hidden ${
+              mode === 'minifig' ? 'border-[#C9A84C]' : mode === 'bulk_minifig' ? 'border-purple-500' : mode === 'cmf_qr' ? 'border-orange-500' : 'border-blue-500'
+            }`}>
+              <div className="absolute inset-0 bg-white/[0.02] animate-pulse" />
+              
+              <div className="w-20 h-20 border-4 border-t-transparent rounded-full animate-spin flex items-center justify-center" style={{ 
+                borderColor: mode === 'minifig' ? '#C9A84C' : mode === 'bulk_minifig' ? '#A855F7' : mode === 'cmf_qr' ? '#F97316' : '#3B82F6',
+                borderTopColor: 'transparent'
+              }}>
+                <Camera className="w-6 h-6 text-white" />
+              </div>
+              <span className="font-mono text-base font-black text-white mt-6">{scanProgress}%</span>
+              <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest mt-1">
+                {labels.progressText}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* D. SINGLE DETECTED SPEC VIEW */}
+        {detectedResult && (detectedResult.type === 'set' || detectedResult.type === 'minifig') && (
+          <div className="flex-1 flex flex-col items-center justify-center my-4">
+            <div className="bg-[#161A2B] border border-[#2A3144] rounded-[36px] p-6 text-center max-w-[280px] shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-[#C9A84C]/5 blur-xl rounded-full" />
+              <div className="w-28 h-28 bg-[#0D111A] rounded-2xl flex items-center justify-center mx-auto border border-[#2A3144]/65 overflow-hidden mb-4 p-2">
+                <img src={detectedResult.item.imageUrl} className="w-20 h-20 object-contain" alt="thumbnail" />
+              </div>
+              
+              <span className="text-[8px] font-black text-[#C9A84C] border border-[#C9A84C]/35 bg-[#C9A84C]/5 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                MATCH FOUND (99%)
+              </span>
+              <h4 className="font-black text-white text-sm mt-3.5 leading-tight">{detectedResult.item.name}</h4>
+              <p className="text-[9px] font-mono text-slate-500 mt-1 font-bold">
+                #{detectedResult.item.setNum || detectedResult.item.figNum}
+              </p>
+              
+              <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-[#2A3144]/40">
+                <div className="text-left font-mono">
+                  <span className="text-[8px] font-black font-sans text-slate-500 uppercase block">Sealed Val</span>
+                  <span className="text-xs font-black text-emerald-400 block mt-0.5">${detectedResult.valuation.sealedValue}</span>
+                </div>
+                <div className="text-right font-mono">
+                  <span className="text-[8px] font-black font-sans text-slate-500 uppercase block">Used Val</span>
+                  <span className="text-xs font-black text-slate-300 block mt-0.5">${detectedResult.valuation.usedValue}</span>
+                </div>
+              </div>
+
+              <div className="flex gap-2.5 mt-5">
+                <button
+                  onClick={() => {
+                    setSelectedAsset({ set: detectedResult.item, val: detectedResult.valuation });
+                    setDetectedResult(null);
+                  }}
+                  className="flex-1 bg-[#C9A84C] text-[#0D111A] font-black py-3 rounded-xl text-[10px] uppercase tracking-wider active:scale-95 transition-all shadow-md"
+                >
+                  Valuate Asset
+                </button>
+                <button
+                  onClick={() => setDetectedResult(null)}
+                  className="py-3 px-4 bg-white/5 border border-white/10 rounded-xl text-slate-400 font-black text-[10px] uppercase tracking-wider active:scale-95"
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* E. BULK DETECTED CHARACTERS INDEX */}
+        {detectedResult && detectedResult.type === 'bulk' && (
+          <div className="flex-1 flex flex-col items-center justify-center my-4">
+            <div className="bg-[#161A2B] border border-[#2A3144] rounded-[36px] p-5 w-full max-w-sm shadow-2xl relative overflow-hidden text-left">
+              <div className="flex justify-between items-center mb-4">
+                <span className="text-[8px] font-black text-purple-400 border border-purple-500/35 bg-purple-500/5 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                  BULK DETECTED ({detectedResult.items.length})
+                </span>
+                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest font-mono">Real-time scan</span>
+              </div>
+
+              <div className="space-y-2.5 mb-5 max-h-56 overflow-y-auto no-scrollbar">
+                {detectedResult.items.map((entry: any, index: number) => {
+                  const m = entry.minifig;
+                  return (
+                    <div key={index} className="bg-[#0D111A]/90 border border-white/5 p-3 rounded-xl flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-white/[0.01] rounded-lg flex items-center justify-center border border-white/5 p-1 overflow-hidden shrink-0">
+                          <img src={m.imageUrl} className="w-8 h-8 object-contain" alt="" />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="font-black text-xs text-white truncate max-w-[130px]">{m.name}</h4>
+                          <span className="text-[9px] font-mono text-slate-500">#{m.figNum} · {m.theme}</span>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="font-mono text-xs font-black text-emerald-400 block">${m.resaleValue}</span>
+                        <span className="text-[7px] font-bold text-slate-500 block font-sans">Conf. {entry.confidence}%</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={handleBulkSave}
+                  className="flex-1 bg-purple-600 text-white font-black py-4.5 rounded-2xl text-xs uppercase tracking-wider active:scale-95 transition-all shadow-lg shadow-purple-600/10 flex items-center justify-center gap-2"
+                >
+                  <Check className="w-4 h-4" />
+                  Secure All to Vault
+                </button>
+                <button
+                  onClick={() => setDetectedResult(null)}
+                  className="px-4 py-4.5 bg-white/5 border border-white/10 rounded-2xl text-slate-400 font-black text-xs uppercase tracking-wider active:scale-95"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* F. BOTTOM SLIDE DRAWER DETAILS POPUP */}
+      {selectedAsset && selectedAsset.set && selectedAsset.val && (
+        <div className="fixed inset-0 z-[99999] flex items-end justify-center px-4 pb-8">
+          <div className="absolute inset-0 bg-black/85 backdrop-blur-md" onClick={() => setSelectedAsset(null)} />
+          <div className="bg-[#0A0F1E] border border-white/10 w-full max-w-md rounded-[42px] p-8 relative z-10 animate-in slide-in-from-bottom-10 shadow-3xl overflow-hidden text-left">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-[#C9A84C]/5 blur-3xl rounded-full" />
+            <button onClick={() => setSelectedAsset(null)} className="absolute top-6 right-6 text-slate-500 hover:text-white transition-colors p-2">
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex flex-col items-center mb-5">
+              <div className="w-40 h-40 bg-white/[0.02] rounded-[32px] flex items-center justify-center mb-4 relative border border-white/5 p-3">
+                <img
+                  src={selectedAsset.set.imageUrl}
+                  className="w-28 h-28 object-contain drop-shadow-[0_20px_30px_rgba(0,0,0,0.6)]"
+                  alt=""
+                />
+                {selectedAsset.set.year && selectedAsset.set.year < 2022 && (
+                  <span className="absolute top-3 right-3 bg-rose-500/20 border border-rose-500/40 text-rose-400 text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shadow-lg">
+                    Retired
+                  </span>
+                )}
+              </div>
+              <div className="w-full text-center px-2">
+                <h3 className="text-xl font-black text-white leading-tight tracking-tight">{selectedAsset.set.name}</h3>
+                <p className="text-[11px] font-mono text-slate-500 mt-1 font-bold">
+                  #{selectedAsset.set.setNum || selectedAsset.set.figNum} · {selectedAsset.set.theme} · {selectedAsset.set.year}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 mb-5">
+              <div className="bg-[#161A2B] border border-[#2A3144] rounded-2xl p-3 text-center">
+                <span className="text-[8px] font-black text-slate-500 uppercase tracking-wider block">Sealed</span>
+                <span className="text-xs font-mono font-black text-white mt-1 block">${selectedAsset.val.sealedValue}</span>
+                <span className="text-[8px] font-mono text-emerald-400 font-bold block mt-0.5">+{selectedAsset.val.sealedChange30d}%</span>
+              </div>
+              <div className="bg-[#161A2B] border border-[#2A3144] rounded-2xl p-3 text-center">
+                <span className="text-[8px] font-black text-slate-500 uppercase tracking-wider block">Used</span>
+                <span className="text-xs font-mono font-black text-white mt-1 block">${selectedAsset.val.usedValue}</span>
+                <span className="text-[8px] font-mono text-emerald-400 font-bold block mt-0.5">+{selectedAsset.val.usedChange30d}%</span>
+              </div>
+              <div className="bg-[#161A2B] border border-[#2A3144] rounded-2xl p-3 text-center text-slate-300">
+                <span className="text-[8px] font-black text-slate-500 uppercase tracking-wider block">Avg Resale</span>
+                <span className="text-xs font-mono font-black text-[#C9A84C] mt-1 block">${selectedAsset.val.resaleAvg}</span>
+                <span className="text-[8px] text-slate-500 font-bold block mt-0.5">ESTIMATED</span>
+              </div>
+            </div>
+
+            {/* Quick adding / monitoring actions */}
+            <div className="space-y-3.5">
+              <button
+                onClick={() => {
+                  const stored = localStorage.getItem('hellobrick_collection_sets');
+                  let currentCollection = [];
+                  if (stored) {
+                    try { currentCollection = JSON.parse(stored); } catch(e){}
+                  }
+                  
+                  const isMinifig = selectedAsset.set.figNum ? true : (selectedAsset.set.itemType === 'minifig');
+
+                  const newItem: CollectionItem = {
+                    id: `scan_add_${Date.now()}`,
+                    userId: 'user-1',
+                    setNum: selectedAsset.set.setNum || selectedAsset.set.figNum,
+                    condition: 'used',
+                    purchasePrice: selectedAsset.val.usedValue * 0.9,
+                    purchaseDate: new Date().toISOString().split('T')[0],
+                    addedAt: new Date().toISOString(),
+                    notes: 'Identified via camera scan',
+                    itemType: isMinifig ? 'minifig' : 'set',
+                    quantity: 1
+                  };
+                  const updated = [newItem, ...currentCollection];
+                  localStorage.setItem('hellobrick_collection_sets', JSON.stringify(updated));
+                  setSelectedAsset(null);
+                  window.dispatchEvent(new CustomEvent('hellobrick:collection-updated'));
+                  confetti({ particleCount: 120, spread: 75, origin: { y: 0.8 }, colors: ['#C9A84C', '#FFFFFF'] });
+                }}
+                className="w-full bg-[#C9A84C] text-[#0D111A] font-black py-4.5 rounded-2xl active:scale-95 transition-all text-xs uppercase tracking-[0.15em] flex items-center justify-center gap-2 shadow-xl shadow-[#C9A84C]/10"
+              >
+                Secure to Vault
+              </button>
+
+              <button
+                onClick={() => {
+                  const stored = localStorage.getItem('hellobrick_wishlist_sets');
+                  let currentWishlist = [];
+                  if (stored) {
+                    try { currentWishlist = JSON.parse(stored); } catch(e){}
+                  }
+                  
+                  const isMinifig = selectedAsset.set.figNum ? true : (selectedAsset.set.itemType === 'minifig');
+
+                  const newItem: WishlistItem = {
+                    id: `scan_wish_${Date.now()}`,
+                    userId: 'user-1',
+                    setNum: selectedAsset.set.setNum || selectedAsset.set.figNum,
+                    targetPrice: selectedAsset.val.sealedValue * 0.85,
+                    addedAt: new Date().toISOString(),
+                    itemType: isMinifig ? 'minifig' : 'set',
+                    alertEnabled: true
+                  };
+                  const updated = [newItem, ...currentWishlist];
+                  localStorage.setItem('hellobrick_wishlist_sets', JSON.stringify(updated));
+                  setSelectedAsset(null);
+                  confetti({ particleCount: 80, spread: 60, origin: { y: 0.8 }, colors: ['#3B5998', '#FFFFFF'] });
+                }}
+                className="w-full bg-[#161A2B] border border-[#2A3144] hover:bg-[#1E233B] text-[#C9A84C] font-black py-4.5 rounded-2xl active:scale-95 transition-all text-xs uppercase tracking-[0.15em] flex items-center justify-center gap-2"
+              >
+                <Bell className="w-4 h-4" />
+                Deploy Price Monitor
+              </button>
             </div>
           </div>
         </div>
       )}
-      {isProcessing && !multiPassActive && <div className="absolute inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center"><div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" /></div>}
     </div>
   );
 };

@@ -41,8 +41,8 @@ Create two subscriptions in your group:
 - **Reference Name**: HelloBrick Pro Annual
 - **Product ID**: `com.hellobrick.pro.annual`
 - **Subscription Duration**: 1 Year
-- **Price**: $29.99/year (or your chosen price)
-- **Free Trial**: 14 days
+- **Price**: $49.99/year (or your chosen price)
+- **Free Trial**: 3 days
 - **Localizations**: Add description and display name
 
 #### Monthly Subscription (Optional)
@@ -50,7 +50,7 @@ Create two subscriptions in your group:
 - **Product ID**: `com.hellobrick.pro.monthly`
 - **Subscription Duration**: 1 Month
 - **Price**: $4.99/month (or your chosen price)
-- **Free Trial**: 14 days
+- **Free Trial**: 3 days
 - **Localizations**: Add description and display name
 
 ### 2c. Submit for Review

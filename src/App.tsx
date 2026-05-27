@@ -8,6 +8,7 @@ import { OnboardingQuestionnaire } from './screens/OnboardingQuestionnaire';
 import { HomeScreen } from './screens/HomeScreen';
 import { ScannerScreen } from './screens/ScannerScreen';
 import { CollectionScreen } from './screens/CollectionScreen';
+import { WishlistScreen } from './screens/WishlistScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { QuestsScreen } from './screens/QuestsScreen';
 import { PuzzlesScreen } from './screens/PuzzlesScreen';
@@ -33,6 +34,9 @@ import { FeatureIntroScreen } from './screens/FeatureIntroScreen';
 import { NotificationsIntroScreen } from './screens/NotificationsIntroScreen';
 import { EmailAuthScreen } from './screens/EmailAuthScreen';
 import { AdminDashboardScreen } from './screens/AdminDashboardScreen';
+import { SetDetailScreen } from './screens/SetDetailScreen';
+import { PortfolioAnalyticsScreen } from './screens/PortfolioAnalyticsScreen';
+import { LegoMapScreen } from './screens/LegoMapScreen';
 import { BottomNav } from './components/BottomNav';
 import { BootingScreen } from './components/BootingScreen';
 import { appStateService } from './services/appStateService';
@@ -254,9 +258,17 @@ const App: React.FC = () => {
       case Screen.HOME:
         return <HomeScreen onNavigate={handleNavigate} />;
       case Screen.SCANNER:
-        return <ScannerScreen onNavigate={handleNavigate} />;
+        return <ScannerScreen onNavigate={handleNavigate} focusSearch={screenParams?.focusSearch} mode={screenParams?.mode} />;
       case Screen.COLLECTION:
-        return <CollectionScreen onNavigate={handleNavigate} />;
+        return <CollectionScreen onNavigate={handleNavigate} highlightSet={screenParams?.highlightSet} />;
+      case Screen.WISHLIST:
+        return <WishlistScreen onNavigate={handleNavigate} />;
+      case Screen.SET_DETAIL:
+        return <SetDetailScreen onNavigate={handleNavigate} setNum={screenParams?.setNum} />;
+      case Screen.PORTFOLIO_ANALYTICS:
+        return <PortfolioAnalyticsScreen onNavigate={handleNavigate} />;
+      case Screen.LEGO_MAP:
+        return <LegoMapScreen onNavigate={handleNavigate} />;
       case Screen.PROFILE:
         return <ProfileScreen onNavigate={handleNavigate} />;
       case Screen.PROFILE_SETTINGS:
@@ -328,7 +340,7 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
-      {[Screen.HOME, Screen.SCANNER, Screen.COLLECTION, Screen.PROFILE, Screen.FEED, Screen.PUZZLES, Screen.TRAINING, Screen.QUESTS, Screen.LEADERBOARD, Screen.MY_CREATIONS, Screen.IDEAS, Screen.NOTIFICATIONS_INTRO].includes(currentScreen) && showNav && (
+      {[Screen.HOME, Screen.SCANNER, Screen.COLLECTION, Screen.WISHLIST, Screen.SET_DETAIL, Screen.PORTFOLIO_ANALYTICS, Screen.LEGO_MAP, Screen.PROFILE, Screen.PUZZLES, Screen.TRAINING, Screen.QUESTS, Screen.LEADERBOARD, Screen.MY_CREATIONS, Screen.IDEAS, Screen.NOTIFICATIONS_INTRO].includes(currentScreen) && showNav && (
         <BottomNav currentScreen={currentScreen} onNavigate={handleNavigate} />
       )}
     </div>

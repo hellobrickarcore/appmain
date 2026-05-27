@@ -136,6 +136,7 @@ export const RewardsScreen: React.FC<RewardsScreenProps> = ({ onNavigate }) => {
              </p>
           </div>
         </div>
+        </div>
       </div>
     </div>
   );

@@ -3,7 +3,7 @@ console.log('--- GEMINI IMAGE SERVICE V3.0 (HARD FIX) ---');
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_GEMINI_BACKUP_KEY;
 
-export async function generateIdeaImage(prompt: string) {
+export async function generateIdeaImage(prompt: string, ideaName?: string) {
   const models = [
     "gemini-2.5-flash-image",
     "gemini-3.1-flash-image-preview"

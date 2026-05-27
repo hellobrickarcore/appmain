@@ -19,7 +19,8 @@ export const InstructionsScreen: React.FC<InstructionsScreenProps> = ({ onNaviga
             const steps = [];
             
             // Generate basic step-by-step logic
-            const buildableParts = setDetails.bricks.filter(b => (b.owned || 0) > 0);
+            // Generate basic step-by-step logic
+            const buildableParts = setDetails.bricks.filter(b => (b.count || 0) > 0);
             
             if (buildableParts.length === 0) {
                  steps.push({ text: "You don't have any parts to start building yet!", parts: [] });
@@ -78,7 +79,7 @@ export const InstructionsScreen: React.FC<InstructionsScreenProps> = ({ onNaviga
                                  </div>
                                  <div className="flex-1">
                                     <div className="font-bold text-white mb-1">{p.name || 'Accessory Part'}</div>
-                                    <div className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">{p.color} • x{p.owned}</div>
+                                    <div className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">{p.color} • x{p.count}</div>
                                  </div>
                                  <CheckCircle2 className="w-6 h-6 text-green-500" />
                              </div>

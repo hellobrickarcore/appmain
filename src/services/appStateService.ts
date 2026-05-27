@@ -161,7 +161,10 @@ class AppStateService {
       Screen.QUESTS,
       Screen.PROFILE,
       Screen.LEADERBOARD,
-      Screen.MY_CREATIONS
+      Screen.MY_CREATIONS,
+      Screen.SET_DETAIL,
+      Screen.PORTFOLIO_ANALYTICS,
+      Screen.LEGO_MAP
     ];
     if (!isAuthenticated && !publicScreens.includes(screen)) {
       console.log(`[AppState] Auth lock active for ${screen}`);
