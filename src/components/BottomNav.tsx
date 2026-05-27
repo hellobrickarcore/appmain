@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Scan, User, LayoutGrid } from 'lucide-react';
+import { Home, Scan, Heart, LayoutGrid } from 'lucide-react';
 import { Screen } from '../types';
 
 interface BottomNavProps {
@@ -34,11 +34,12 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentScreen, onNavigate 
           <LayoutGrid className={getIconClass(Screen.COLLECTION)} />
         </button>
 
-        <button onClick={() => onNavigate(Screen.PROFILE)} className="p-4 relative group">
-          <div className={`absolute inset-0 bg-[#C9A84C]/10 rounded-2xl blur-xl transition-opacity duration-300 ${isActive(Screen.PROFILE) ? 'opacity-100' : 'opacity-0'}`} />
-          <User className={getIconClass(Screen.PROFILE)} />
+        <button onClick={() => onNavigate(Screen.WISHLIST)} className="p-4 relative group">
+          <div className={`absolute inset-0 bg-[#C9A84C]/10 rounded-2xl blur-xl transition-opacity duration-300 ${isActive(Screen.WISHLIST) ? 'opacity-100' : 'opacity-0'}`} />
+          <Heart className={getIconClass(Screen.WISHLIST)} />
         </button>
       </div>
     </div>
   );
 };
+
