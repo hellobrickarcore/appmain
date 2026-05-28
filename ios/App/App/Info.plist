@@ -53,6 +53,8 @@
     <string>We need permission to save photos of your brick builds to your library.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>We need microphone access for video recording and analysis.</string>
+    <key>NSUserTrackingUsageDescription</key>
+    <string>We use this to analyze app performance and improve your experience.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
