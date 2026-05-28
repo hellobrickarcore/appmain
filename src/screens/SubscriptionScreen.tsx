@@ -120,6 +120,14 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
         <div className="absolute top-[-35%] left-1/2 -translate-x-1/2 w-[160%] aspect-square rounded-full bg-gradient-to-b from-[#FFD600] to-white/50 opacity-50" />
         <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[120%] aspect-square rounded-full bg-gradient-to-b from-[#FFD600] to-[#FFF9C4]" />
         
+        {/* Skip button top right */}
+        <button 
+          onClick={attemptDismiss}
+          className="absolute top-[max(env(safe-area-inset-top),20px)] right-6 z-20 text-slate-800/50 hover:text-slate-800 font-bold text-xs uppercase tracking-wider p-2"
+        >
+          Skip
+        </button>
+
         {/* Mascot - Standardised */}
         <Logo size="lg" showText={false} className="mt-8 relative z-10" />
       </div>
