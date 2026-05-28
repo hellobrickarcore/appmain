@@ -44,6 +44,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
   }, []);
 
   const { totalValue, totalCost } = useMemo(() => {
+    if (collection.length === 0) return { totalValue: 0, totalCost: 0 };
     if (!sets.length && !collection.length) return { totalValue: 0, totalCost: 0 };
     let val = 0;
     let cost = 0;

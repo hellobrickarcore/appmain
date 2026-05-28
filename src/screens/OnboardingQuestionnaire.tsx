@@ -56,65 +56,45 @@ export const OnboardingQuestionnaire: React.FC = () => {
   const slides = [
     {
       tag: 'Onboarding',
-      headline: 'Your LEGO\nCollection Is\nSecretly Worth\nThousands',
-      sub: 'HelloBrick — a collector\'s premium dark character mode',
+      headline: 'Visual.\nScanner.\nLive.',
+      sub: 'HelloBrick — Identify and value any LEGO brick or set in seconds.',
       cta: 'Start Scanning Free',
       content: (
-        <div className="flex-1 flex items-center justify-center py-6">
-          <div className="relative w-64 h-64 flex items-center justify-center">
-            {/* Price tags floating */}
-            <div className="absolute top-0 left-4 rotate-[-20deg] bg-[#2A2A2A] border border-white/10 rounded-xl px-3 py-1.5 shadow-xl">
-              <span className="text-white font-black text-sm">Y29</span>
-            </div>
-            <div className="absolute top-8 right-2 rotate-[15deg] bg-[#2A2A2A] border border-white/10 rounded-xl px-3 py-1.5 shadow-xl">
-              <span className="text-white font-black text-sm">Y29</span>
-            </div>
-            <div className="absolute bottom-4 left-0 rotate-[-10deg] bg-[#2A2A2A] border border-white/10 rounded-xl px-3 py-1.5 shadow-xl opacity-70">
-              <span className="text-white font-black text-sm">Y20</span>
-            </div>
-            <div className="absolute top-16 left-0 rotate-[5deg] bg-[#2A2A2A] border border-white/10 rounded-xl px-3 py-1.5 shadow-xl opacity-50">
-              <span className="text-white font-black text-sm">Y20</span>
-            </div>
-            {/* Minifigs from Rebrickable */}
-            <img
-              src="https://cdn.rebrickable.com/media/sets/71394-12.jpg"
-              alt="LEGO Minifigs"
-              className="w-56 h-40 object-contain drop-shadow-2xl"
-              onError={e => { e.currentTarget.src = 'https://cdn.rebrickable.com/media/sets/71396-9.jpg'; }}
-            />
+        <div className="flex-1 flex flex-col items-center justify-center py-6">
+          <div className="w-48 h-48 bg-gradient-to-tr from-[#1A1A1A] to-[#2A2A2A] rounded-[40px] shadow-2xl border border-white/10 flex items-center justify-center relative overflow-hidden group">
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20 mix-blend-overlay" />
+            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
+            <Zap className="w-16 h-16 text-emerald-400 opacity-80" />
+            
+            {/* Minimalist scanner corner markers */}
+            <div className="absolute top-4 left-4 w-4 h-4 border-t-2 border-l-2 border-emerald-500/50" />
+            <div className="absolute top-4 right-4 w-4 h-4 border-t-2 border-r-2 border-emerald-500/50" />
+            <div className="absolute bottom-4 left-4 w-4 h-4 border-b-2 border-l-2 border-emerald-500/50" />
+            <div className="absolute bottom-4 right-4 w-4 h-4 border-b-2 border-r-2 border-emerald-500/50" />
           </div>
         </div>
       )
     },
     {
       tag: 'Scanner',
-      headline: 'Scan Any Set\nSee Its Real\nValue Instantly',
-      sub: 'Point the camera at any LEGO box. Our AI scanner catalogs and values it in seconds.',
+      headline: 'Real-Time\nMarket\nPrices',
+      sub: 'We track global secondary markets so you know exactly what your collection is worth.',
       cta: 'Continue',
       content: (
-        <div className="flex-1 flex items-center justify-center py-4">
-          <div className="relative w-56 h-56 rounded-3xl overflow-hidden border-2 border-dashed border-emerald-400/40 bg-slate-900/50 flex items-center justify-center shadow-2xl">
-            <img
-              src="https://cdn.rebrickable.com/media/sets/75292-1.jpg"
-              alt="Lego Razor Crest"
-              className="w-full h-full object-cover opacity-70"
-            />
-            {/* Scan line */}
-            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent animate-bounce" style={{ top: '50%' }} />
-            {/* Corner brackets */}
-            <div className="absolute top-4 left-4 w-6 h-6 border-t-4 border-l-4 border-emerald-400" />
-            <div className="absolute top-4 right-4 w-6 h-6 border-t-4 border-r-4 border-emerald-400" />
-            <div className="absolute bottom-4 left-4 w-6 h-6 border-b-4 border-l-4 border-emerald-400" />
-            <div className="absolute bottom-4 right-4 w-6 h-6 border-b-4 border-r-4 border-emerald-400" />
-            {/* Value card */}
-            <div className="absolute bottom-4 left-3 right-3 bg-black/80 backdrop-blur-md border border-white/10 rounded-2xl p-3">
-              <div className="flex justify-between items-center">
-                <div>
-                  <div className="text-[8px] font-black text-emerald-400 uppercase tracking-widest">Sealed</div>
-                  <div className="text-white font-black text-sm">The Razor Crest</div>
-                </div>
-                <div className="text-emerald-400 font-mono font-black text-lg">$280</div>
-              </div>
+        <div className="flex-1 flex flex-col items-center justify-center py-4 space-y-4">
+          <div className="w-full max-w-sm bg-[#1A1A1A] border border-white/10 rounded-[32px] p-6 shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+               <span className="text-slate-400 font-bold text-xs uppercase tracking-widest">Market Index</span>
+               <span className="text-emerald-400 font-black text-sm">+8.4% YoY</span>
+            </div>
+            
+            <div className="h-24 flex items-end gap-2 px-2">
+              {[40, 60, 45, 80, 65, 100].map((height, i) => (
+                <div key={i} className="flex-1 bg-gradient-to-t from-emerald-500/20 to-emerald-400/80 rounded-t-lg" style={{ height: `${height}%` }} />
+              ))}
+            </div>
+            <div className="mt-4 pt-4 border-t border-white/5 text-center">
+               <span className="text-white font-black text-xl tracking-tight">Accurate Appraisals</span>
             </div>
           </div>
         </div>
@@ -122,42 +102,33 @@ export const OnboardingQuestionnaire: React.FC = () => {
     },
     {
       tag: 'Portfolio',
-      headline: 'Watch Your\nCollection\nCome Alive',
-      sub: 'Your sets assemble into an active investment portfolio with live appreciation and total return.',
+      headline: 'Build Your\nDigital Vault',
+      sub: 'Safely store your entire collection in the cloud, track condition, and get price alerts.',
       cta: 'Continue',
       content: (
         <div className="flex-1 flex items-center justify-center py-4">
-          <div className="w-full max-w-sm bg-[#1A1A1A] border border-white/10 rounded-3xl p-5 shadow-2xl">
-            <div className="flex items-start justify-between mb-4">
+          <div className="w-full max-w-sm bg-[#1A1A1A] border border-white/10 rounded-[32px] p-6 shadow-2xl">
+            <div className="flex items-start justify-between mb-8">
               <div>
-                <div className="text-slate-400 text-xs font-semibold">Total Value</div>
-                <div className="text-white font-black text-3xl">$18,740</div>
+                <div className="text-slate-400 text-[10px] uppercase tracking-widest font-bold mb-1">Your Portfolio</div>
+                <div className="text-white font-black text-4xl tracking-tighter">Secure</div>
               </div>
-              <div className="bg-[#2A2A2A] border border-white/10 rounded-2xl px-4 py-2 flex items-center gap-1">
-                <span className="text-emerald-400 font-black text-base">+4.2%</span>
+              <div className="w-12 h-12 bg-[#2A2A2A] rounded-2xl flex items-center justify-center">
+                 <svg className="w-6 h-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                 </svg>
               </div>
             </div>
-            <div className="text-slate-500 text-xs mb-3 font-semibold">Duo Portfolio Preview</div>
-            <div className="grid grid-cols-2 gap-3">
+            
+            <div className="space-y-3">
               {[
-                { img: 'https://cdn.rebrickable.com/media/sets/10270-1.jpg', name: 'Creator Expert', price: '$1,200', up: true },
-                { img: 'https://cdn.rebrickable.com/media/sets/75309-1.jpg', name: 'Star Wars', price: '$1,700', up: true },
-                { img: 'https://cdn.rebrickable.com/media/sets/75290-1.jpg', name: 'Lego Wars', price: '$800', up: false },
-                { img: 'https://cdn.rebrickable.com/media/sets/10277-1.jpg', name: 'Lego Icons', price: '$600', up: false },
+                { label: 'Condition Tracking', color: 'bg-emerald-400' },
+                { label: 'Cloud Sync', color: 'bg-blue-400' },
+                { label: 'Offline Mode', color: 'bg-purple-400' },
               ].map((item, i) => (
-                <div key={i} className="bg-[#222222] border border-white/5 rounded-2xl p-3">
-                  <img src={item.img} alt={item.name} className="w-full h-14 object-contain mb-2 rounded-lg"
-                    onError={e => { e.currentTarget.src = `https://cdn.rebrickable.com/media/sets/10270-1.jpg`; }} />
-                  <div className="text-slate-400 text-[10px] font-semibold truncate">{item.name}</div>
-                  <div className="flex items-center justify-between mt-1">
-                    <span className="text-white font-black text-sm">{item.price}</span>
-                    <svg viewBox="0 0 40 20" className={`w-8 h-4 ${item.up ? 'stroke-emerald-400' : 'stroke-slate-500'}`} fill="none" strokeWidth="2">
-                      {item.up
-                        ? <path d="M0,18 C10,18 15,8 20,10 C25,12 30,4 40,2" />
-                        : <path d="M0,4 C10,4 15,12 20,10 C25,8 30,14 40,16" />
-                      }
-                    </svg>
-                  </div>
+                <div key={i} className="flex items-center gap-3 bg-[#222222] border border-white/5 rounded-xl p-3">
+                  <div className={`w-3 h-3 rounded-full ${item.color}`} />
+                  <div className="text-slate-300 text-sm font-semibold">{item.label}</div>
                 </div>
               ))}
             </div>
@@ -166,77 +137,29 @@ export const OnboardingQuestionnaire: React.FC = () => {
       )
     },
     {
-      tag: 'Leaderboard',
-      headline: 'LEGO Value\nKings',
-      sub: 'See how you rank among serious collectors worldwide.',
-      cta: 'Continue',
-      content: (
-        <div className="flex-1 flex items-center justify-center py-4">
-          <div className="w-full max-w-sm space-y-3">
-            {[
-              { name: 'BrickBaron87', rank: 1, badge: null, gain: null, lego: true },
-              { name: 'Anonymous', rank: 2, badge: null, gain: null, lego: true },
-              { name: 'Anonymous', rank: 3, badge: null, gain: null, lego: false },
-              { name: 'Anonymous', rank: 4, badge: 'Biggest Gainer', gain: null, lego: false },
-              { name: 'BrickBaron87', rank: 5, badge: null, gain: '+12%', lego: false },
-            ].map((user, i) => (
-              <div key={i} className="flex items-center gap-3 bg-[#1A1A1A] border border-white/5 rounded-2xl p-3">
-                <img
-                  src={`https://api.dicebear.com/7.x/personas/svg?seed=${user.name}${user.rank}`}
-                  className="w-10 h-10 rounded-full object-cover bg-slate-700"
-                  alt={user.name}
-                  onError={e => { e.currentTarget.style.display='none'; }}
-                />
-                <div className="w-5 h-5 bg-[#333] rounded-full flex items-center justify-center flex-shrink-0 -ml-2">
-                  <span className="text-white font-black text-[9px]">{user.rank}</span>
-                </div>
-                <span className="flex-1 text-white font-semibold text-sm">{user.name}</span>
-                {user.lego && (
-                  <div className="bg-red-600 rounded-lg px-1.5 py-1">
-                    <span className="text-white text-[8px] font-black">LEGO</span>
-                  </div>
-                )}
-                {user.badge && (
-                  <div className="bg-emerald-500/20 border border-emerald-500/40 rounded-full px-3 py-1">
-                    <span className="text-emerald-400 font-black text-[10px]">{user.badge}</span>
-                  </div>
-                )}
-                {user.gain && (
-                  <div className="bg-emerald-500/20 border border-emerald-500/40 rounded-full px-3 py-1">
-                    <span className="text-emerald-400 font-black text-[10px]">{user.gain}</span>
-                  </div>
-                )}
-              </div>
-            ))}
-            <p className="text-center text-slate-400 text-sm font-semibold pt-2">
-              See how you rank among serious collectors.
-            </p>
-          </div>
-        </div>
-      )
-    },
-    {
       tag: 'Get Started',
-      headline: 'Discover Your\nCollection\'s\nTrue Value\nToday',
-      sub: 'Join serious collectors. Start scanning and build your portfolio now. 14 days free.',
-      cta: 'Start 14-Day Free Trial',
+      headline: 'Discover Your\nCollection\'s\nTrue Value',
+      sub: 'Join serious collectors. Start scanning and build your portfolio now.',
+      cta: 'Initialize Scanner',
       content: (
         <div className="flex-1 flex items-center justify-center py-4">
-          <div className="w-full max-w-sm bg-[#1A1A1A] border border-white/10 rounded-3xl p-6 space-y-4 shadow-2xl">
-            <div className="text-white font-black text-lg">HelloBrick Premium</div>
+          <div className="w-full max-w-sm bg-[#1A1A1A] border border-white/10 rounded-[32px] p-8 shadow-2xl relative overflow-hidden">
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/20 blur-3xl rounded-full" />
+            <div className="text-white font-black text-2xl mb-6 tracking-tight relative z-10">HelloBrick Core</div>
+            <div className="space-y-5 relative z-10">
             {[
-              '⚡ Unlimited instant AI scanning',
-              '📈 Live BrickEconomy price index',
-              '🏆 LEGO Value Kings leaderboard',
-              '🔒 Secure cloud portfolio vault',
+              '⚡ Unlimited AI object detection',
+              '📈 Live global price indexes',
+              '🔒 Secure local vault sync',
             ].map((item, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shrink-0">
-                  <span className="text-emerald-400 text-[10px] font-black">✓</span>
+              <div key={i} className="flex items-center gap-4">
+                <div className="w-6 h-6 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shrink-0">
+                  <span className="text-emerald-400 text-xs font-black">✓</span>
                 </div>
-                <span className="text-slate-200 text-sm font-semibold">{item}</span>
+                <span className="text-slate-200 text-[15px] font-semibold">{item}</span>
               </div>
             ))}
+            </div>
           </div>
         </div>
       )
