@@ -108,8 +108,7 @@ export const signInWithGoogle = async (): Promise<{ user: any; error: any }> => 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: redirectUrl,
-        skipBrowserRedirect: isApp // Don't auto-redirect on app, we'll handle it
+        redirectTo: redirectUrl
       }
     });
 
@@ -123,11 +122,6 @@ export const signInWithGoogle = async (): Promise<{ user: any; error: any }> => 
         };
       }
       return { user: null, error };
-    }
-
-    // If we're on mobile and have a URL, open it in Safari View Controller
-    if (isApp && data?.url) {
-      await Browser.open({ url: data.url, presentationStyle: 'popover' });
     }
 
     return { user: data, error: null };
@@ -164,8 +158,7 @@ export const signInWithApple = async (): Promise<{ user: any; error: any }> => {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'apple',
       options: {
-        redirectTo: redirectUrl,
-        skipBrowserRedirect: isApp
+        redirectTo: redirectUrl
       }
     });
 
@@ -179,11 +172,6 @@ export const signInWithApple = async (): Promise<{ user: any; error: any }> => {
         };
       }
       return { user: null, error };
-    }
-
-    // If we're on mobile and have a URL, open it in Safari View Controller
-    if (isApp && data?.url) {
-      await Browser.open({ url: data.url, presentationStyle: 'popover' });
     }
 
     return { user: data, error: null };
