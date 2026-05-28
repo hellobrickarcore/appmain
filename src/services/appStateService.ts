@@ -111,8 +111,8 @@ class AppStateService {
       const isAuthenticated = localStorage.getItem('hellobrick_authenticated') === 'true';
       
       if (!isAuthenticated) {
-        console.log('[AppState] Step 2: AUTH required');
-        this.transition('auth');
+        console.log('[AppState] Step 2: AUTH required but user is not signed up - routing to ONBOARDING');
+        this.transition('onboarding');
       } else {
         console.log('[AppState] Step 3: Proceeding to HOME');
         this.transition('home');

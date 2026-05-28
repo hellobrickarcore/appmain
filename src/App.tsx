@@ -202,7 +202,9 @@ const App: React.FC = () => {
       } else if (event === 'SIGNED_OUT') {
         localStorage.removeItem('hellobrick_userId');
         localStorage.removeItem('hellobrick_authenticated');
+        localStorage.removeItem('hellobrick_onboarding_finished');
         subscriptionService.logout().catch(() => {});
+        appStateService.transition('onboarding');
       }
     });
 
