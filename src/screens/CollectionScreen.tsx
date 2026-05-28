@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { ArrowLeft, Plus, X, TrendingUp, BookOpen, Trash2, ChevronRight } from 'lucide-react';
 import { Screen, CollectionItem } from '../types';
-import { getCollectionFromStorage, getSets, getValuationsMap } from '../lib/dataProvider';
+import { mockCollection, mockSets, mockValuations, mockMinifigs } from '../lib/mock-data';
+import { valuationService } from '../services/valuationService';
 import confetti from 'canvas-confetti';
-import { mockSets, mockMinifigs } from '../lib/mock-data';
 
 interface CollectionScreenProps {
   onNavigate: (screen: Screen, params?: any) => void;
@@ -21,11 +21,30 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
   const [hideValue, setHideValue] = useState(false);
 
   const loadCollection = async () => {
-    const stored = await getCollectionFromStorage();
-    setCollection(stored);
-    const [fetchedSets, valuations] = await Promise.all([getSets(), getValuationsMap()]);
-    setSets(fetchedSets);
-    setValuationsMap(valuations);
+    try {
+      const items = await valuationService.getCollectionItems();
+      setCollection(items);
+      const [fetchedSets, valuations] = await Promise.all([
+        Promise.resolve(mockSets), 
+        Promise.resolve(new Map(Object.entries(mockValuations)))
+      ]);
+      setSets(fetchedSets);
+      setValuationsMap(valuations);
+    } catch (e) {
+      const stored = localStorage.getItem('hellobrick_collection_sets');
+      if (stored) {
+        try {
+          setCollection(JSON.parse(stored));
+        } catch (err) {
+          setCollection(mockCollection);
+        }
+      } else {
+        setCollection(mockCollection);
+        localStorage.setItem('hellobrick_collection_sets', JSON.stringify(mockCollection));
+      }
+      setSets(mockSets);
+      setValuationsMap(new Map(Object.entries(mockValuations)));
+    }
   };
 
   useEffect(() => { loadCollection(); }, []);

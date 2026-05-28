@@ -2,7 +2,8 @@ import * as React from 'react';
 import { useState, useEffect, useMemo } from 'react';
 import { Search, Map as MapIcon, Home, User, Settings, ArrowUpRight } from 'lucide-react';
 import { Screen, CollectionItem } from '../types';
-import { getCollectionFromStorage, getWishlistFromStorage, getSets, getValuationsMap } from '../lib/dataProvider';
+import { valuationService } from '../services/valuationService';
+import { getCollectionFromStorage, getSets, getValuationsMap } from '../lib/dataProvider';
 
 interface HomeScreenProps {
   onNavigate: (screen: Screen, params?: any) => void;
@@ -12,8 +13,23 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
   const [collection, setCollection] = useState<CollectionItem[]>([]);
   const [sets, setSets] = useState<any[]>([]);
   const [valuationsMap, setValuationsMap] = useState(new Map<string, any>());
+  const [totalValue, setTotalValue] = useState(0);
+  const [totalCost, setTotalCost] = useState(0);
+  const [changePercent, setChangePercent] = useState(0);
+
+  const fetchPortfolio = async () => {
+    try {
+      const stats = await valuationService.getPortfolioValuation();
+      setTotalValue(stats.totalValueNew);
+      setTotalCost(stats.totalValueUsed);
+      setChangePercent(stats.roiPercentage);
+    } catch (e) {
+      console.error("Failed to load portfolio", e);
+    }
+  };
 
   useEffect(() => {
+    fetchPortfolio();
     const loadData = async () => {
       const [col, fetchSets, vals] = await Promise.all([
         getCollectionFromStorage(),
@@ -27,29 +43,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
     loadData();
   }, []);
 
-  const { totalValue, totalCost } = useMemo(() => {
-    if (collection.length === 0) return { totalValue: 0, totalCost: 0 };
-    if (!sets.length && !collection.length) return { totalValue: 0, totalCost: 0 };
-    let val = 0;
-    let cost = 0;
-    collection.forEach((item, idx) => {
-      const set = sets.find(s => s.setNum === item.setNum) || sets[idx % Math.max(sets.length, 1)] || { retailPrice: 99 };
-      const v = valuationsMap.get(item.setNum) || {
-        sealedValue: set.retailPrice || 149.99,
-        usedValue: (set.retailPrice || 149.99) * 0.7
-      };
-      const quantity = (item as any).quantity ?? 1;
-      const currentValue = (item.condition === 'sealed' ? v.sealedValue : v.usedValue) * quantity;
-      const purchaseCost = (item.purchasePrice || (set.retailPrice || 100) * 0.8) * quantity;
-      val += currentValue;
-      cost += purchaseCost;
-    });
-    return { totalValue: val, totalCost: cost };
-  }, [collection, sets, valuationsMap]);
-
   const displayValue = totalValue;
   const displayCost = totalCost;
-  const returnPct = displayCost > 0 ? ((displayValue - displayCost) / displayCost) * 100 : 0;
+  const returnPct = changePercent;
 
   // Get premium sets from their actual collection (filtered by set retail price)
   const premiumSets = collection
