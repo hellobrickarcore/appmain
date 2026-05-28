@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   ChevronLeft, 
   TrendingUp, 
@@ -12,7 +12,8 @@ import {
   ChevronRight,
   TrendingDown
 } from 'lucide-react';
-import { Screen } from '../types';
+import { Screen, CollectionItem } from '../types';
+import { getCollectionFromStorage, getSets, getValuationsMap } from '../lib/dataProvider';
 
 interface PortfolioAnalyticsScreenProps {
   onNavigate: (screen: Screen, params?: any) => void;
@@ -21,6 +22,40 @@ interface PortfolioAnalyticsScreenProps {
 export const PortfolioAnalyticsScreen: React.FC<PortfolioAnalyticsScreenProps> = ({ onNavigate }) => {
   const [activeTab, setActiveTab] = useState<'all' | 'sets' | 'minifigs'>('all');
   const [hoveredPoint, setHoveredPoint] = useState<'Sep' | 'Dec' | 'Today'>('Today');
+  
+  const [collection, setCollection] = useState<CollectionItem[]>([]);
+  const [sets, setSets] = useState<any[]>([]);
+  const [valuationsMap, setValuationsMap] = useState(new Map<string, any>());
+
+  useEffect(() => {
+    const loadData = async () => {
+      const [col, fetchSets, vals] = await Promise.all([
+        getCollectionFromStorage(),
+        getSets(),
+        getValuationsMap()
+      ]);
+      setCollection(col);
+      setSets(fetchSets);
+      setValuationsMap(vals);
+    };
+    loadData();
+  }, []);
+
+  const totalValue = useMemo(() => {
+    if (collection.length === 0) return 0;
+    let val = 0;
+    collection.forEach((item, idx) => {
+      const set = sets.find(s => s.setNum === item.setNum) || { retailPrice: 149.99 };
+      const v = valuationsMap.get(item.setNum) || {
+        sealedValue: set.retailPrice || 149.99,
+        usedValue: (set.retailPrice || 149.99) * 0.7
+      };
+      const quantity = (item as any).quantity ?? 1;
+      val += (item.condition === 'sealed' ? v.sealedValue : v.usedValue) * quantity;
+    });
+    return val;
+  }, [collection, sets, valuationsMap]);
+
 
   return (
     <div className="flex flex-col min-h-screen bg-[#0D111A] font-sans text-white relative overflow-hidden select-none">
@@ -59,7 +94,9 @@ export const PortfolioAnalyticsScreen: React.FC<PortfolioAnalyticsScreenProps> =
             </div>
             <div className="text-right bg-gradient-to-tr from-[#C9A84C]/10 to-[#E5C158]/5 border border-[#C9A84C]/25 p-4 rounded-3xl min-w-[120px]">
               <span className="text-[7px] font-black text-[#C9A84C] uppercase tracking-widest block">PREMIUM VALUATION</span>
-              <span className="font-mono text-xl font-black text-[#C9A84C] mt-1 block leading-none">$12,450</span>
+              <span className="font-mono text-xl font-black text-[#C9A84C] mt-1 block leading-none">
+                ${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
             </div>
           </div>
 
@@ -185,7 +222,9 @@ export const PortfolioAnalyticsScreen: React.FC<PortfolioAnalyticsScreenProps> =
               {/* Live interactive hovered indicator bubble */}
               <div className="absolute top-4 left-[65%] z-20 bg-[#161B26]/90 border border-white/10 p-2.5 rounded-2xl backdrop-blur-md shadow-lg flex flex-col items-center">
                 <span className="text-[6px] font-black text-slate-500 uppercase tracking-widest leading-none">Today</span>
-                <span className="font-mono text-[9px] font-black text-emerald-400 mt-1 leading-none">$12,450</span>
+                <span className="font-mono text-[9px] font-black text-emerald-400 mt-1 leading-none">
+                  ${totalValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </span>
               </div>
             </div>
 
@@ -204,50 +243,33 @@ export const PortfolioAnalyticsScreen: React.FC<PortfolioAnalyticsScreenProps> =
 
             <div className="space-y-2">
               
-              {/* Asset 1 */}
-              <div className="flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded-2xl">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#C9A84C] to-yellow-300 flex items-center justify-center font-black text-xs text-[#0D111A]">1</div>
-                  <div className="text-left">
-                    <span className="text-xs font-black text-white block">Star Wars Crest</span>
-                    <span className="text-[8px] text-slate-500 block uppercase tracking-wider mt-0.5">Asset 1 • Sealed Box</span>
-                  </div>
+              {collection.length === 0 ? (
+                <div className="w-full text-center py-6 border border-dashed border-white/10 rounded-[20px] bg-white/5">
+                  <span className="text-sm font-medium text-slate-500">No scanned sets yet</span>
                 </div>
-                <div className="text-right">
-                  <span className="font-mono text-xs font-black text-emerald-400 block">$12,450</span>
-                  <span className="text-[7px] font-mono text-emerald-400 font-bold block mt-0.5 uppercase tracking-wider">+25.4%</span>
-                </div>
-              </div>
-
-              {/* Asset 2 */}
-              <div className="flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded-2xl">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-slate-300 flex items-center justify-center font-black text-xs text-[#0D111A]">2</div>
-                  <div className="text-left">
-                    <span className="text-xs font-black text-white block">Creator Expert Bookshop</span>
-                    <span className="text-[8px] text-slate-500 block uppercase tracking-wider mt-0.5">Asset 2 • 2 Quantities</span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className="font-mono text-xs font-black text-white block">$2,650</span>
-                  <span className="text-[7px] font-mono text-emerald-400 font-bold block mt-0.5 uppercase tracking-wider">+18.2%</span>
-                </div>
-              </div>
-
-              {/* Asset 3 */}
-              <div className="flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded-2xl">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-amber-700 flex items-center justify-center font-black text-xs text-white">3</div>
-                  <div className="text-left">
-                    <span className="text-xs font-black text-white block">LEGO Ideas Tree House</span>
-                    <span className="text-[8px] text-slate-500 block uppercase tracking-wider mt-0.5">Asset 3 • Used Set</span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className="font-mono text-xs font-black text-white block">$1,260</span>
-                  <span className="text-[7px] font-mono text-[#C9A84C] font-bold block mt-0.5 uppercase tracking-wider">+12.8%</span>
-                </div>
-              </div>
+              ) : (
+                collection.slice(0, 3).map((item, idx) => {
+                  const set = sets.find(s => s.setNum === item.setNum) || { name: 'Unknown Set', retailPrice: 0 };
+                  const v = valuationsMap.get(item.setNum) || { sealedValue: 0, usedValue: 0 };
+                  const value = item.condition === 'sealed' ? v.sealedValue : v.usedValue;
+                  
+                  return (
+                    <div key={idx} className="flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded-2xl">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-500 to-blue-300 flex items-center justify-center font-black text-xs text-[#0D111A]">{idx + 1}</div>
+                        <div className="text-left">
+                          <span className="text-xs font-black text-white block">{set.name}</span>
+                          <span className="text-[8px] text-slate-500 block uppercase tracking-wider mt-0.5">Asset {idx + 1} • {item.condition}</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-mono text-xs font-black text-emerald-400 block">${value.toFixed(2)}</span>
+                        <span className="text-[7px] font-mono text-emerald-400 font-bold block mt-0.5 uppercase tracking-wider">+0.0%</span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
 
             </div>
           </div>

@@ -1,19 +1,6 @@
 import * as React from 'react';
 import { useState, useEffect, useMemo } from 'react';
-import { 
-  Crown, 
-  Search, 
-  Settings, 
-  ChevronRight, 
-  ArrowUpRight, 
-  Layers,
-  ShoppingBag,
-  TrendingUp,
-  User,
-  Star,
-  Award,
-  Compass
-} from 'lucide-react';
+import { Search, Map as MapIcon, Home, User, Settings, ArrowUpRight } from 'lucide-react';
 import { Screen, CollectionItem } from '../types';
 import { getCollectionFromStorage, getWishlistFromStorage, getSets, getValuationsMap } from '../lib/dataProvider';
 
@@ -23,20 +10,17 @@ interface HomeScreenProps {
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
   const [collection, setCollection] = useState<CollectionItem[]>([]);
-  const [wishlist, setWishlist] = useState<any[]>([]);
   const [sets, setSets] = useState<any[]>([]);
   const [valuationsMap, setValuationsMap] = useState(new Map<string, any>());
 
   useEffect(() => {
     const loadData = async () => {
-      const [col, wish, fetchSets, vals] = await Promise.all([
+      const [col, fetchSets, vals] = await Promise.all([
         getCollectionFromStorage(),
-        getWishlistFromStorage(),
         getSets(),
         getValuationsMap()
       ]);
       setCollection(col);
-      setWishlist(wish);
       setSets(fetchSets);
       setValuationsMap(vals);
     };
@@ -63,191 +47,164 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
     return { totalValue: val, totalCost: cost };
   }, [collection, sets, valuationsMap]);
 
-  const returnPct = totalCost > 0 ? ((totalValue - totalCost) / totalCost) * 100 : 0;
+  const displayValue = totalValue;
+  const displayCost = totalCost;
+  const returnPct = displayCost > 0 ? ((displayValue - displayCost) / displayCost) * 100 : 0;
+
+  // Get premium sets from their actual collection (filtered by set retail price)
+  const premiumSets = collection
+    .map(item => sets.find(s => s.setNum === item.setNum))
+    .filter((s): s is any => !!s && s.retailPrice > 100)
+    .slice(0, 6);
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#0D111A] font-sans text-white relative overflow-hidden select-none">
-      {/* Background spotlights */}
-      <div className="absolute top-0 left-0 right-0 h-[450px] bg-gradient-to-b from-[#C9A84C]/[0.02] via-transparent to-transparent pointer-events-none" />
-      <div className="absolute -top-40 -left-40 w-96 h-96 bg-blue-600/[0.03] blur-[100px] rounded-full pointer-events-none" />
-
-      {/* Sticky Header */}
-      <div className="relative z-50 px-6 pt-[max(env(safe-area-inset-top),3.5rem)] pb-4 flex items-center justify-between bg-[#0D111A]/85 backdrop-blur-xl border-b border-white/5 shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#C9A84C] to-[#E5C158] flex items-center justify-center shadow-lg">
-            <Layers className="w-4 h-4 text-[#0D111A]" strokeWidth={2.5} />
-          </div>
-          <span className="font-sans font-black text-lg tracking-wider text-white">
-            HELLO<span className="text-[#C9A84C]">BRICK</span>
-          </span>
-        </div>
-        <div className="flex gap-2">
-          <button 
-            onClick={() => onNavigate(Screen.LEGO_MAP)}
-            className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10 active:scale-90 transition-transform"
-          >
-            <Compass className="w-4 h-4 text-slate-300" />
-          </button>
-          <button 
-            onClick={() => onNavigate(Screen.PROFILE_SETTINGS)}
-            className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10 active:scale-90 transition-transform">
-            <Settings className="w-4 h-4 text-slate-300" />
-          </button>
-        </div>
+    <div className="flex flex-col h-full bg-[#161B26] font-sans text-white relative overflow-hidden select-none">
+      
+      {/* Header */}
+      <div className="px-6 pt-[max(env(safe-area-inset-top),3rem)] pb-4 flex items-center justify-between z-10 bg-[#161B26]">
+        <h1 className="text-[22px] font-medium text-white tracking-tight">Full Collection Dashboard</h1>
+        <button className="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 active:scale-95 transition-transform">
+          <Search className="w-5 h-5 text-white" />
+        </button>
       </div>
 
-      {/* Main Viewport */}
-      <div className="flex-1 relative overflow-hidden">
-        <div className="absolute inset-0 overflow-y-auto no-scrollbar pb-36 pt-4 px-6 space-y-6">
-          
-          {/* Dashboard Header */}
-          <div className="flex justify-between items-center text-left">
-            <div>
-              <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest block">VAULT INTELLIGENCE</span>
-              <h2 className="text-2xl font-black text-white mt-0.5 tracking-tight uppercase">DASHBOARD</h2>
+      <div className="flex-1 overflow-y-auto no-scrollbar pb-32">
+        {/* Total Value Card */}
+        <div className="px-6 mt-2">
+          <div className="bg-white rounded-[24px] p-6 shadow-xl relative overflow-hidden">
+            <span className="text-[13px] font-semibold text-slate-500 block mb-1">Total Value</span>
+            <div className="flex items-end justify-between">
+              <span className="text-[34px] font-bold text-[#0D111A] tracking-tight leading-none">
+                ${displayValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+              <div className="flex items-center gap-1 bg-green-100 px-2 py-1 rounded-full mb-1">
+                <ArrowUpRight className="w-3 h-3 text-green-600" strokeWidth={3} />
+                <span className="text-xs font-bold text-green-700">{returnPct.toFixed(1)}%</span>
+              </div>
             </div>
-            <button className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-[9px] font-black uppercase tracking-widest text-slate-400">
-              Refresh
+            {/* Graph area in card */}
+            <div className="mt-8 h-[180px] w-full relative">
+               <svg viewBox="0 0 400 180" className="w-full h-full overflow-visible" preserveAspectRatio="none">
+                 {/* Grid lines */}
+                 <line x1="0" y1="180" x2="400" y2="180" stroke="#f1f5f9" strokeWidth="1" />
+                 <line x1="0" y1="135" x2="400" y2="135" stroke="#f1f5f9" strokeWidth="1" />
+                 <line x1="0" y1="90" x2="400" y2="90" stroke="#f1f5f9" strokeWidth="1" />
+                 <line x1="0" y1="45" x2="400" y2="45" stroke="#f1f5f9" strokeWidth="1" />
+                 
+                 {/* Y Axis Labels */}
+                 <text x="0" y="175" fill="#94a3b8" fontSize="10">0k</text>
+                 <text x="0" y="130" fill="#94a3b8" fontSize="10">2k</text>
+                 <text x="0" y="85" fill="#94a3b8" fontSize="10">4k</text>
+                 <text x="0" y="40" fill="#94a3b8" fontSize="10">5k</text>
+                 
+                 {/* Gradient Fill */}
+                 <defs>
+                   <linearGradient id="lineGradient" x1="0" x2="0" y1="0" y2="1">
+                     <stop offset="0%" stopColor="#1DA1F2" stopOpacity="0.2" />
+                     <stop offset="100%" stopColor="#1DA1F2" stopOpacity="0" />
+                   </linearGradient>
+                 </defs>
+                 
+                 {/* Line path */}
+                 <path 
+                   d="M 20,180 C 60,160 100,170 140,120 C 180,70 220,130 260,80 C 300,30 350,60 400,20" 
+                   fill="none" 
+                   stroke="#1DA1F2" 
+                   strokeWidth="3" 
+                   strokeLinecap="round"
+                 />
+                 <path 
+                   d="M 20,180 C 60,160 100,170 140,120 C 180,70 220,130 260,80 C 300,30 350,60 400,20 L 400,180 L 20,180 Z" 
+                   fill="url(#lineGradient)" 
+                 />
+                 
+                 {/* Data Points */}
+                 <circle cx="140" cy="120" r="4" fill="#1DA1F2" />
+                 <circle cx="260" cy="80" r="4" fill="#1DA1F2" />
+                 <circle cx="400" cy="20" r="5" fill="#1DA1F2" stroke="white" strokeWidth="2" />
+               </svg>
+               {/* Current Value Tooltip */}
+               <div className="absolute -top-3 -right-2 bg-[#0D111A] text-white text-[10px] font-bold px-2 py-1 rounded-lg">
+                 14k
+               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Premium Sets Section */}
+        <div className="mt-10 pl-6">
+          <div className="flex items-center justify-between pr-6 mb-4">
+            <h2 className="text-xl font-medium text-white tracking-tight">Premium Sets</h2>
+            <button 
+              onClick={() => onNavigate(Screen.COLLECTION)}
+              className="text-[13px] font-medium text-slate-400 hover:text-white"
+            >
+              View All
             </button>
           </div>
-
-          {/* 6-Card Values Summary Grid */}
-          <div className="grid grid-cols-2 gap-4">
-            
-            {/* Card 1: Most Wanted */}
-            <div 
-              onClick={() => onNavigate(Screen.WISHLIST)}
-              className="bg-gradient-to-tr from-[#C9A84C] to-[#E5C158] p-5 rounded-[28px] flex flex-col items-start justify-between min-h-[125px] active:scale-[0.98] transition-all shadow-xl text-left cursor-pointer border border-transparent"
-            >
-              <div className="flex justify-between items-start w-full">
-                <span className="text-[8px] font-black text-[#0D111A] uppercase tracking-widest">WANTED</span>
-                <span className="text-base">🧸</span>
+          
+          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-6 pr-6 snap-x">
+            {premiumSets.length === 0 ? (
+              <div className="w-full text-center py-6 border border-dashed border-white/10 rounded-[20px] bg-white/5">
+                <span className="text-sm font-medium text-slate-500">Scan sets to populate your portfolio</span>
               </div>
-              <div className="font-mono text-2xl font-black text-[#0D111A] leading-none mt-4">{wishlist.length}</div>
-            </div>
-
-            {/* Card 2: Your Collection */}
-            <div 
-              onClick={() => onNavigate(Screen.COLLECTION)}
-              className="bg-[#161B26] border border-white/5 p-5 rounded-[28px] flex flex-col items-start justify-between min-h-[125px] active:scale-[0.98] transition-all shadow-xl text-left cursor-pointer"
-            >
-              <div className="flex justify-between items-start w-full">
-                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">COLLECTION</span>
-                <span className="text-base">🏰</span>
-              </div>
-              <div className="font-mono text-2xl font-black text-white leading-none mt-4">{collection.length}</div>
-            </div>
-
-            {/* Card 3: Value */}
-            <div className="bg-[#161B26] border border-white/5 p-5 rounded-[28px] flex flex-col items-start justify-between min-h-[125px] text-left">
-              <div className="flex justify-between items-start w-full">
-                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">VALUE</span>
-                <span className="text-base">🏎️</span>
-              </div>
-              <div className="font-mono text-2xl font-black text-white leading-none mt-4">
-                {totalValue > 1000 ? `$${(totalValue/1000).toFixed(1)}k` : `$${Math.round(totalValue)}`}
-              </div>
-            </div>
-
-            {/* Card 4: Profit */}
-            <div className="bg-[#161B26] border border-white/5 p-5 rounded-[28px] flex flex-col items-start justify-between min-h-[125px] text-left">
-              <div className="flex justify-between items-start w-full">
-                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">PROFIT</span>
-                <span className="text-base">🗓️</span>
-              </div>
-              <div className={`font-mono text-2xl font-black ${returnPct >= 0 ? 'text-emerald-400' : 'text-red-400'} leading-none mt-4`}>
-                {returnPct > 0 ? '+' : ''}{returnPct.toFixed(1)}%
-              </div>
-            </div>
-
-            {/* Card 5: Recent Scans */}
-            <div className="bg-[#161B26] border border-white/5 p-5 rounded-[28px] flex flex-col items-start justify-between min-h-[125px] text-left">
-              <div className="flex justify-between items-start w-full">
-                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">SCANS</span>
-                <span className="text-base">🧑‍🚒</span>
-              </div>
-              <div className="font-mono text-2xl font-black text-white leading-none mt-4">{collection.length + wishlist.length}</div>
-            </div>
-
-            {/* Card 6: Sets */}
-            <div className="bg-[#161B26] border border-white/5 p-5 rounded-[28px] flex flex-col items-start justify-between min-h-[125px] text-left">
-              <div className="flex justify-between items-start w-full">
-                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">SETS</span>
-                <span className="text-base">🏗️</span>
-              </div>
-              <div className="font-mono text-2xl font-black text-white leading-none mt-4">{sets.length}</div>
-            </div>
-
+            ) : (
+              premiumSets.map((set, idx) => (
+                <div 
+                  key={idx} 
+                  onClick={() => onNavigate(Screen.SET_DETAIL, { setNum: set.setNum })}
+                  className="w-40 flex-shrink-0 snap-start active:scale-95 transition-transform"
+                >
+                  <div className="w-full aspect-square bg-white rounded-[20px] p-4 flex items-center justify-center mb-3 shadow-lg relative">
+                    <img 
+                      src={set.imageUrl || `https://cdn.rebrickable.com/media/sets/${set.setNum}/1.jpg`} 
+                      alt={set.name}
+                      className="w-full h-full object-contain"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://picsum.photos/200?random=' + idx;
+                      }}
+                    />
+                    <div className="absolute bottom-2 right-2 w-6 h-6 bg-slate-100 rounded-full flex items-center justify-center shadow-sm">
+                      <span className="text-[10px] font-bold text-slate-700">↗</span>
+                    </div>
+                  </div>
+                  <div className="px-1">
+                    <h3 className="text-[14px] font-medium text-white truncate">{set.name}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[13px] font-bold text-slate-300">${set.retailPrice || 149.99}</span>
+                      <span className="text-[11px] font-medium text-green-400">+{Math.floor(Math.random() * 10) + 2}%</span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
-
-          {/* LEGO Value Kings widget (matching image 7 standings) */}
-          <div className="bg-[#161B26] border border-white/5 rounded-[32px] p-5 shadow-xl text-left">
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest block">STANDINGS</span>
-                <h3 className="text-sm font-black text-white mt-0.5">LEGO Value Kings</h3>
-              </div>
-              <button 
-                onClick={() => onNavigate(Screen.LEADERBOARD)}
-                className="px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[8px] font-black uppercase tracking-wider flex items-center gap-1 text-slate-400"
-              >
-                1h <ChevronRight className="w-3 h-3" />
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              {/* Leader #1 */}
-              <div className="flex items-center justify-between p-2.5 bg-[#C9A84C]/5 border border-[#C9A84C]/25 rounded-2xl">
-                <div className="flex items-center gap-2.5">
-                  <span className="font-mono text-[10px] font-black text-[#C9A84C]">#1</span>
-                  <div className="w-7 h-7 rounded-xl bg-slate-800 flex items-center justify-center text-xs overflow-hidden">
-                    <User className="w-4 h-4 text-slate-400" />
-                  </div>
-                  <span className="text-xs font-black text-white">LelloBrick</span>
-                </div>
-                <span className="font-mono text-xs font-black text-[#C9A84C]">#6.428</span>
-              </div>
-
-              {/* Leader #2 */}
-              <div className="flex items-center justify-between p-2.5 bg-white/5 border border-white/5 rounded-2xl">
-                <div className="flex items-center gap-2.5">
-                  <span className="font-mono text-[10px] font-black text-slate-600">#2</span>
-                  <div className="w-7 h-7 rounded-xl bg-slate-800 flex items-center justify-center text-xs overflow-hidden">
-                    <User className="w-4 h-4 text-slate-400" />
-                  </div>
-                  <span className="text-xs font-black text-white">Cani Kilt</span>
-                </div>
-                <span className="font-mono text-xs font-black text-slate-400">#3.366</span>
-              </div>
-
-              {/* Leader #3 */}
-              <div className="flex items-center justify-between p-2.5 bg-white/5 border border-white/5 rounded-2xl">
-                <div className="flex items-center gap-2.5">
-                  <span className="font-mono text-[10px] font-black text-slate-600">#3</span>
-                  <div className="w-7 h-7 rounded-xl bg-slate-800 flex items-center justify-center text-xs overflow-hidden">
-                    <User className="w-4 h-4 text-slate-400" />
-                  </div>
-                  <span className="text-xs font-black text-white">Kayay Minini</span>
-                </div>
-                <span className="font-mono text-xs font-black text-slate-400">#6.014</span>
-              </div>
-
-              {/* Leader #4 */}
-              <div className="flex items-center justify-between p-2.5 bg-white/5 border border-white/5 rounded-2xl">
-                <div className="flex items-center gap-2.5">
-                  <span className="font-mono text-[10px] font-black text-slate-600">#3</span>
-                  <div className="w-7 h-7 rounded-xl bg-slate-800 flex items-center justify-center text-xs overflow-hidden">
-                    <User className="w-4 h-4 text-slate-400" />
-                  </div>
-                  <span className="text-xs font-black text-white">HelloBrick</span>
-                </div>
-                <span className="font-mono text-xs font-black text-slate-400">#9.030</span>
-              </div>
-            </div>
-          </div>
-
         </div>
       </div>
+
+      {/* Bottom Navigation */}
+      <div className="absolute bottom-0 left-0 right-0 h-[max(env(safe-area-inset-bottom),5rem)] bg-[#161B26]/95 backdrop-blur-xl border-t border-white/5 flex items-start justify-around pt-4 pb-[env(safe-area-inset-bottom)] z-50">
+        <button onClick={() => onNavigate(Screen.HOME)} className="flex flex-col items-center gap-1 active:scale-90 transition-transform">
+          <Home className="w-6 h-6 text-white" />
+          <span className="text-[10px] font-medium text-white">Dashboard</span>
+        </button>
+        <button onClick={() => onNavigate(Screen.LEGO_MAP)} className="flex flex-col items-center gap-1 active:scale-90 transition-transform opacity-50 hover:opacity-100">
+          <MapIcon className="w-6 h-6 text-white" />
+          <span className="text-[10px] font-medium text-white">Map</span>
+        </button>
+        <button onClick={() => onNavigate(Screen.PORTFOLIO_ANALYTICS)} className="flex flex-col items-center gap-1 active:scale-90 transition-transform opacity-50 hover:opacity-100">
+          <svg viewBox="0 0 24 24" className="w-6 h-6 fill-none stroke-current" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>
+          </svg>
+          <span className="text-[10px] font-medium text-white">Analytics</span>
+        </button>
+        <button onClick={() => onNavigate(Screen.PROFILE_SETTINGS)} className="flex flex-col items-center gap-1 active:scale-90 transition-transform opacity-50 hover:opacity-100">
+          <Settings className="w-6 h-6 text-white" />
+          <span className="text-[10px] font-medium text-white">Settings</span>
+        </button>
+      </div>
+
     </div>
   );
 };
+
