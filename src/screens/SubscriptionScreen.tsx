@@ -253,13 +253,13 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
             </div>
             <h3 className="text-[28px] font-black text-slate-900 mb-2 leading-tight">Wait! Don't miss out.</h3>
             <p className="text-slate-500 text-sm font-semibold px-2 mb-6 leading-relaxed">
-              Get <span className="text-orange-500 font-black">70% OFF</span> your first year of HelloBrick Pro.
+              Get <span className="text-orange-500 font-black">10% OFF</span> your first year of HelloBrick Pro.
             </p>
             
             <div className="bg-slate-50 rounded-2xl p-4 mb-6 border border-slate-100">
               <div className="flex justify-between items-center mb-1">
                 <span className="text-slate-400 font-bold line-through text-sm">$49.99</span>
-                <span className="text-slate-900 font-black text-2xl">$14.99<span className="text-sm text-slate-400">/yr</span></span>
+                <span className="text-slate-900 font-black text-2xl">$44.99<span className="text-sm text-slate-400">/yr</span></span>
               </div>
               <p className="text-left text-xs text-slate-500 font-medium">Billed annually. Cancel anytime.</p>
             </div>
@@ -272,7 +272,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
                 }}
                 className="w-full py-4 bg-orange-500 hover:bg-orange-600 text-white font-black rounded-[20px] text-[15px] shadow-[0_8px_30px_rgba(249,115,22,0.3)] active:scale-95 transition-all"
               >
-                Claim 70% Discount
+                Claim 10% Discount
               </button>
               <button
                 onClick={() => onNavigate()}
