@@ -173,20 +173,34 @@ const App: React.FC = () => {
           const fragment = url.hash.substring(1);
           const params = new URLSearchParams(fragment || url.search);
           
+          const code = params.get('code');
           const accessToken = params.get('access_token');
           const refreshToken = params.get('refresh_token');
           
-          if (accessToken && refreshToken && supabase) {
+          if (code && supabase) {
+            console.log('[App] 🔑 PKCE code found, exchanging for session...');
+            const { error } = await supabase.auth.exchangeCodeForSession(code);
+            if (!error) {
+              console.log('[App] ✅ Session exchanged successfully via code');
+              handleNavigate(Screen.SUBSCRIPTION);
+            } else {
+              console.error('[App] Code exchange failed:', error);
+            }
+          } else if (accessToken && refreshToken && supabase) {
             console.log('[App] 🔑 tokens found, updating session...');
             const { error } = await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken
             });
             
-              if (!error) {
-                console.log('[App] ✅ Session updated successfully');
-                handleNavigate(Screen.SUBSCRIPTION);
-              }
+            if (!error) {
+              console.log('[App] ✅ Session updated successfully via tokens');
+              handleNavigate(Screen.SUBSCRIPTION);
+            } else {
+              console.error('[App] Token session set failed:', error);
+            }
+          } else {
+            console.warn('[App] ⚠️ Deep link auth/callback received but no code or tokens found:', data.url);
           }
         }
       });

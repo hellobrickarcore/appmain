@@ -235,9 +235,9 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
 
             <button 
               onClick={attemptDismiss}
-              className="text-slate-400 text-[10px] font-medium mt-1 tracking-tight"
+              className="text-slate-400 text-[11px] font-bold mt-2 tracking-tight hover:text-slate-600 transition-colors underline decoration-slate-300"
             >
-              stay on standard mode for now
+              Skip paywall to see the platform first
             </button>
         </div>
       </div>
