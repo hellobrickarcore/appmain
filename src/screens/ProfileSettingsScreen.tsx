@@ -38,9 +38,20 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({ on
     setNotificationsEnabled(notifSettings.enabled);
   }, [userId]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      const { signOut } = await import('../services/supabaseService');
+      await signOut();
+    } catch(e) {}
+    
+    // Retain onboarding finished flag
+    const onboardingFinished = localStorage.getItem('hellobrick_onboarding_finished');
     localStorage.clear();
-    window.location.reload();
+    if (onboardingFinished) {
+      localStorage.setItem('hellobrick_onboarding_finished', onboardingFinished);
+    }
+    
+    window.location.href = '/';
   };
 
   const handleDeleteAccount = async () => {
