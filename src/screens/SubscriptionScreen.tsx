@@ -9,11 +9,20 @@ interface SubscriptionScreenProps {
 }
 
 export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNavigate }) => {
-  const [billingCycle, setBillingCycle] = useState<'annual' | 'monthly'>('annual');
+  const [billingCycle, setBillingCycle] = useState<'weekly' | 'annual' | 'lifetime'>('annual');
   const [loading, setLoading] = useState(false);
   const [showSheet, setShowSheet] = useState(false);
+  const [showClosingOffer, setShowClosingOffer] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+
+  const attemptDismiss = () => {
+    if (!showClosingOffer) {
+      setShowClosingOffer(true);
+    } else {
+      onNavigate();
+    }
+  };
 
   const handleSubscribe = async () => {
     setLoading(true);
@@ -118,22 +127,32 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
       <div className="flex-1 px-8 pt-4 flex flex-col items-center overflow-y-auto no-scrollbar pb-32">
         <h1 className="text-[22px] font-black text-center mb-1 leading-tight tracking-tight text-[#0F172A]">Unlock HelloBrick Pro</h1>
         <p className="text-slate-500 font-bold mb-6 text-[12px]">
-          First 3 days free, then {billingCycle === 'annual' ? '$49.99/year' : '$4.99/month'}
+          {billingCycle === 'lifetime' ? 'One-time payment' : 'First 14 days free, then '}
+          {billingCycle === 'annual' && '$49.99/year'}
+          {billingCycle === 'weekly' && '$3.99/week'}
+          {billingCycle === 'lifetime' && '$149.99'}
         </p>
  
         {/* Toggle - Pill style matched to screenshot */}
-        <div className="bg-[#E2E8F0]/50 p-1 rounded-full flex mb-8 w-full max-w-[240px]">
+        <div className="bg-[#E2E8F0]/50 p-1 rounded-[24px] flex mb-8 w-full max-w-[280px]">
           <button
-            onClick={() => setBillingCycle('annual')}
-            className={"flex-1 py-1 px-3 rounded-full text-[12px] font-black transition-all " + (billingCycle === 'annual' ? 'bg-[#1A1F2C] text-white shadow-lg' : 'text-[#64748B]')}
+            onClick={() => setBillingCycle('weekly')}
+            className={"flex-1 py-1.5 px-2 rounded-[20px] text-[11px] font-black transition-all " + (billingCycle === 'weekly' ? 'bg-[#1A1F2C] text-white shadow-lg' : 'text-[#64748B] hover:text-[#1A1F2C]')}
           >
-            Annual
+            Weekly
           </button>
           <button
-            onClick={() => setBillingCycle('monthly')}
-            className={"flex-1 py-1 px-3 rounded-full text-[12px] font-black transition-all " + (billingCycle === 'monthly' ? 'bg-[#1A1F2C] text-white shadow-lg' : 'text-[#64748B]')}
+            onClick={() => setBillingCycle('annual')}
+            className={"flex-1 py-1.5 px-2 rounded-[20px] text-[11px] font-black transition-all relative " + (billingCycle === 'annual' ? 'bg-[#1A1F2C] text-white shadow-lg' : 'text-[#64748B] hover:text-[#1A1F2C]')}
           >
-            Monthly
+            Annual
+            <div className="absolute -top-2 -right-1 bg-orange-500 text-white text-[8px] px-1.5 py-0.5 rounded-full border border-white">BEST</div>
+          </button>
+          <button
+            onClick={() => setBillingCycle('lifetime')}
+            className={"flex-1 py-1.5 px-2 rounded-[20px] text-[11px] font-black transition-all " + (billingCycle === 'lifetime' ? 'bg-[#1A1F2C] text-white shadow-lg' : 'text-[#64748B] hover:text-[#1A1F2C]')}
+          >
+            Lifetime
           </button>
         </div>
  
@@ -207,13 +226,56 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
             </div>
 
             <button 
-              onClick={() => onNavigate()}
+              onClick={attemptDismiss}
               className="text-slate-400 text-[10px] font-medium mt-1 tracking-tight"
             >
               stay on standard mode for now
             </button>
         </div>
       </div>
+      
+      {/* Closing Offer (Exit Intent) */}
+      {showClosingOffer && !showSheet && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in duration-200">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-[4px]" />
+          <div className="relative w-full max-w-sm bg-white rounded-[32px] p-6 text-center shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden">
+            <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-orange-500/20 to-transparent pointer-events-none" />
+            <div className="w-16 h-16 bg-gradient-to-tr from-orange-500 to-orange-400 rounded-2xl flex items-center justify-center mx-auto mb-4 relative z-10 shadow-[0_0_40px_-5px_rgba(249,115,22,0.5)]">
+              <Star className="w-8 h-8 text-white fill-current" />
+            </div>
+            <h3 className="text-[28px] font-black text-slate-900 mb-2 leading-tight">Wait! Don't miss out.</h3>
+            <p className="text-slate-500 text-sm font-semibold px-2 mb-6 leading-relaxed">
+              Get <span className="text-orange-500 font-black">70% OFF</span> your first year of HelloBrick Pro.
+            </p>
+            
+            <div className="bg-slate-50 rounded-2xl p-4 mb-6 border border-slate-100">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-slate-400 font-bold line-through text-sm">$49.99</span>
+                <span className="text-slate-900 font-black text-2xl">$14.99<span className="text-sm text-slate-400">/yr</span></span>
+              </div>
+              <p className="text-left text-xs text-slate-500 font-medium">Billed annually. Cancel anytime.</p>
+            </div>
+
+            <div className="flex flex-col gap-3 relative z-10">
+              <button
+                onClick={() => {
+                  setShowClosingOffer(false);
+                  handleSubscribe(); // Assume this applies the discount promo code in a real app
+                }}
+                className="w-full py-4 bg-orange-500 hover:bg-orange-600 text-white font-black rounded-[20px] text-[15px] shadow-[0_8px_30px_rgba(249,115,22,0.3)] active:scale-95 transition-all"
+              >
+                Claim 70% Discount
+              </button>
+              <button
+                onClick={() => onNavigate()}
+                className="w-full py-3 text-slate-400 font-bold hover:text-slate-600 transition-colors text-xs"
+              >
+                No thanks, I'll pass
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Reviewer / Fallback Payment Sheet */}
       {showSheet && (
         <div className="fixed inset-0 z-[100] flex items-end animate-in fade-in duration-300">
@@ -227,11 +289,11 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
               </div>
               <div className="flex-1">
                 <h4 className="font-bold text-[17px] text-black">HelloBrick Pro</h4>
-                <p className="text-slate-500 text-[13px] leading-tight">{billingCycle === 'annual' ? 'Annual' : 'Monthly'} Subscription</p>
+                <p className="text-slate-500 text-[13px] leading-tight capitalize">{billingCycle} Subscription</p>
               </div>
               <div className="text-right">
                 <p className="font-bold text-[17px] text-black">$0.00</p>
-                <p className="text-slate-400 text-[11px] font-bold uppercase tracking-tight">First 3 Days</p>
+                <p className="text-slate-400 text-[11px] font-bold uppercase tracking-tight">{billingCycle === 'lifetime' ? 'One Time' : 'First 14 Days'}</p>
               </div>
             </div>
 

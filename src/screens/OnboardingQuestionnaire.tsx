@@ -11,11 +11,13 @@ export const OnboardingQuestionnaire: React.FC = () => {
   
   // Questionnaire state
   const [answers, setAnswers] = useState<{
+    source: string | null;
     mattersMost: string | null;
     knowWorth: string | null;
     collectionSize: string | null;
     buyFrequency: string | null;
   }>({
+    source: null,
     mattersMost: null,
     knowWorth: null,
     collectionSize: null,
@@ -26,7 +28,7 @@ export const OnboardingQuestionnaire: React.FC = () => {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    if (currentSlide === 6) { // Step 6 is the loading screen
+    if (currentSlide === 7) { // Step 7 is the loading screen
       setProgress(0);
       const interval = setInterval(() => {
         setProgress(prev => {
@@ -49,14 +51,11 @@ export const OnboardingQuestionnaire: React.FC = () => {
   }, [currentSlide]);
 
   const handleNext = () => {
-    if (currentSlide === 1) {
-      // Trigger review popup before entering the questions
-      setShowRatingsAlert(true);
-    } else if (currentSlide < 6) {
+    if (currentSlide < 7) {
       setCurrentSlide(c => c + 1);
     } else {
-      // Finish onboarding wizard and go to paywall
-      appStateService.navigate(Screen.SUBSCRIPTION);
+      // Trigger review popup after they see their plan built
+      setShowRatingsAlert(true);
     }
   };
 
@@ -152,11 +151,44 @@ export const OnboardingQuestionnaire: React.FC = () => {
           </div>
         )}
 
-        {/* Step 2: Question 1 */}
+        {/* Step 2: Source Attribution */}
         {currentSlide === 2 && (
           <div className="w-full flex flex-col space-y-6 animate-in fade-in duration-300">
             <div className="space-y-2">
-              <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest">Question 1 of 4</span>
+              <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest">Question 1 of 5</span>
+              <h2 className="text-[28px] font-black leading-tight text-white">Where did you hear about us?</h2>
+              <p className="text-slate-400 text-sm font-bold">This helps us know where to focus our crew.</p>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              {[
+                { label: 'TikTok 🎵', id: 'tiktok' },
+                { label: 'Instagram 📸', id: 'instagram' },
+                { label: 'App Store 🍏', id: 'appstore' },
+                { label: 'Reddit 🤖', id: 'reddit' },
+                { label: 'X (Twitter) 🐦', id: 'twitter' },
+                { label: 'Other 🌍', id: 'other' }
+              ].map((opt) => (
+                <button
+                  key={opt.id}
+                  onClick={() => handleSelectOption('source', opt.id)}
+                  className={`w-full text-left p-5 rounded-[20px] font-bold text-sm transition-all border flex justify-between items-center ${answers.source === opt.id ? 'bg-white text-slate-950 border-white shadow-xl shadow-white/5' : 'bg-white/5 text-slate-300 border-white/5 hover:border-white/10'}`}
+                >
+                  <span>{opt.label}</span>
+                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${answers.source === opt.id ? 'bg-orange-500 border-orange-500' : 'border-slate-700'}`}>
+                    {answers.source === opt.id && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Question 2 */}
+        {currentSlide === 3 && (
+          <div className="w-full flex flex-col space-y-6 animate-in fade-in duration-300">
+            <div className="space-y-2">
+              <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest">Question 2 of 5</span>
               <h2 className="text-[28px] font-black leading-tight text-white">What matters most to you?</h2>
               <p className="text-slate-400 text-sm font-bold">We'll tailor HelloBrick just for you.</p>
             </div>
@@ -183,11 +215,11 @@ export const OnboardingQuestionnaire: React.FC = () => {
           </div>
         )}
 
-        {/* Step 3: Question 2 */}
-        {currentSlide === 3 && (
+        {/* Step 4: Question 3 */}
+        {currentSlide === 4 && (
           <div className="w-full flex flex-col space-y-6 animate-in fade-in duration-300">
             <div className="space-y-2">
-              <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest">Question 2 of 4</span>
+              <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest">Question 3 of 5</span>
               <h2 className="text-[28px] font-black leading-tight text-white">Do you know what your LEGO is worth?</h2>
               <p className="text-slate-400 text-sm font-bold">Most collectors are surprised.</p>
             </div>
@@ -214,11 +246,11 @@ export const OnboardingQuestionnaire: React.FC = () => {
           </div>
         )}
 
-        {/* Step 4: Question 3 */}
-        {currentSlide === 4 && (
+        {/* Step 5: Question 4 */}
+        {currentSlide === 5 && (
           <div className="w-full flex flex-col space-y-6 animate-in fade-in duration-300">
             <div className="space-y-2">
-              <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest">Question 3 of 4</span>
+              <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest">Question 4 of 5</span>
               <h2 className="text-[28px] font-black leading-tight text-white">How big is your collection?</h2>
               <p className="text-slate-400 text-sm font-bold">Let's check your vault size.</p>
             </div>
@@ -245,11 +277,11 @@ export const OnboardingQuestionnaire: React.FC = () => {
           </div>
         )}
 
-        {/* Step 5: Question 4 */}
-        {currentSlide === 5 && (
+        {/* Step 6: Question 5 */}
+        {currentSlide === 6 && (
           <div className="w-full flex flex-col space-y-6 animate-in fade-in duration-300">
             <div className="space-y-2">
-              <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest">Question 4 of 4</span>
+              <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest">Question 5 of 5</span>
               <h2 className="text-[28px] font-black leading-tight text-white">How often do you buy LEGO?</h2>
               <p className="text-slate-400 text-sm font-bold">We'll tailor alerts to your pace.</p>
             </div>
@@ -276,8 +308,8 @@ export const OnboardingQuestionnaire: React.FC = () => {
           </div>
         )}
 
-        {/* Step 6: Custom Loader Screen */}
-        {currentSlide === 6 && (
+        {/* Step 7: Custom Loader Screen */}
+        {currentSlide === 7 && (
           <div className="w-full flex flex-col items-center justify-center space-y-8 animate-in fade-in duration-500">
             {/* Custom Circular Loader */}
             <div className="relative w-36 h-36 flex items-center justify-center">
@@ -344,7 +376,7 @@ export const OnboardingQuestionnaire: React.FC = () => {
         </div>
       )}
 
-      {currentSlide === 6 && (
+      {currentSlide === 7 && (
         <div className="px-8 pb-[max(env(safe-area-inset-bottom),20px)] pt-4 shrink-0">
           <button
             onClick={handleNext}
@@ -381,7 +413,7 @@ export const OnboardingQuestionnaire: React.FC = () => {
               <button
                 onClick={() => {
                   setShowRatingsAlert(false);
-                  setCurrentSlide(c => c + 1);
+                  appStateService.navigate(Screen.SUBSCRIPTION);
                   confetti({ particleCount: 60, spread: 40 });
                 }}
                 className="w-full py-3.5 bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-black rounded-2xl text-sm uppercase tracking-wider active:scale-95 transition-all shadow-lg"
@@ -391,7 +423,7 @@ export const OnboardingQuestionnaire: React.FC = () => {
               <button
                 onClick={() => {
                   setShowRatingsAlert(false);
-                  setCurrentSlide(c => c + 1);
+                  appStateService.navigate(Screen.SUBSCRIPTION);
                 }}
                 className="w-full py-3 text-slate-400 font-bold hover:text-slate-600 transition-colors text-xs uppercase tracking-wider"
               >
