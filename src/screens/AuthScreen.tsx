@@ -45,12 +45,16 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticate, onNaviga
         ? await signInWithGoogle() 
         : await signInWithApple();
       
-      if (user) {
-        // Supabase user returned - this is the "official" path
+      if (user && (user.id || user.user?.id)) {
+        // Supabase user returned with an ID - this is the "official" path (e.g., cached session)
         localStorage.setItem('hellobrick_userId', user.id || user.user?.id);
         localStorage.setItem('hellobrick_userEmail', user.email || user.user?.email);
         localStorage.setItem('hellobrick_authenticated', 'true');
         onNavigate(Screen.HOME);
+      } else if (user && user.url) {
+        // OAuth flow started, we have a URL. Do NOT navigate yet.
+        // The deep link listener (appUrlOpen) in App.tsx will handle the actual login completion.
+        console.log(`[Auth] OAuth started for ${platform}, waiting for browser callback...`);
       } else if (error) {
         console.error(`${platform} sign-in error:`, error);
         // On mobile, the window stays open or we rely on deep link
