@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Share2, Info, ChevronRight, Lock } from 'lucide-react';
 import { Screen, LegoSetModel } from '../types';
-import { mockSets, mockValuations } from '../lib/mock-data';
+import { mockSets, mockValuations, mockMinifigs } from '../lib/mock-data';
 
 interface SetDetailScreenProps {
   onNavigate: (screen: Screen, params?: any) => void;
@@ -12,24 +12,49 @@ export const SetDetailScreen: React.FC<SetDetailScreenProps> = ({ onNavigate, se
   // Fallback to Lion Knights' Castle to match the screenshot perfectly if no setNum
   const activeSetNum = setNum || '10305-1';
   
-  const set = mockSets.find(s => s.setNum === activeSetNum) || {
-    ...mockSets[0],
-    name: "Lion Knights' Castle",
-    setNum: "10305-1",
-    retailPrice: 399.99
-  };
+  const isMinifig = activeSetNum.startsWith('fig') || 
+                    activeSetNum.startsWith('sp') || 
+                    activeSetNum.startsWith('inf') || 
+                    activeSetNum.startsWith('njo');
+  
+  const set = mockSets.find(s => s.setNum === activeSetNum) || 
+              mockMinifigs.find(f => f.figNum === activeSetNum) || 
+              {
+                id: "set-default",
+                name: "Lion Knights' Castle",
+                setNum: "10305-1",
+                retailPrice: 399.99,
+                imageUrl: 'https://cdn.rebrickable.com/media/sets/10305-1.jpg',
+                isRetired: false,
+                type: 'set'
+              };
 
-  const val = mockValuations.get(activeSetNum) || {
-    sealedValue: 450.00,
-    usedValue: 399.99,
-    resaleAvg: 410.00,
-    sealedChange30d: 4.2,
-    usedChange30d: 2.1,
-    rarityScore: 9.8,
-    demandScore: 9,
-    isRetired: false,
-    priceHistory: []
-  };
+  const mockVal = mockValuations.get(activeSetNum);
+  const val = mockVal || (
+    isMinifig 
+      ? {
+          sealedValue: (set as any).resaleValue || 45.00,
+          usedValue: (set as any).resaleValue || 45.00,
+          resaleAvg: (set as any).resaleValue || 45.00,
+          sealedChange30d: 5.2,
+          usedChange30d: 5.2,
+          rarityScore: (set as any).rarityScore || 7,
+          demandScore: (set as any).rarityScore || 7,
+          isRetired: true,
+          priceHistory: []
+        }
+      : {
+          sealedValue: 450.00,
+          usedValue: 399.99,
+          resaleAvg: 410.00,
+          sealedChange30d: 4.2,
+          usedChange30d: 2.1,
+          rarityScore: 9.8,
+          demandScore: 9,
+          isRetired: false,
+          priceHistory: []
+        }
+  );
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F8F9FB] font-sans text-slate-900 overflow-hidden select-none">
@@ -56,7 +81,7 @@ export const SetDetailScreen: React.FC<SetDetailScreenProps> = ({ onNavigate, se
         {/* Hero Image */}
         <div className="w-full bg-white px-6 py-8 flex items-center justify-center border-b border-slate-100 shadow-sm relative">
           <img 
-            src={`https://cdn.rebrickable.com/media/sets/${set.setNum}.jpg`} 
+            src={set.imageUrl || `https://cdn.rebrickable.com/media/sets/${set.setNum}.jpg`} 
             alt={set.name}
             onError={(e) => {
               e.currentTarget.src = `https://cdn.rebrickable.com/media/sets/${set.setNum}-1.jpg`;

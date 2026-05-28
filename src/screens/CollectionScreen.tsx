@@ -3,6 +3,7 @@ import { ArrowLeft, Plus, X, TrendingUp, BookOpen, Trash2, ChevronRight } from '
 import { Screen, CollectionItem } from '../types';
 import { getCollectionFromStorage, getSets, getValuationsMap } from '../lib/dataProvider';
 import confetti from 'canvas-confetti';
+import { mockSets, mockMinifigs } from '../lib/mock-data';
 
 interface CollectionScreenProps {
   onNavigate: (screen: Screen, params?: any) => void;
@@ -38,7 +39,16 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
   const hydratedCollection = useMemo(() => {
     if (!sets.length && !collection.length) return [];
     return collection.map((item, idx) => {
-      const set = sets.find(s => s.setNum === item.setNum) || sets[idx % Math.max(sets.length, 1)] || { name: 'LEGO Set', setNum: item.setNum, retailPrice: 99, imageUrl: '' };
+      const set = sets.find(s => s.setNum === item.setNum) || 
+                  mockSets.find(s => s.setNum === item.setNum) ||
+                  mockMinifigs.find(f => f.figNum === item.setNum) ||
+                  { 
+                    name: `Custom LEGO Asset (${item.setNum})`, 
+                    setNum: item.setNum, 
+                    retailPrice: item.purchasePrice || 49.99, 
+                    imageUrl: 'https://cdn.rebrickable.com/media/sets/10305-1.jpg',
+                    theme: 'Custom'
+                  };
       const val = valuationsMap.get(item.setNum) || {
         sealedValue: set.retailPrice || 149.99,
         usedValue: (set.retailPrice || 149.99) * 0.7,
@@ -242,7 +252,7 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                   const parsedPrice = parseFloat(manualPrice);
                   const newItem: CollectionItem = {
                     id: `manual_${Date.now()}`,
-                    userId: 'user-1',
+                    userId: localStorage.getItem('hellobrick_userId') || 'anonymous',
                     setNum: manualSetNum.trim(),
                     condition: manualCondition,
                     purchasePrice: isNaN(parsedPrice) ? 100 : parsedPrice,

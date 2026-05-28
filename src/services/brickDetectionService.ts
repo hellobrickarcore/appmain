@@ -124,7 +124,7 @@ export class DetectionStabilizer {
         // Once a brick is confirmed (Stage 3), it gets a massive 15s persistence window.
         // It will NOT be removed unless the view changes drastically or it's dead-lost for 15s.
         const isConfirmed = (prev.labelDisplayStatus === 'confirmed');
-        const isStable = (prev.prediction.identityConfidence || 0) >= 0.15;
+        const isStable = (prev.prediction?.identityConfidence || 0) >= 0.15;
         
         const limit = isConfirmed ? 15000 : (isStable ? 5000 : 1800);
 

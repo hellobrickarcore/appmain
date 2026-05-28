@@ -4,14 +4,21 @@ import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import './index.css';
 
-// Global error logger for native debugging
-window.onerror = (message, source, lineno, colno, error) => {
-  const errDiv = document.createElement('div');
-  errDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:white;color:red;padding:20px;z-index:99999;overflow:auto;font-family:monospace;';
-  errDiv.innerHTML = `<h1>Fatal Error</h1><p>${message}</p><pre>${error?.stack || ''}</pre>`;
-  document.body.appendChild(errDiv);
-  return false;
-};
+// Global error logger for native debugging (only in DEV mode)
+if (import.meta.env.DEV) {
+  window.onerror = (message, source, lineno, colno, error) => {
+    const errDiv = document.createElement('div');
+    errDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:white;color:red;padding:20px;z-index:99999;overflow:auto;font-family:monospace;';
+    errDiv.innerHTML = `<h1>Fatal Error</h1><p>${message}</p><pre>${error?.stack || ''}</pre>`;
+    document.body.appendChild(errDiv);
+    return false;
+  };
+} else {
+  window.onerror = (message, source, lineno, colno, error) => {
+    console.error('[Fatal Uncaught Error]', { message, source, lineno, colno, error });
+    return true;
+  };
+}
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

@@ -59,9 +59,12 @@ const App: React.FC = () => {
     }
 
     const hasFinishedOnboarding = localStorage.getItem('hellobrick_onboarding_finished') === 'true';
-    if (!hasFinishedOnboarding) return Screen.ONBOARDING_QUESTIONNAIRE;
+    const isAuthenticated = localStorage.getItem('hellobrick_authenticated') === 'true';
     
-    // PHASE 2: Allow direct navigation to SCANNER/HOME even for unauthenticated users
+    if (!hasFinishedOnboarding || !isAuthenticated) {
+      return Screen.ONBOARDING_QUESTIONNAIRE;
+    }
+    
     return Screen.HOME;
   };
 

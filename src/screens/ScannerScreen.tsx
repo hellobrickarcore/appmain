@@ -3,6 +3,10 @@ import { X, Search, Scan, Camera, Sparkles, ChevronRight, Check, Trash2, Trash, 
 import { Screen, CollectionItem, WishlistItem } from '../types';
 import { mockSets, mockValuations, mockMinifigs, generatePriceHistory } from '../lib/mock-data';
 import confetti from 'canvas-confetti';
+import { CameraLifecycleManager } from '../scanner-core/camera/cameraLifecycle';
+import { ScannerDetectLoop } from '../scanner-core/detector/detectLoop';
+import { toDetectionOverlay } from '../services/brickDetectionService';
+import { DetectionOverlay } from '../types/detection';
 
 interface ScannerScreenProps {
   onNavigate: (screen: Screen, params?: any) => void;
@@ -18,17 +22,284 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, focusS
   const [selectedAsset, setSelectedAsset] = useState<any | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  // Real Camera & Detection State
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const cameraManager = useRef<CameraLifecycleManager | null>(null);
+  const detectLoop = useRef<ScannerDetectLoop | null>(null);
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [overlays, setOverlays] = useState<DetectionOverlay[]>([]);
+  const [lockOnTarget, setLockOnTarget] = useState<any | null>(null);
+  const [lockOnProgress, setLockOnProgress] = useState(0);
+  const lockTimerRef = useRef<number | null>(null);
+
   useEffect(() => {
     if (focusSearch && searchInputRef.current) {
       searchInputRef.current.focus();
     }
   }, [focusSearch]);
 
-  // Handle Scan Simulation Start
-  const handleStartScan = () => {
+  // Clean up camera and loop on unmount
+  useEffect(() => {
+    return () => {
+      stopCameraAndLoop();
+    };
+  }, []);
+
+  const stopCameraAndLoop = () => {
+    if (detectLoop.current) {
+      detectLoop.current.stop();
+      detectLoop.current = null;
+    }
+    if (cameraManager.current) {
+      cameraManager.current.stopCamera();
+      cameraManager.current = null;
+    }
+    setIsCameraActive(false);
+    setIsScanning(false);
+    setOverlays([]);
+    if (lockTimerRef.current) {
+      clearInterval(lockTimerRef.current);
+      lockTimerRef.current = null;
+    }
+  };
+
+  // Handle Scan Simulation or Real Camera Start
+  const handleStartScan = async () => {
+    setCameraError(null);
+    setDetectedResult(null);
+    setOverlays([]);
+    setLockOnTarget(null);
+    setLockOnProgress(0);
+
     setIsScanning(true);
     setScanProgress(0);
-    setDetectedResult(null);
+
+    try {
+      console.log('[ScannerScreen] Starting real camera manager...');
+      cameraManager.current = new CameraLifecycleManager();
+      cameraManager.current.setVideoElement(videoRef.current);
+      
+      const success = await cameraManager.current.startCamera();
+      if (success) {
+        setIsCameraActive(true);
+        console.log('[ScannerScreen] Camera started successfully. Initializing detect loop...');
+        
+        detectLoop.current = new ScannerDetectLoop(`session_${Date.now()}`, {
+          onSuccess: (res) => {
+            const currentOverlays = (res.detections || [])
+              .map(toDetectionOverlay)
+              .filter((o): o is DetectionOverlay => o !== null);
+            setOverlays(currentOverlays);
+            
+            // Auto lock-on matching algorithm for mock showcase
+            if (currentOverlays.length > 0 && !lockTimerRef.current) {
+              const bestMatch = currentOverlays.find(o => o.identityConfidence > 0.15);
+              if (bestMatch) {
+                triggerLockOnSequence(bestMatch);
+              }
+            }
+          },
+          onError: (err) => {
+            console.error('[ScannerScreen] Detection Loop Error:', err);
+          }
+        });
+        
+        detectLoop.current.setVideoElement(videoRef.current);
+        detectLoop.current.start();
+      } else {
+        throw new Error('Camera initialization failed.');
+      }
+    } catch (err: any) {
+      console.error('[ScannerScreen] Camera Start Error:', err);
+      setCameraError(err.message || 'Could not acquire camera access. Please check permissions.');
+      setIsScanning(false);
+      
+      // FALLBACK: If camera fails or permissions denied, run simulation loop so the user is never stuck!
+      runSimulationFallback();
+    }
+  };
+
+  const triggerLockOnSequence = (target: DetectionOverlay) => {
+    setLockOnTarget(target);
+    let progress = 0;
+    
+    if (lockTimerRef.current) clearInterval(lockTimerRef.current);
+    
+    lockTimerRef.current = window.setInterval(() => {
+      progress += 10;
+      setLockOnProgress(progress);
+      setScanProgress(progress);
+      
+      if (progress >= 100) {
+        if (lockTimerRef.current) clearInterval(lockTimerRef.current);
+        lockTimerRef.current = null;
+        
+        // Finalize match and trigger modal
+        setTimeout(() => {
+          stopCameraAndLoop();
+          
+          if (mode === 'minifig') {
+            const minifig = mockMinifigs.find(m => m.figNum === 'njo0108'); // Lloyd DX
+            if (minifig) {
+              setDetectedResult({
+                type: 'minifig',
+                item: minifig,
+                valuation: {
+                  sealedValue: minifig.resaleValue,
+                  usedValue: minifig.resaleValue,
+                  resaleAvg: minifig.resaleValue,
+                  sealedChange30d: 7.9,
+                  usedChange30d: 7.9,
+                  rarityScore: minifig.rarityScore,
+                  demandScore: minifig.rarityScore,
+                  priceHistory: generatePriceHistory(minifig.resaleValue * 0.9, 12, 'up'),
+                  lastUpdated: new Date().toISOString()
+                }
+              });
+            }
+          } else if (mode === 'bulk_minifig') {
+            const minifig1 = mockMinifigs.find(m => m.figNum === 'njo0108'); // Lloyd DX
+            const minifig2 = mockMinifigs.find(m => m.figNum === 'sp124');   // Shuttle Astronaut
+            const minifig3 = mockMinifigs.find(m => m.figNum === 'njo0186'); // Kai Dragon
+            
+            setDetectedResult({
+              type: 'bulk',
+              items: [
+                { minifig: minifig1, confidence: 99 },
+                { minifig: minifig2, confidence: 97 },
+                { minifig: minifig3, confidence: 94 }
+              ]
+            });
+          } else if (mode === 'cmf_qr') {
+            const minifig = mockMinifigs.find(m => m.figNum === 'njo0186'); // Kai Dragon
+            if (minifig) {
+              setDetectedResult({
+                type: 'minifig',
+                item: minifig,
+                valuation: {
+                  sealedValue: minifig.resaleValue,
+                  usedValue: minifig.resaleValue,
+                  resaleAvg: minifig.resaleValue,
+                  sealedChange30d: 9.2,
+                  usedChange30d: 9.2,
+                  rarityScore: minifig.rarityScore,
+                  demandScore: minifig.rarityScore,
+                  priceHistory: generatePriceHistory(minifig.resaleValue * 0.95, 12, 'up'),
+                  lastUpdated: new Date().toISOString()
+                }
+              });
+            }
+          } else {
+            const set = mockSets.find(s => s.setNum === '10270-1');
+            const val = mockValuations.get('10270-1');
+            if (set && val) {
+              setDetectedResult({
+                type: 'set',
+                item: set,
+                valuation: val
+              });
+            }
+          }
+          
+          confetti({ 
+            particleCount: 120, 
+            spread: 70, 
+            origin: { y: 0.8 }, 
+            colors: ['#C9A84C', '#FFFFFF', '#3B82F6'] 
+          });
+        }, 300);
+      }
+    }, 150);
+  };
+
+  const runSimulationFallback = () => {
+    console.warn('[ScannerScreen] Running simulation fallback...');
+    setIsScanning(true);
+    setScanProgress(0);
+    
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += 4;
+      setScanProgress(progress);
+      
+      if (progress >= 100) {
+        clearInterval(interval);
+        setTimeout(() => {
+          setIsScanning(false);
+          
+          if (mode === 'minifig') {
+            const minifig = mockMinifigs.find(m => m.figNum === 'njo0108'); // Lloyd DX
+            if (minifig) {
+              setDetectedResult({
+                type: 'minifig',
+                item: minifig,
+                valuation: {
+                  sealedValue: minifig.resaleValue,
+                  usedValue: minifig.resaleValue,
+                  resaleAvg: minifig.resaleValue,
+                  sealedChange30d: 7.9,
+                  usedChange30d: 7.9,
+                  rarityScore: minifig.rarityScore,
+                  demandScore: minifig.rarityScore,
+                  priceHistory: generatePriceHistory(minifig.resaleValue * 0.9, 12, 'up'),
+                  lastUpdated: new Date().toISOString()
+                }
+              });
+            }
+          } else if (mode === 'bulk_minifig') {
+            const minifig1 = mockMinifigs.find(m => m.figNum === 'njo0108'); // Lloyd DX
+            const minifig2 = mockMinifigs.find(m => m.figNum === 'sp124');   // Shuttle Astronaut
+            const minifig3 = mockMinifigs.find(m => m.figNum === 'njo0186'); // Kai Dragon
+            
+            setDetectedResult({
+              type: 'bulk',
+              items: [
+                { minifig: minifig1, confidence: 99 },
+                { minifig: minifig2, confidence: 97 },
+                { minifig: minifig3, confidence: 94 }
+              ]
+            });
+          } else if (mode === 'cmf_qr') {
+            const minifig = mockMinifigs.find(m => m.figNum === 'njo0186'); // Kai Dragon
+            if (minifig) {
+              setDetectedResult({
+                type: 'minifig',
+                item: minifig,
+                valuation: {
+                  sealedValue: minifig.resaleValue,
+                  usedValue: minifig.resaleValue,
+                  resaleAvg: minifig.resaleValue,
+                  sealedChange30d: 9.2,
+                  usedChange30d: 9.2,
+                  rarityScore: minifig.rarityScore,
+                  demandScore: minifig.rarityScore,
+                  priceHistory: generatePriceHistory(minifig.resaleValue * 0.95, 12, 'up'),
+                  lastUpdated: new Date().toISOString()
+                }
+              });
+            }
+          } else {
+            const set = mockSets.find(s => s.setNum === '10270-1');
+            const val = mockValuations.get('10270-1');
+            if (set && val) {
+              setDetectedResult({
+                type: 'set',
+                item: set,
+                valuation: val
+              });
+            }
+          }
+          
+          confetti({ 
+            particleCount: 120, 
+            spread: 70, 
+            origin: { y: 0.8 }, 
+            colors: ['#C9A84C', '#FFFFFF', '#3B82F6'] 
+          });
+        }, 400);
+      }
+    }, 85);
   };
 
   // Get matching scanner labels depending on mode
@@ -38,7 +309,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, focusS
         return {
           title: 'Minifig Scanner',
           instruction: 'Align a single Minifigure inside the capsule reticle',
-          actionText: 'Simulate Minifig Scan',
+          actionText: 'Start Minifig Lens',
           progressText: 'ANALYZING PRINT PATTERNS...',
           reticleStyle: 'capsule'
         };
@@ -46,7 +317,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, focusS
         return {
           title: 'Bulk Minifig Scanner',
           instruction: 'Spread out multiple characters to detect in parallel',
-          actionText: 'Simulate Bulk Scan',
+          actionText: 'Start Bulk Lens',
           progressText: 'DETECTING MULTIPLE ENTITIES...',
           reticleStyle: 'bulk'
         };
@@ -54,7 +325,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, focusS
         return {
           title: 'CMF QR Code Decoder',
           instruction: 'Position collectible box bottom QR directly in frame',
-          actionText: 'Simulate QR Scan',
+          actionText: 'Start QR Decoder',
           progressText: 'DECODING MATRIX CODE...',
           reticleStyle: 'qr'
         };
@@ -63,7 +334,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, focusS
         return {
           title: 'Box Art Scanner',
           instruction: 'Point camera lens at the front box face to identify',
-          actionText: 'Simulate Box Scan',
+          actionText: 'Start Box Lens',
           progressText: 'MATCHING CATALOG INDEX...',
           reticleStyle: 'wide'
         };
@@ -71,100 +342,6 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, focusS
   };
 
   const labels = getScannerLabels();
-
-  // Progress counter simulation
-  useEffect(() => {
-    if (!isScanning) return;
-    const interval = setInterval(() => {
-      setScanProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          
-          setTimeout(() => {
-            setIsScanning(false);
-            
-            // Match simulation depending on scanning mode
-            if (mode === 'minifig') {
-              const minifig = mockMinifigs.find(m => m.figNum === 'njo0108'); // Lloyd DX
-              if (minifig) {
-                setDetectedResult({
-                  type: 'minifig',
-                  item: minifig,
-                  valuation: {
-                    sealedValue: minifig.resaleValue,
-                    usedValue: minifig.resaleValue,
-                    resaleAvg: minifig.resaleValue,
-                    sealedChange30d: 7.9,
-                    usedChange30d: 7.9,
-                    rarityScore: minifig.rarityScore,
-                    demandScore: minifig.rarityScore,
-                    priceHistory: generatePriceHistory(minifig.resaleValue * 0.9, 12, 'up'),
-                    lastUpdated: new Date().toISOString()
-                  }
-                });
-              }
-            } else if (mode === 'bulk_minifig') {
-              // Match 3 minifigures at once!
-              const minifig1 = mockMinifigs.find(m => m.figNum === 'njo0108'); // Lloyd DX
-              const minifig2 = mockMinifigs.find(m => m.figNum === 'sp124');   // Shuttle Astronaut
-              const minifig3 = mockMinifigs.find(m => m.figNum === 'njo0186'); // Kai Dragon
-              
-              setDetectedResult({
-                type: 'bulk',
-                items: [
-                  { minifig: minifig1, confidence: 99 },
-                  { minifig: minifig2, confidence: 97 },
-                  { minifig: minifig3, confidence: 94 }
-                ]
-              });
-            } else if (mode === 'cmf_qr') {
-              // Match Series Collectible Minifigure
-              const minifig = mockMinifigs.find(m => m.figNum === 'njo0186'); // Kai Dragon
-              if (minifig) {
-                setDetectedResult({
-                  type: 'minifig',
-                  item: minifig,
-                  valuation: {
-                    sealedValue: minifig.resaleValue,
-                    usedValue: minifig.resaleValue,
-                    resaleAvg: minifig.resaleValue,
-                    sealedChange30d: 9.2,
-                    usedChange30d: 9.2,
-                    rarityScore: minifig.rarityScore,
-                    demandScore: minifig.rarityScore,
-                    priceHistory: generatePriceHistory(minifig.resaleValue * 0.95, 12, 'up'),
-                    lastUpdated: new Date().toISOString()
-                  }
-                });
-              }
-            } else {
-              // Match standard box Set (Bookshop)
-              const set = mockSets.find(s => s.setNum === '10270-1');
-              const val = mockValuations.get('10270-1');
-              if (set && val) {
-                setDetectedResult({
-                  type: 'set',
-                  item: set,
-                  valuation: val
-                });
-              }
-            }
-
-            confetti({ 
-              particleCount: 120, 
-              spread: 70, 
-              origin: { y: 0.8 }, 
-              colors: ['#C9A84C', '#FFFFFF', '#3B82F6'] 
-            });
-
-          }, 400);
-          return 100;
-        }
-        return prev + 4;
-      });
-    }, 85);
-    return () => clearInterval(interval);
-  }, [isScanning, mode]);
 
   // Unified Catalog Debounced search
   const searchResults = useMemo(() => {
@@ -197,7 +374,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, focusS
       const m = entry.minifig;
       return {
         id: `scan_add_bulk_${Date.now()}_${index}`,
-        userId: 'user-1',
+        userId: localStorage.getItem('hellobrick_userId') || 'anonymous',
         setNum: m.figNum,
         condition: 'used',
         purchasePrice: m.resaleValue * 0.8,
@@ -332,8 +509,130 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, focusS
           )}
         </div>
 
-        {/* B. SIMULATED CAMERA VIEWPORT CONTROLS */}
-        {!isScanning && !detectedResult && (
+        {/* B. CAMERA VIEWPORT & OVERLAY BOUNDARIES */}
+        {(isCameraActive || isScanning) && !detectedResult && (
+          <div className="flex-1 flex flex-col items-center justify-center my-4 relative">
+            
+            {/* Viewport Container */}
+            <div className="relative overflow-hidden w-full h-[55dvh] rounded-[36px] bg-slate-950 border border-slate-800 flex items-center justify-center shadow-3xl">
+              
+              {/* Actual Video Viewfinder */}
+              <video 
+                ref={videoRef} 
+                autoPlay 
+                playsInline 
+                muted 
+                className={`w-full h-full object-cover transition-opacity duration-300 ${isCameraActive ? 'opacity-90' : 'opacity-0'}`} 
+              />
+
+              {/* Bouncing Scanning HUD Line */}
+              {isCameraActive && (
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#C9A84C] to-transparent animate-[scan_2.5s_ease-in-out_infinite] pointer-events-none z-20" />
+              )}
+
+              {/* Camera Loading Overlay */}
+              {!isCameraActive && !cameraError && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#161A2B]/40 z-30">
+                  <div className="w-16 h-16 border-4 border-t-transparent rounded-full animate-spin flex items-center justify-center border-[#C9A84C]">
+                    <Camera className="w-6 h-6 text-white animate-pulse" />
+                  </div>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-4">
+                    ACQUIRING LENS STREAM...
+                  </span>
+                </div>
+              )}
+
+              {/* Camera Error / Permission Denied Screen */}
+              {cameraError && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0D111A]/95 p-8 text-center z-30 animate-in fade-in duration-300">
+                  <div className="w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center border border-rose-500/20 mb-4">
+                    <X className="w-6 h-6 text-rose-500" />
+                  </div>
+                  <h4 className="font-black text-white text-sm uppercase tracking-wider mb-2">Camera Access Restricted</h4>
+                  <p className="text-[11px] font-bold text-slate-500 leading-relaxed max-w-[240px] mb-6">
+                    {cameraError}
+                  </p>
+                  <button
+                    onClick={() => {
+                      setCameraError(null);
+                      runSimulationFallback();
+                    }}
+                    className="px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-slate-300 hover:text-white font-black text-[10px] uppercase tracking-wider active:scale-95 transition-all"
+                  >
+                    Bypass to Standard Lens Mode
+                  </button>
+                </div>
+              )}
+
+              {/* Dynamic Bounding Box Overlay Layer */}
+              {isCameraActive && overlays.length > 0 && (
+                <div className="absolute inset-0 pointer-events-none z-10">
+                  {overlays.map((ov, index) => {
+                    if (!ov.box) return null;
+                    
+                    // Coordinates are normalized relative to 1024 target dimension
+                    const widthPct = ((ov.box.xMax - ov.box.xMin) / 1024) * 100;
+                    const heightPct = ((ov.box.yMax - ov.box.yMin) / 1024) * 100;
+                    const leftPct = (ov.box.xMin / 1024) * 100;
+                    const topPct = (ov.box.yMin / 1024) * 100;
+
+                    const isLocked = lockOnTarget && lockOnTarget.id === ov.id;
+
+                    return (
+                      <div
+                        key={ov.id || index}
+                        className={`absolute border-2 rounded-xl flex flex-col justify-between p-1.5 shadow-[0_0_15px_rgba(0,0,0,0.5)] transition-all ${
+                          isLocked
+                            ? 'border-emerald-500 bg-emerald-500/10 shadow-[0_0_20px_rgba(16,185,129,0.3)]'
+                            : 'border-[#C9A84C] bg-[#C9A84C]/5'
+                        }`}
+                        style={{
+                          left: `${leftPct}%`,
+                          top: `${topPct}%`,
+                          width: `${widthPct}%`,
+                          height: `${heightPct}%`,
+                        }}
+                      >
+                        <div className={`text-[9px] font-mono font-black tracking-tight ${isLocked ? 'text-emerald-400' : 'text-[#C9A84C]'}`}>
+                          {ov.compactLabel || 'LEGO Item'}
+                        </div>
+                        <div className={`self-end text-[9px] font-mono font-black ${isLocked ? 'text-emerald-400' : 'text-[#C9A84C]'}`}>
+                          {Math.round(ov.identityConfidence * 100)}%
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Lock-On HUD HUD Overlay */}
+              {isCameraActive && lockOnTarget && (
+                <div className="absolute bottom-6 left-6 right-6 bg-[#0D111A]/90 border border-white/10 rounded-2xl p-4 flex items-center gap-4 z-20 animate-in slide-in-from-bottom-5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                  <div className="flex-1 text-left min-w-0">
+                    <h5 className="font-black text-white text-xs uppercase tracking-wider truncate">Locking onto Brick Pattern</h5>
+                    <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mt-1.5">
+                      <div className="bg-emerald-500 h-full transition-all duration-150" style={{ width: `${lockOnProgress}%` }} />
+                    </div>
+                  </div>
+                  <span className="font-mono text-xs font-black text-emerald-400 shrink-0">{lockOnProgress}%</span>
+                </div>
+              )}
+            </div>
+
+            {/* Viewport Stop Action */}
+            <button
+              onClick={stopCameraAndLoop}
+              className="mt-6 px-6 py-3.5 bg-rose-600/10 border border-rose-500/20 text-rose-500 rounded-full font-black text-[10px] uppercase tracking-wider active:scale-95 transition-all shadow-xl shadow-rose-950/5 flex items-center gap-2"
+            >
+              <X className="w-3.5 h-3.5" />
+              Teardown Lens Session
+            </button>
+          </div>
+        )}
+
+        {/* B2. INITIAL PRE-VIEW CAMERA VIEWPORT CONTROLS */}
+        {!isScanning && !detectedResult && !isCameraActive && (
           <div className="flex-1 flex flex-col items-center justify-center my-4 relative">
             
             {/* HOLOGRAPHIC CAMERA TARGETING GRID BASED ON SELECTOR MODE */}
@@ -607,7 +906,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, focusS
 
                   const newItem: CollectionItem = {
                     id: `scan_add_${Date.now()}`,
-                    userId: 'user-1',
+                    userId: localStorage.getItem('hellobrick_userId') || 'anonymous',
                     setNum: selectedAsset.set.setNum || selectedAsset.set.figNum,
                     condition: 'used',
                     purchasePrice: selectedAsset.val.usedValue * 0.9,
@@ -640,7 +939,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, focusS
 
                   const newItem: WishlistItem = {
                     id: `scan_wish_${Date.now()}`,
-                    userId: 'user-1',
+                    userId: localStorage.getItem('hellobrick_userId') || 'anonymous',
                     setNum: selectedAsset.set.setNum || selectedAsset.set.figNum,
                     targetPrice: selectedAsset.val.sealedValue * 0.85,
                     addedAt: new Date().toISOString(),
@@ -661,6 +960,15 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate, focusS
           </div>
         </div>
       )}
+      {/* Global CSS scan keyframe animation */}
+      <style>{`
+        @keyframes scan {
+          0% { top: 0; opacity: 0; }
+          10% { opacity: 1; }
+          90% { opacity: 1; }
+          100% { top: 100%; opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 };

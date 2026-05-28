@@ -11,7 +11,8 @@ export function generatePriceHistory(
   basePrice: number,
   months: number,
   trend: 'up' | 'down' | 'stable',
-  volatility = 0.03
+  volatility = 0.03,
+  itemSeed = 'default'
 ): PricePoint[] {
   const points: PricePoint[] = [];
   const now = new Date();
@@ -20,13 +21,21 @@ export function generatePriceHistory(
   let sealedPrice = basePrice;
   let usedRatio = 0.70;
 
+  // Hash itemSeed into a stable numeric offset
+  let seedNum = 0;
+  for (let c = 0; c < itemSeed.length; c++) {
+    seedNum = (seedNum << 5) - seedNum + itemSeed.charCodeAt(c);
+    seedNum |= 0;
+  }
+  const seedOffset = Math.abs(seedNum) % 10000;
+
   for (let i = months; i >= 0; i--) {
     const date = new Date(now);
     date.setMonth(date.getMonth() - i);
     date.setDate(1);
 
     if (i < months) {
-      const shockSeed = Math.sin(i * 9876.54) * 1000;
+      const shockSeed = Math.sin((i + seedOffset) * 9876.54) * 1000;
       const pseudoRandom = shockSeed - Math.floor(shockSeed);
       const monthlyReturn = drift + (pseudoRandom - 0.5) * volatility;
       sealedPrice *= (1 + monthlyReturn);
@@ -191,7 +200,7 @@ function buildValuations(): Map<string, SetValuation> {
   for (const seed of valuationSeeds) {
     const set = mockSets.find(s => s.setNum === seed.setNum);
     const basePrice = set?.retailPrice ?? seed.sealedValue * 0.6;
-    const priceHistory = generatePriceHistory(basePrice, 12, seed.trend as 'up'|'down'|'stable', seed.volatility);
+    const priceHistory = generatePriceHistory(basePrice, 12, seed.trend as 'up'|'down'|'stable', seed.volatility, seed.setNum);
 
     if (priceHistory.length > 0) {
       priceHistory[priceHistory.length - 1] = {
