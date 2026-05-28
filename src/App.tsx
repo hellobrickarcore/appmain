@@ -49,11 +49,13 @@ const App: React.FC = () => {
     const urlParams = new URLSearchParams(window.location.search);
     
     // Dev Bypass
-    if (urlParams.get('dev') === 'true' || localStorage.getItem('hellobrick_dev_mode') === 'true') {
-      localStorage.setItem('hellobrick_dev_mode', 'true');
-      localStorage.setItem('hellobrick_onboarding_finished', 'true');
-      localStorage.setItem('hellobrick_authenticated', 'true');
-      return Screen.HOME;
+    if (import.meta.env.DEV) {
+      if (urlParams.get('dev') === 'true' || localStorage.getItem('hellobrick_dev_mode') === 'true') {
+        localStorage.setItem('hellobrick_dev_mode', 'true');
+        localStorage.setItem('hellobrick_onboarding_finished', 'true');
+        localStorage.setItem('hellobrick_authenticated', 'true');
+        return Screen.HOME;
+      }
     }
 
     const hasFinishedOnboarding = localStorage.getItem('hellobrick_onboarding_finished') === 'true';
@@ -91,6 +93,18 @@ const App: React.FC = () => {
     };
     splashReset();
   }, []);
+
+  const handleNavigate = (screen: Screen, params?: any) => {
+    console.log(`🚀 Navigating to: ${screen}`, params);
+    
+    // Use the state machine for unified logic
+    appStateService.navigate(screen, params);
+  };
+
+  // Expose navigation to window for Playwright screenshot scripts
+  useEffect(() => {
+    (window as any).__navigate = handleNavigate;
+  }, [handleNavigate]);
 
   useEffect(() => {
     const init = async () => {
@@ -220,12 +234,7 @@ const App: React.FC = () => {
     };
   }, []);
 
-  const handleNavigate = (screen: Screen, params?: any) => {
-    console.log(`🚀 Navigating to: ${screen}`, params);
-    
-    // Use the state machine for unified logic
-    appStateService.navigate(screen, params);
-  };
+
 
   const renderScreen = () => {
     switch (currentScreen) {
@@ -316,6 +325,7 @@ const App: React.FC = () => {
       <div className="flex-1 relative min-h-0 overflow-hidden">
         {renderScreen()}
       </div>
+      {/* Dev Mode Nav Hidden for Screenshots
       {localStorage.getItem('hellobrick_dev_mode') === 'true' && (
         <div className="fixed bottom-24 left-4 z-[9999] pointer-events-none">
           <div className="flex flex-col gap-2 pointer-events-auto">
@@ -340,6 +350,7 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
+      */}
       {[Screen.HOME, Screen.SCANNER, Screen.COLLECTION, Screen.WISHLIST, Screen.SET_DETAIL, Screen.PORTFOLIO_ANALYTICS, Screen.LEGO_MAP, Screen.PROFILE, Screen.PUZZLES, Screen.TRAINING, Screen.QUESTS, Screen.LEADERBOARD, Screen.MY_CREATIONS, Screen.IDEAS, Screen.NOTIFICATIONS_INTRO].includes(currentScreen) && showNav && (
         <BottomNav currentScreen={currentScreen} onNavigate={handleNavigate} />
       )}

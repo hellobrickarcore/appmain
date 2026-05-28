@@ -39,9 +39,12 @@ class SubscriptionService {
     // unless we are absolutely sure (this prevents the "5 second flip" bug)
     const wasProInLocalStorage = localStorage.getItem('hellobrick_is_pro') === 'true';
     
-    const isPro = hasProEntitlement || 
-                  localStorage.getItem('hellobrick_admin_bypass') === 'true' ||
-                  (userEmail && bypassEmails.includes(userEmail));
+    let isPro = hasProEntitlement;
+    if (import.meta.env.DEV) {
+      isPro = isPro || 
+              localStorage.getItem('hellobrick_admin_bypass') === 'true' ||
+              (userEmail && bypassEmails.includes(userEmail)) || false;
+    }
     
     // Sticky Status: If it was Pro before this update, and if the SDK is returning no entitlements
     // (potentially due to a race condition or sync lag), keep it Pro for the next 60 seconds
@@ -95,10 +98,12 @@ class SubscriptionService {
     const bypassEmails = ['hellobrickar@gmail.com', 'apple_test@hellobrick.app'];
     const userEmail = localStorage.getItem('hellobrick_userEmail');
 
-    if ((userEmail && bypassEmails.includes(userEmail.toLowerCase())) || localStorage.getItem('hellobrick_admin_bypass') === 'true') {
-      console.log('💎 Bypass Account Detected: Granting Pro Access');
-      localStorage.setItem('hellobrick_is_pro', 'true');
-      return { isPro: true, isActive: true };
+    if (import.meta.env.DEV) {
+      if ((userEmail && bypassEmails.includes(userEmail.toLowerCase())) || localStorage.getItem('hellobrick_admin_bypass') === 'true') {
+        console.log('💎 Bypass Account Detected: Granting Pro Access');
+        localStorage.setItem('hellobrick_is_pro', 'true');
+        return { isPro: true, isActive: true };
+      }
     }
 
     try {

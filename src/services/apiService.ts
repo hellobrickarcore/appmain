@@ -11,15 +11,21 @@ export const apiRequest = async (url: string, options: any = {}): Promise<any> =
   return res.json();
 };
 
-export const apiFormRequest = async (url: string, formData: FormData): Promise<any> => {
-    // Patched fetch handles FormData natively in Capacitor 6
-    const res = await fetch(url, {
-        method: 'POST',
-        body: formData
-    });
-    if (!res.ok) {
-        const errorText = await res.text().catch(() => 'No error body');
-        throw new Error(`Form API Error ${res.status}: ${errorText}`);
+export const apiFormRequest = async (url: string, formData: FormData, timeoutMs = 5000): Promise<any> => {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            body: formData,
+            signal: controller.signal
+        });
+        if (!res.ok) {
+            const errorText = await res.text().catch(() => 'No error body');
+            throw new Error(`Form API Error ${res.status}: ${errorText}`);
+        }
+        return await res.json();
+    } finally {
+        clearTimeout(id);
     }
-    return res.json();
 };

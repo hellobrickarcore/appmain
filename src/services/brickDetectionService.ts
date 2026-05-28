@@ -26,7 +26,7 @@ export class DetectionStabilizer {
     
     // 0. NMS Deduplication (Kill multi-boxes around 1 brick)
     const sorted = [...newDetections].sort((a, b) => 
-      b.prediction.identityConfidence - a.prediction.identityConfidence
+      (b.prediction?.identityConfidence ?? 0) - (a.prediction?.identityConfidence ?? 0)
     );
     const nmsFiltered: FrameDetection[] = [];
     
@@ -137,7 +137,7 @@ export class DetectionStabilizer {
     // 3. Final NMS Pass (CROSS-DEDUPLICATION)
     const finalFiltered: FrameDetection[] = [];
     const finalSorted = [...result].sort((a, b) => 
-      (b.prediction.identityConfidence || 0) - (a.prediction.identityConfidence || 0)
+      (b.prediction?.identityConfidence ?? 0) - (a.prediction?.identityConfidence ?? 0)
     );
 
     finalSorted.forEach(curr => {
@@ -280,7 +280,7 @@ export const detectBricks = async (
     formData.append('debugMode', debugMode.toString());
 
     // 4. Execute Native-Safe Request using apiFormRequest
-    const data = await apiFormRequest(CONFIG.DETECT_IMAGE, formData);
+    const data = await apiFormRequest(CONFIG.DETECT_IMAGE, formData, options.timeoutMs || 5000);
     
     // Simulate some metadata for the canonical adapter
     _status = 200;

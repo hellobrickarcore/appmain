@@ -29,8 +29,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticate, onNaviga
   const handleSocialAuth = async (platform: 'google' | 'apple') => {
     if (!agreed) return;
     if (!supabaseAvailable) {
-      onAuthenticate(); // Fallback for local dev without supabase
-      return;
+      if (import.meta.env.DEV) {
+        onAuthenticate(); // Fallback for local dev without supabase
+        return;
+      } else {
+        alert("Authentication is currently unavailable. Please try again later.");
+        return;
+      }
     }
 
     setIsLoading(true);
