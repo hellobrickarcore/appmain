@@ -43,7 +43,9 @@ const PRO_SCREENS: Screen[] = [
   Screen.TRAINING,
   Screen.COLLECTION,
   Screen.IDEAS,
-  Screen.FEED
+  Screen.FEED,
+  Screen.PORTFOLIO_ANALYTICS,
+  Screen.LEGO_MAP
 ];
 
 type Listener = (snapshot: AppStateSnapshot) => void;
@@ -105,13 +107,17 @@ class AppStateService {
       console.log('[AppState] Step 1: ONBOARDING required');
       this.transition('onboarding');
     } else {
-      // PHASE 2: Allow direct navigation to SCANNER/HOME even for unauthenticated users
-      console.log('[AppState] Step 2: Proceeding to HOME/SCANNER');
-      this.transition('home');
-      
       const userId = localStorage.getItem('hellobrick_userId');
       const isAuthenticated = localStorage.getItem('hellobrick_authenticated') === 'true';
-      if (userId && isAuthenticated) subscriptionService.initialize(userId).catch(console.error);
+      
+      if (!isAuthenticated) {
+        console.log('[AppState] Step 2: AUTH required');
+        this.transition('auth');
+      } else {
+        console.log('[AppState] Step 3: Proceeding to HOME');
+        this.transition('home');
+        if (userId) subscriptionService.initialize(userId).catch(console.error);
+      }
     }
   }
 
@@ -152,21 +158,13 @@ class AppStateService {
     }
 
     // ── RULE 2: Authentication gating ──
+    // Users CANNOT reach the app without being signed in.
     const publicScreens = [
-      Screen.SCANNER, 
-      Screen.HOME, 
       Screen.AUTH, 
       Screen.EMAIL_SIGNUP, 
-      Screen.EMAIL_LOGIN,
-      Screen.QUESTS,
-      Screen.PROFILE,
-      Screen.LEADERBOARD,
-      Screen.MY_CREATIONS,
-      Screen.SET_DETAIL,
-      Screen.PORTFOLIO_ANALYTICS,
-      Screen.LEGO_MAP
+      Screen.EMAIL_LOGIN
     ];
-    if (!isAuthenticated && !publicScreens.includes(screen)) {
+    if (!isAuthenticated && !publicScreens.includes(screen) && !onboardingScreens.includes(screen)) {
       console.log(`[AppState] Auth lock active for ${screen}`);
       this.returnScreen = screen;
       this.transition('auth');

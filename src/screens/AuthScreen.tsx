@@ -73,8 +73,16 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticate, onNaviga
       <div className="h-4 bg-[#FFD600] w-full relative z-20" />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col pt-[max(env(safe-area-inset-top),2rem)] overflow-y-auto no-scrollbar overscroll-contain pb-[max(env(safe-area-inset-bottom),2rem)]">
-        <div className="px-10 flex flex-col items-center">
+      <div className="flex-1 flex flex-col pt-[max(env(safe-area-inset-top),1rem)] overflow-y-auto no-scrollbar overscroll-contain pb-[max(env(safe-area-inset-bottom),2rem)] relative">
+        
+        <button 
+          onClick={() => onNavigate(Screen.ONBOARDING_QUESTIONNAIRE)}
+          className="absolute top-[max(env(safe-area-inset-top),1rem)] left-6 w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20 active:scale-95 transition-all z-30"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+
+        <div className="px-10 flex flex-col items-center pt-8">
             {/* Mascot Centered */}
             <Logo size="xl" showText={false} className="mb-10" />
 

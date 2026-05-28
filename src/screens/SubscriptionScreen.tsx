@@ -113,14 +113,10 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
         
         {/* Mascot - Standardised */}
         <Logo size="lg" showText={false} className="mt-8 relative z-10" />
-
-        <button onClick={() => onNavigate()} className="absolute top-[max(env(safe-area-inset-top),2.5rem)] right-6 w-10 h-10 bg-black/5 rounded-full flex items-center justify-center z-20 active:scale-90 transition-transform">
-          <X className="w-6 h-6 text-slate-800" />
-        </button>
       </div>
 
       <div className="flex-1 px-8 pt-4 flex flex-col items-center overflow-y-auto no-scrollbar pb-32">
-        <h1 className="text-[18px] font-black text-center mb-1 leading-tight tracking-tight text-[#0F172A]">How your trial works</h1>
+        <h1 className="text-[22px] font-black text-center mb-1 leading-tight tracking-tight text-[#0F172A]">Unlock HelloBrick Pro</h1>
         <p className="text-slate-500 font-bold mb-6 text-[12px]">
           First 3 days free, then {billingCycle === 'annual' ? '$49.99/year' : '$4.99/month'}
         </p>
@@ -141,36 +137,37 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
           </button>
         </div>
  
-        {/* Timeline - Styled like screenshot with gold icons */}
-        <div className="w-full space-y-10 max-w-[340px]">
-          <div className="flex gap-5 items-start">
-            <div className="w-10 h-10 bg-[#FFD600] rounded-full flex items-center justify-center flex-shrink-0 shadow-lg shadow-yellow-500/10">
-              <Lock className="w-5 h-5 text-[#78350F]" fill="currentColor" />
+        {/* Pro Features */}
+        <div className="w-full space-y-6 max-w-[340px]">
+          <div className="flex items-center gap-4">
+            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+              <Check className="w-4 h-4 text-blue-600" strokeWidth={3} />
             </div>
-            <div className="pt-0.5">
-              <h3 className="font-black text-[16px] mb-0.5 text-[#0F172A]">Today</h3>
-              <p className="text-slate-500 text-[13px] font-bold leading-snug">Explore brick detection, price trends, and portfolio analytics</p>
-            </div>
+            <p className="font-black text-[15px] text-[#0F172A]">Unlimited AI Scans</p>
           </div>
- 
-          <div className="flex gap-5 items-start">
-            <div className="w-10 h-10 bg-[#FFD600] rounded-full flex items-center justify-center flex-shrink-0 shadow-lg shadow-yellow-500/10">
-              <Bell className="w-5 h-5 text-[#78350F]" fill="currentColor" />
+          <div className="flex items-center gap-4">
+            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+              <Check className="w-4 h-4 text-blue-600" strokeWidth={3} />
             </div>
-            <div className="pt-0.5">
-              <h3 className="font-black text-[16px] mb-0.5 text-[#0F172A]">In 2 days</h3>
-              <p className="text-slate-500 text-[13px] font-bold leading-snug">We'll send you a reminder that your trial is ending soon.</p>
-            </div>
+            <p className="font-black text-[15px] text-[#0F172A]">Identify Minifigures & Sets</p>
           </div>
- 
-          <div className="flex gap-5 items-start">
-            <div className="w-10 h-10 bg-[#FFD600] rounded-full flex items-center justify-center flex-shrink-0 shadow-lg shadow-yellow-500/10">
-              <Star className="w-5 h-5 text-[#78350F]" fill="currentColor" />
+          <div className="flex items-center gap-4">
+            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+              <Check className="w-4 h-4 text-blue-600" strokeWidth={3} />
             </div>
-            <div className="pt-0.5">
-              <h3 className="font-black text-[16px] mb-0.5 text-[#0F172A]">In 3 days</h3>
-              <p className="text-slate-500 text-[13px] font-bold leading-snug">You'll be charged {billingCycle === 'annual' ? '$49.99' : '$4.99'}, cancel anytime.</p>
+            <p className="font-black text-[15px] text-[#0F172A]">Real-Time Market Valuations</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+              <Check className="w-4 h-4 text-blue-600" strokeWidth={3} />
             </div>
+            <p className="font-black text-[15px] text-[#0F172A]">Cloud Collection Sync</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+              <Check className="w-4 h-4 text-blue-600" strokeWidth={3} />
+            </div>
+            <p className="font-black text-[15px] text-[#0F172A]">100% Ad-Free Experience</p>
           </div>
         </div>
       </div>
@@ -194,7 +191,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
             </button>
             <p className="text-slate-400 text-[12px] font-bold">Cancel Anytime in the App Store</p>
 
-            <div className="flex gap-6 mt-1">
+            <div className="flex gap-6 mt-1 mb-2">
               <button 
                 onClick={() => window.open('https://hellobrick.app/terms', '_blank')}
                 className="text-slate-400/60 text-[11px] font-black tracking-tight border-b border-slate-200 uppercase"
@@ -208,6 +205,13 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
                 Privacy Policy
               </button>
             </div>
+
+            <button 
+              onClick={() => onNavigate()}
+              className="text-slate-400 text-[10px] font-medium mt-1 tracking-tight"
+            >
+              stay on standard mode for now
+            </button>
         </div>
       </div>
       {/* Reviewer / Fallback Payment Sheet */}
