@@ -143,7 +143,10 @@ class AppStateService {
       Screen.FEATURE_INTRO, 
       Screen.NOTIFICATIONS_INTRO, 
       Screen.BUILDING_INTRO,
-      Screen.HOW_IT_WORKS
+      Screen.HOW_IT_WORKS,
+      Screen.AUTH,
+      Screen.EMAIL_SIGNUP,
+      Screen.EMAIL_LOGIN
     ];
 
     if (!onboardingFinished && !onboardingScreens.includes(screen)) {

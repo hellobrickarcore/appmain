@@ -1,246 +1,406 @@
 import React, { useState, useEffect } from 'react';
 import { Screen } from '../types';
-import { Zap } from 'lucide-react';
+import { Zap, Check, ArrowRight, Star, Loader2, MessageSquare } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { appStateService } from '../services/appStateService';
 import { Logo } from '../components/Logo';
 
 export const OnboardingQuestionnaire: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [showRatingsAlert, setShowRatingsAlert] = useState(false);
+  
+  // Questionnaire state
+  const [answers, setAnswers] = useState<{
+    mattersMost: string | null;
+    knowWorth: string | null;
+    collectionSize: string | null;
+    buyFrequency: string | null;
+  }>({
+    mattersMost: null,
+    knowWorth: null,
+    collectionSize: null,
+    buyFrequency: null,
+  });
+
+  // Dynamic plan builder state
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    if (currentSlide === 2) {
-      confetti({
-        particleCount: 80,
-        spread: 60,
-        origin: { y: 0.65 },
-        colors: ['#34D399', '#FFFFFF', '#10B981']
-      });
-    } else if (currentSlide === 3) {
-      confetti({
-        particleCount: 120,
-        spread: 100,
-        origin: { y: 0.7 },
-        colors: ['#34D399', '#10B981', '#E2E8F0']
-      });
+    if (currentSlide === 6) { // Step 6 is the loading screen
+      setProgress(0);
+      const interval = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 100) {
+            clearInterval(interval);
+            // Play a small celebratory sound fallback or just confetti splash
+            confetti({
+              particleCount: 120,
+              spread: 80,
+              origin: { y: 0.6 },
+              colors: ['#FFD600', '#2563EB', '#FFFFFF']
+            });
+            return 100;
+          }
+          return prev + 4; // Faster increment for smooth feel
+        });
+      }, 80);
+      return () => clearInterval(interval);
     }
   }, [currentSlide]);
 
-  const minSwipeDistance = 50;
-  const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-  const onTouchMove = (e: React.TouchEvent) => setTouchEnd(e.targetTouches[0].clientX);
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    const distance = touchStart - touchEnd;
-    if (distance > minSwipeDistance && currentSlide < 3) setCurrentSlide(c => c + 1);
-    if (distance < -minSwipeDistance && currentSlide > 0) setCurrentSlide(c => c - 1);
-  };
-
   const handleNext = () => {
-    if (currentSlide < 3) setCurrentSlide(c => c + 1);
-    else activateTrial();
-  };
-
-  const activateTrial = () => {
-    localStorage.setItem('hellobrick_onboarding_finished', 'true');
-    localStorage.setItem('hellobrick_is_pro', 'true');
-    appStateService.navigate(Screen.SCANNER);
-  };
-
-  const slides = [
-    {
-      tag: 'Scanner',
-      headline: 'Visual.\nScanner.\nLive.',
-      sub: 'Identify and value any LEGO set instantly using AI computer vision.',
-      cta: 'Start Scanning Free',
-      bgImage: 'https://cdn.rebrickable.com/media/sets/75192-1.jpg',
-      content: (
-        <div className="flex-1 flex flex-col items-center justify-center relative w-full py-4">
-          <div className="w-full max-w-[280px] aspect-square rounded-[48px] border-[3px] border-emerald-400/30 relative flex items-center justify-center bg-emerald-500/5 backdrop-blur-sm shadow-[0_0_60px_-15px_rgba(52,211,153,0.3)]">
-            <div className="absolute top-0 left-0 right-0 h-[2px] bg-emerald-400 shadow-[0_0_15px_2px_rgba(52,211,153,0.8)] animate-[bounce_3s_ease-in-out_infinite]" />
-            <Zap className="w-20 h-20 text-emerald-400 opacity-90 filter drop-shadow-[0_0_10px_rgba(52,211,153,0.8)]" />
-            
-            <div className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-emerald-400 rounded-tl-xl" />
-            <div className="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-emerald-400 rounded-tr-xl" />
-            <div className="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-emerald-400 rounded-bl-xl" />
-            <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-emerald-400 rounded-br-xl" />
-          </div>
-        </div>
-      )
-    },
-    {
-      tag: 'Market',
-      headline: 'Real-Time\nMarket\nPrices',
-      sub: 'We track global secondary markets so you know exactly what your collection is worth.',
-      cta: 'Continue',
-      bgImage: 'https://cdn.rebrickable.com/media/sets/10305-1.jpg',
-      content: (
-        <div className="flex-1 flex flex-col justify-end w-full py-4">
-          <div className="w-full bg-[#1A1A1A]/80 backdrop-blur-xl border border-white/10 rounded-[36px] p-8 shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-[40px] rounded-full" />
-            <div className="flex justify-between items-end mb-8 relative z-10">
-               <div>
-                 <span className="text-slate-400 font-bold text-xs uppercase tracking-widest block mb-1">Index Growth</span>
-                 <span className="text-white font-black text-3xl tracking-tight">+8.4%</span>
-               </div>
-               <div className="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-lg text-xs font-black">YoY</div>
-            </div>
-            
-            <div className="relative h-32 w-full flex items-end gap-1.5 z-10">
-              {[30, 45, 40, 60, 55, 75, 70, 90, 85, 100].map((height, i) => (
-                <div key={i} className="flex-1 bg-gradient-to-t from-emerald-500/20 to-emerald-400/90 rounded-t-sm transition-all duration-700" style={{ height: `${height}%` }} />
-              ))}
-            </div>
-          </div>
-        </div>
-      )
-    },
-    {
-      tag: 'Portfolio',
-      headline: 'Build Your\nDigital Vault',
-      sub: 'Safely store your entire collection in the cloud, track condition, and get price alerts.',
-      cta: 'Continue',
-      bgImage: 'https://cdn.rebrickable.com/media/sets/10294-1.jpg',
-      content: (
-        <div className="flex-1 flex flex-col justify-end w-full py-4">
-          <div className="w-full bg-[#1A1A1A]/80 backdrop-blur-xl border border-white/10 rounded-[36px] p-8 shadow-2xl">
-            <div className="flex items-center justify-between mb-8">
-              <div className="w-16 h-16 bg-gradient-to-tr from-[#2A2A2A] to-[#3A3A3A] rounded-2xl flex items-center justify-center shadow-inner border border-white/5">
-                 <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                 </svg>
-              </div>
-              <div className="text-right">
-                <div className="text-slate-400 text-[10px] uppercase tracking-widest font-bold mb-1">Status</div>
-                <div className="text-emerald-400 font-black text-xl tracking-tight">Encrypted</div>
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              {[
-                { label: 'Condition Tracking', icon: '✨' },
-                { label: 'Cloud Sync', icon: '☁️' },
-                { label: 'Offline Mode', icon: '🚀' },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-4 bg-[#222222]/80 border border-white/5 rounded-2xl p-4">
-                  <div className="text-xl">{item.icon}</div>
-                  <div className="text-white text-base font-bold">{item.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )
-    },
-    {
-      tag: 'Get Started',
-      headline: 'Discover Your\nCollection\'s\nTrue Value',
-      sub: 'Join serious collectors. Start scanning and build your portfolio now.',
-      cta: 'Initialize Scanner',
-      bgImage: 'https://cdn.rebrickable.com/media/sets/21309-1.jpg',
-      content: (
-        <div className="flex-1 flex flex-col justify-end w-full py-4">
-          <div className="w-full bg-gradient-to-b from-emerald-900/40 to-[#1A1A1A]/90 backdrop-blur-xl border border-emerald-500/20 rounded-[36px] p-8 shadow-[0_0_50px_-12px_rgba(52,211,153,0.2)]">
-            <div className="text-white font-black text-3xl mb-8 tracking-tighter">HelloBrick <span className="text-emerald-400">Core</span></div>
-            <div className="space-y-6">
-            {[
-              'Unlimited AI object detection',
-              'Live global price indexes',
-              'Secure local vault sync',
-            ].map((item, i) => (
-              <div key={i} className="flex items-center gap-5">
-                <div className="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(52,211,153,0.3)]">
-                  <span className="text-emerald-400 text-sm font-black">✓</span>
-                </div>
-                <span className="text-slate-100 text-[17px] font-bold tracking-tight">{item}</span>
-              </div>
-            ))}
-            </div>
-          </div>
-        </div>
-      )
+    if (currentSlide === 1) {
+      // Trigger review popup before entering the questions
+      setShowRatingsAlert(true);
+    } else if (currentSlide < 6) {
+      setCurrentSlide(c => c + 1);
+    } else {
+      // Finish onboarding wizard and go to paywall
+      appStateService.navigate(Screen.SUBSCRIPTION);
     }
-  ];
+  };
 
-  const slide = slides[currentSlide];
+  const handleSelectOption = (key: keyof typeof answers, val: string) => {
+    setAnswers(prev => ({ ...prev, [key]: val }));
+    // Wait a brief 250ms for visual feedback then auto-proceed
+    setTimeout(() => {
+      setCurrentSlide(c => c + 1);
+    }, 250);
+  };
+
+  const skipOnboarding = () => {
+    // Skip goes directly to the Subscription/Paywall to remain high-converting
+    appStateService.navigate(Screen.SUBSCRIPTION);
+  };
+
+  const progressPercent = Math.min(progress, 100);
 
   return (
-    <div
-      className="fixed inset-0 bg-[#0D111A] flex flex-col font-sans overflow-hidden text-white select-none"
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
-      style={{ fontFamily: "'Inter', sans-serif" }}
-    >
-      {/* Immersive Background Image */}
-      {slide.bgImage && (
-        <div className="absolute inset-0 z-0 pointer-events-none transition-opacity duration-700 ease-in-out">
-          <img src={slide.bgImage} className="w-full h-full object-cover opacity-[0.25]" alt="background" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0D111A] via-[#0D111A]/80 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0D111A]/60 to-transparent" />
+    <div className="fixed inset-0 bg-[#070A13] flex flex-col font-sans overflow-hidden text-white select-none">
+      {/* Top Banner Accent */}
+      <div className="h-[6px] bg-[#FF7A30] w-full relative z-30" />
+
+      {/* Immersive Background Decor */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute top-[-10%] right-[-10%] w-[300px] h-[300px] rounded-full bg-orange-600/10 blur-[80px]" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[350px] h-[350px] rounded-full bg-blue-600/10 blur-[100px]" />
+      </div>
+
+      {/* Header */}
+      {currentSlide < 6 && (
+        <div className="relative z-20 px-6 pt-[max(env(safe-area-inset-top),20px)] flex justify-between items-center shrink-0">
+          <Logo size="sm" showText={true} light />
+          <button 
+            onClick={skipOnboarding}
+            className="text-slate-400/80 hover:text-white text-xs font-black uppercase tracking-widest active:scale-95 transition-all"
+          >
+            Skip
+          </button>
         </div>
       )}
 
-      {/* Header */}
-      <div className="relative z-20 px-6 pt-[max(env(safe-area-inset-top),2.5rem)] flex justify-between items-center shrink-0">
-        <Logo size="sm" showText={true} light />
-        <div className="flex items-center gap-4">
-          <button onClick={activateTrial} className="text-slate-400 text-xs font-bold uppercase tracking-widest active:scale-95 transition-transform">Skip</button>
-        </div>
+      {/* Main Container */}
+      <div className="flex-1 relative z-10 flex flex-col px-8 justify-center min-h-0 overflow-y-auto no-scrollbar py-6">
+        
+        {/* Step 0: Splash Slide 1 */}
+        {currentSlide === 0 && (
+          <div className="w-full flex flex-col items-center justify-center space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-500">
+            <div className="w-[200px] h-[200px] rounded-[48px] bg-gradient-to-tr from-orange-500/20 to-orange-400/5 border-2 border-orange-500/30 flex items-center justify-center relative shadow-[0_0_60px_-10px_rgba(239,68,68,0.2)]">
+              <div className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-orange-500 rounded-tl-2xl" />
+              <div className="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-orange-500 rounded-tr-2xl" />
+              <div className="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-orange-500 rounded-bl-2xl" />
+              <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-orange-500 rounded-br-2xl" />
+              
+              <div className="absolute inset-4 rounded-[32px] overflow-hidden bg-slate-900/80 flex items-center justify-center">
+                <Zap className="w-16 h-16 text-orange-500 animate-pulse" />
+              </div>
+            </div>
+
+            <div className="text-center space-y-4">
+              <h1 className="text-[38px] font-black tracking-tight leading-none text-white">
+                Scan any<br />minifigure
+              </h1>
+              <p className="text-slate-400 text-[16px] font-bold max-w-[280px] mx-auto leading-relaxed">
+                Identify any LEGO minifigure instantly with your camera.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Step 1: Splash Slide 2 */}
+        {currentSlide === 1 && (
+          <div className="w-full flex flex-col items-center justify-center space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-500">
+            <div className="w-[200px] h-[200px] rounded-[48px] bg-gradient-to-tr from-blue-500/20 to-blue-400/5 border-2 border-blue-500/30 flex items-center justify-center relative shadow-[0_0_60px_-10px_rgba(37,99,235,0.2)]">
+              <div className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-blue-500 rounded-tl-2xl" />
+              <div className="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-blue-500 rounded-tr-2xl" />
+              <div className="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-blue-500 rounded-bl-2xl" />
+              <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-blue-500 rounded-br-2xl" />
+              
+              <div className="absolute inset-4 rounded-[32px] overflow-hidden bg-slate-900/80 flex items-center justify-center">
+                <MessageSquare className="w-16 h-16 text-blue-500 animate-bounce" />
+              </div>
+            </div>
+
+            <div className="text-center space-y-4">
+              <h1 className="text-[38px] font-black tracking-tight leading-none text-white">
+                Discover what<br />you can build
+              </h1>
+              <p className="text-slate-400 text-[16px] font-bold max-w-[280px] mx-auto leading-relaxed">
+                Get creative building suggestions based on your catalog.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Step 2: Question 1 */}
+        {currentSlide === 2 && (
+          <div className="w-full flex flex-col space-y-6 animate-in fade-in duration-300">
+            <div className="space-y-2">
+              <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest">Question 1 of 4</span>
+              <h2 className="text-[28px] font-black leading-tight text-white">What matters most to you?</h2>
+              <p className="text-slate-400 text-sm font-bold">We'll tailor HelloBrick just for you.</p>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              {[
+                { label: 'Discover what I can build', id: 'build' },
+                { label: 'Identify pieces fast', id: 'scan' },
+                { label: 'Organize everything in one place', id: 'catalog' },
+                { label: 'Know what my collection is worth', id: 'worth' }
+              ].map((opt) => (
+                <button
+                  key={opt.id}
+                  onClick={() => handleSelectOption('mattersMost', opt.id)}
+                  className={`w-full text-left p-5 rounded-[20px] font-bold text-sm transition-all border flex justify-between items-center ${answers.mattersMost === opt.id ? 'bg-white text-slate-950 border-white shadow-xl shadow-white/5' : 'bg-white/5 text-slate-300 border-white/5 hover:border-white/10'}`}
+                >
+                  <span>{opt.label}</span>
+                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${answers.mattersMost === opt.id ? 'bg-orange-500 border-orange-500' : 'border-slate-700'}`}>
+                    {answers.mattersMost === opt.id && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Question 2 */}
+        {currentSlide === 3 && (
+          <div className="w-full flex flex-col space-y-6 animate-in fade-in duration-300">
+            <div className="space-y-2">
+              <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest">Question 2 of 4</span>
+              <h2 className="text-[28px] font-black leading-tight text-white">Do you know what your LEGO is worth?</h2>
+              <p className="text-slate-400 text-sm font-bold">Most collectors are surprised.</p>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              {[
+                { label: 'No idea 🤷‍♂️', val: 'none' },
+                { label: 'A rough guess 🪙', val: 'guess' },
+                { label: 'I track some of it 📊', val: 'some' },
+                { label: 'Down to the dollar 💸', val: 'dollar' }
+              ].map((opt) => (
+                <button
+                  key={opt.val}
+                  onClick={() => handleSelectOption('knowWorth', opt.val)}
+                  className={`w-full text-left p-5 rounded-[20px] font-bold text-sm transition-all border flex justify-between items-center ${answers.knowWorth === opt.val ? 'bg-white text-slate-950 border-white shadow-xl' : 'bg-white/5 text-slate-300 border-white/5 hover:border-white/10'}`}
+                >
+                  <span>{opt.label}</span>
+                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${answers.knowWorth === opt.val ? 'bg-orange-500 border-orange-500' : 'border-slate-700'}`}>
+                    {answers.knowWorth === opt.val && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Question 3 */}
+        {currentSlide === 4 && (
+          <div className="w-full flex flex-col space-y-6 animate-in fade-in duration-300">
+            <div className="space-y-2">
+              <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest">Question 3 of 4</span>
+              <h2 className="text-[28px] font-black leading-tight text-white">How big is your collection?</h2>
+              <p className="text-slate-400 text-sm font-bold">Let's check your vault size.</p>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              {[
+                { label: 'Just starting out (1-5 sets) 🌟', val: 'small' },
+                { label: 'Casual builder (6-20 sets) 🧱', val: 'medium' },
+                { label: 'Serious collector (21-100 sets) 🏆', val: 'large' },
+                { label: 'LEGO Master (100+ sets) 👑', val: 'master' }
+              ].map((opt) => (
+                <button
+                  key={opt.val}
+                  onClick={() => handleSelectOption('collectionSize', opt.val)}
+                  className={`w-full text-left p-5 rounded-[20px] font-bold text-sm transition-all border flex justify-between items-center ${answers.collectionSize === opt.val ? 'bg-white text-slate-950 border-white shadow-xl' : 'bg-white/5 text-slate-300 border-white/5 hover:border-white/10'}`}
+                >
+                  <span>{opt.label}</span>
+                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${answers.collectionSize === opt.val ? 'bg-orange-500 border-orange-500' : 'border-slate-700'}`}>
+                    {answers.collectionSize === opt.val && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Step 5: Question 4 */}
+        {currentSlide === 5 && (
+          <div className="w-full flex flex-col space-y-6 animate-in fade-in duration-300">
+            <div className="space-y-2">
+              <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest">Question 4 of 4</span>
+              <h2 className="text-[28px] font-black leading-tight text-white">How often do you buy LEGO?</h2>
+              <p className="text-slate-400 text-sm font-bold">We'll tailor alerts to your pace.</p>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              {[
+                { label: 'Once a year or less 📅', val: 'rarely' },
+                { label: 'A few times a year 🛍️', val: 'sometimes' },
+                { label: 'Every month 🛒', val: 'monthly' },
+                { label: 'Almost weekly 📦', val: 'weekly' }
+              ].map((opt) => (
+                <button
+                  key={opt.val}
+                  onClick={() => handleSelectOption('buyFrequency', opt.val)}
+                  className={`w-full text-left p-5 rounded-[20px] font-bold text-sm transition-all border flex justify-between items-center ${answers.buyFrequency === opt.val ? 'bg-white text-slate-950 border-white shadow-xl' : 'bg-white/5 text-slate-300 border-white/5 hover:border-white/10'}`}
+                >
+                  <span>{opt.label}</span>
+                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${answers.buyFrequency === opt.val ? 'bg-orange-500 border-orange-500' : 'border-slate-700'}`}>
+                    {answers.buyFrequency === opt.val && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Step 6: Custom Loader Screen */}
+        {currentSlide === 6 && (
+          <div className="w-full flex flex-col items-center justify-center space-y-8 animate-in fade-in duration-500">
+            {/* Custom Circular Loader */}
+            <div className="relative w-36 h-36 flex items-center justify-center">
+              {/* Spinning background glow */}
+              <div className="absolute inset-0 rounded-full border-4 border-slate-800" />
+              <div 
+                className="absolute inset-0 rounded-full border-4 border-orange-500 border-t-transparent animate-spin" 
+                style={{ animationDuration: '1.2s' }}
+              />
+              
+              <div className="flex flex-col items-center justify-center z-10">
+                <span className="text-3xl font-black text-white tracking-tight">{progressPercent}%</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Planning</span>
+              </div>
+            </div>
+
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-black text-white">Building your plan...</h2>
+              <p className="text-slate-500 text-xs font-semibold">This only takes a moment.</p>
+            </div>
+
+            {/* Checklist */}
+            <div className="w-full max-w-[280px] bg-white/5 border border-white/5 rounded-3xl p-5 space-y-3">
+              {[
+                { label: 'Collector profile', step: 25 },
+                { label: '20,993 sets tracked', step: 50 },
+                { label: '17,790 minifigs tracked', step: 75 },
+                { label: '70,843 parts tracked', step: 100 }
+              ].map((item) => {
+                const isDone = progressPercent >= item.step;
+                return (
+                  <div key={item.step} className="flex items-center justify-between">
+                    <span className={`text-xs font-bold transition-colors ${isDone ? 'text-slate-200' : 'text-slate-500'}`}>{item.label}</span>
+                    <div className="flex items-center gap-2">
+                      {isDone ? (
+                        <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider flex items-center gap-1 animate-in zoom-in duration-200">
+                          <Check className="w-3 h-3 text-emerald-400" strokeWidth={3} /> Done
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-black text-slate-600 uppercase tracking-wider">
+                          Waiting...
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
       </div>
 
-      {/* Tag pill */}
-      <div className="relative z-20 px-8 pt-8 shrink-0">
-        <div className="inline-block bg-white/10 backdrop-blur-md border border-white/10 rounded-full px-5 py-2">
-          <span className="text-emerald-400 text-xs font-black uppercase tracking-widest">{slide.tag}</span>
-        </div>
-      </div>
-
-      {/* Headline */}
-      <div className="relative z-20 px-8 pt-6 shrink-0">
-        <h1 className="text-[44px] font-black tracking-tighter leading-[1.05] text-white whitespace-pre-line drop-shadow-2xl">
-          {slide.headline}
-        </h1>
-      </div>
-
-      {/* Content area */}
-      <div className="relative z-20 flex-1 min-h-0 flex flex-col px-6">
-        {slide.content}
-      </div>
-
-      {/* Subtitle */}
-      <div className="relative z-20 px-8 pb-8 shrink-0">
-        <p className="text-slate-300 text-[15px] leading-relaxed font-semibold">
-          {slide.sub}
-        </p>
-      </div>
-
-      {/* Dot indicators */}
-      <div className="relative z-20 flex justify-start gap-2 px-8 pb-8 shrink-0">
-        {slides.map((_, idx) => (
+      {/* Footer Area */}
+      {currentSlide < 2 && (
+        <div className="px-8 pb-[max(env(safe-area-inset-bottom),20px)] pt-4 shrink-0">
           <button
-            key={idx}
-            onClick={() => setCurrentSlide(idx)}
-            className={`h-1.5 rounded-full transition-all duration-500 ${idx === currentSlide ? 'w-8 bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)]' : 'w-2 bg-white/20'}`}
-          />
-        ))}
-      </div>
+            onClick={handleNext}
+            className="w-full bg-[#2563EB] text-white py-5 rounded-[22px] font-black text-base shadow-[0_8px_30px_rgba(37,99,235,0.3)] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+          >
+            <span>Continue</span>
+            <ArrowRight className="w-5 h-5" />
+          </button>
+        </div>
+      )}
 
-      {/* CTA Button */}
-      <div className="relative z-20 px-6 pb-[max(env(safe-area-inset-bottom),2.5rem)] shrink-0">
-        <button
-          onClick={handleNext}
-          className="w-full bg-white text-slate-900 font-black text-lg py-5 rounded-[24px] flex items-center justify-center gap-3 active:scale-[0.98] transition-all shadow-[0_20px_40px_-15px_rgba(255,255,255,0.2)]"
-        >
-          {slide.cta}
-          {currentSlide === 3 && <Zap className="w-5 h-5 text-emerald-500" />}
-        </button>
-      </div>
+      {currentSlide === 6 && (
+        <div className="px-8 pb-[max(env(safe-area-inset-bottom),20px)] pt-4 shrink-0">
+          <button
+            onClick={handleNext}
+            disabled={progressPercent < 100}
+            className={`w-full py-5 rounded-[22px] font-black text-base transition-all flex items-center justify-center gap-3 ${progressPercent >= 100 ? 'bg-[#FF7A30] text-white shadow-[0_8px_30px_rgba(255,122,48,0.3)] active:scale-[0.98]' : 'bg-slate-900 text-slate-600 border border-slate-800/80 opacity-50 cursor-not-allowed'}`}
+          >
+            <span>See my plan</span>
+            {progressPercent >= 100 ? <Zap className="w-5 h-5 text-white animate-pulse" /> : <Loader2 className="w-5 h-5 animate-spin" />}
+          </button>
+        </div>
+      )}
+
+      {/* 5-Star Ratings popup */}
+      {showRatingsAlert && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 animate-in fade-in duration-200">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-[4px]" />
+          <div className="relative w-full max-w-sm bg-white rounded-3xl p-6 text-center shadow-2xl animate-in zoom-in-95 duration-300">
+            <div className="w-16 h-16 bg-orange-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Logo size="md" showText={false} />
+            </div>
+            <h3 className="text-xl font-black text-slate-900 mb-1">Enjoying HelloBrick?</h3>
+            <p className="text-slate-500 text-xs font-semibold px-4 mb-4 leading-relaxed">
+              A quick App Store review helps us reach more fans and keeps the free updates coming!
+            </p>
+            
+            {/* 5 glowing gold stars */}
+            <div className="flex justify-center gap-1 mb-6">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star key={star} className="w-8 h-8 text-amber-400 fill-current filter drop-shadow-[0_2px_4px_rgba(245,158,11,0.3)]" />
+              ))}
+            </div>
+            
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => {
+                  setShowRatingsAlert(false);
+                  setCurrentSlide(c => c + 1);
+                  confetti({ particleCount: 60, spread: 40 });
+                }}
+                className="w-full py-3.5 bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-black rounded-2xl text-sm uppercase tracking-wider active:scale-95 transition-all shadow-lg"
+              >
+                Submit Review
+              </button>
+              <button
+                onClick={() => {
+                  setShowRatingsAlert(false);
+                  setCurrentSlide(c => c + 1);
+                }}
+                className="w-full py-3 text-slate-400 font-bold hover:text-slate-600 transition-colors text-xs uppercase tracking-wider"
+              >
+                Not Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

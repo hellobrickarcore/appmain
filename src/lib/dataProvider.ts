@@ -52,10 +52,13 @@ export const getSets = async (): Promise<LegoSet[]> => {
     // Return a mock set so local tests can render UI
     return [
       {
-        setNum: '10305-1',
-        name: 'Lion Knights\' Castle',
-        retailPrice: 399.99,
-        imageUrl: 'https://cdn.rebrickable.com/media/sets/10305-1/104386.jpg'
+        id: '10305-1',
+        name: "Lion Knights' Castle",
+        setNumber: '10305-1',
+        image: 'https://cdn.rebrickable.com/media/sets/10305-1/104386.jpg',
+        partCount: 4514,
+        ownedParts: 0,
+        bricks: []
       }
     ] as LegoSet[];
   }

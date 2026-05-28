@@ -17,17 +17,27 @@ export const SetDetailScreen: React.FC<SetDetailScreenProps> = ({ onNavigate, se
                     activeSetNum.startsWith('inf') || 
                     activeSetNum.startsWith('njo');
   
-  const set = mockSets.find(s => s.setNum === activeSetNum) || 
-              mockMinifigs.find(f => f.figNum === activeSetNum) || 
-              {
-                id: "set-default",
-                name: "Lion Knights' Castle",
-                setNum: "10305-1",
-                retailPrice: 399.99,
-                imageUrl: 'https://cdn.rebrickable.com/media/sets/10305-1.jpg',
-                isRetired: false,
-                type: 'set'
-              };
+  const rawSet = mockSets.find(s => s.setNum === activeSetNum) || 
+                 mockMinifigs.find(f => f.figNum === activeSetNum) || 
+                 {
+                   id: "set-default",
+                   name: "Lion Knights' Castle",
+                   setNum: "10305-1",
+                   retailPrice: 399.99,
+                   imageUrl: 'https://cdn.rebrickable.com/media/sets/10305-1.jpg',
+                   isRetired: false,
+                   type: 'set' as const
+                 };
+
+  const set = {
+    id: rawSet.id,
+    name: rawSet.name,
+    setNum: 'setNum' in rawSet ? rawSet.setNum : ('figNum' in rawSet ? rawSet.figNum : activeSetNum),
+    retailPrice: 'retailPrice' in rawSet ? rawSet.retailPrice : ('resaleValue' in rawSet ? rawSet.resaleValue : null),
+    imageUrl: rawSet.imageUrl,
+    isRetired: 'isRetired' in rawSet ? rawSet.isRetired : true,
+    type: 'type' in rawSet ? rawSet.type : 'minifig'
+  };
 
   const mockVal = mockValuations.get(activeSetNum);
   const val = mockVal || (

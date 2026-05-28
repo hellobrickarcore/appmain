@@ -1,6 +1,7 @@
 import React from 'react';
 import { Screen } from '../types';
 import { Logo } from '../components/Logo';
+import { appStateService } from '../services/appStateService';
 
 interface NotificationsIntroScreenProps {
   onNavigate: (screen: Screen) => void;
@@ -18,7 +19,7 @@ export const NotificationsIntroScreen: React.FC<NotificationsIntroScreenProps> =
     } catch (err) {
       console.error('Error requesting notifications:', err);
     } finally {
-      onNavigate(Screen.SUBSCRIPTION);
+      appStateService.finishOnboarding();
     }
   };
 
@@ -64,7 +65,7 @@ export const NotificationsIntroScreen: React.FC<NotificationsIntroScreenProps> =
             Turn on Notifications
           </button>
           <button
-            onClick={() => onNavigate(Screen.SUBSCRIPTION)}
+            onClick={() => appStateService.finishOnboarding()}
             className="w-full bg-white/5 text-slate-500 py-4 rounded-[24px] font-bold text-lg active:scale-[0.98] transition-all flex items-center justify-center"
           >
             Maybe later

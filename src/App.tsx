@@ -267,7 +267,13 @@ const App: React.FC = () => {
             // Background refresh to confirm but the local state is now locked to true
             subscriptionService.getSubscriptionStatus().catch(() => {});
           }
-          handleNavigate(Screen.HOME);
+          
+          const onboardingFinished = localStorage.getItem('hellobrick_onboarding_finished') === 'true';
+          if (!onboardingFinished) {
+            handleNavigate(Screen.AUTH);
+          } else {
+            handleNavigate(Screen.HOME);
+          }
         }} />;
       case Screen.HOME:
         return <HomeScreen onNavigate={handleNavigate} />;

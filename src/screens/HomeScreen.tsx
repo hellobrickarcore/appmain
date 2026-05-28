@@ -181,30 +181,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
           </div>
         </div>
       </div>
-
-      {/* Bottom Navigation */}
-      <div className="absolute bottom-0 left-0 right-0 h-[max(env(safe-area-inset-bottom),5rem)] bg-[#161B26]/95 backdrop-blur-xl border-t border-white/5 flex items-start justify-around pt-4 pb-[env(safe-area-inset-bottom)] z-50">
-        <button onClick={() => onNavigate(Screen.HOME)} className="flex flex-col items-center gap-1 active:scale-90 transition-transform">
-          <Home className="w-6 h-6 text-white" />
-          <span className="text-[10px] font-medium text-white">Dashboard</span>
-        </button>
-        <button onClick={() => onNavigate(Screen.LEGO_MAP)} className="flex flex-col items-center gap-1 active:scale-90 transition-transform opacity-50 hover:opacity-100">
-          <MapIcon className="w-6 h-6 text-white" />
-          <span className="text-[10px] font-medium text-white">Map</span>
-        </button>
-        <button onClick={() => onNavigate(Screen.PORTFOLIO_ANALYTICS)} className="flex flex-col items-center gap-1 active:scale-90 transition-transform opacity-50 hover:opacity-100">
-          <svg viewBox="0 0 24 24" className="w-6 h-6 fill-none stroke-current" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>
-          </svg>
-          <span className="text-[10px] font-medium text-white">Analytics</span>
-        </button>
-        <button onClick={() => onNavigate(Screen.PROFILE_SETTINGS)} className="flex flex-col items-center gap-1 active:scale-90 transition-transform opacity-50 hover:opacity-100">
-          <Settings className="w-6 h-6 text-white" />
-          <span className="text-[10px] font-medium text-white">Settings</span>
-        </button>
-      </div>
-
     </div>
   );
 };
-
