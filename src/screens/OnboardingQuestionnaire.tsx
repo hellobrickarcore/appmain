@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Screen } from '../types';
 import { appStateService } from '../services/appStateService';
+import { Logo } from '../components/Logo';
 
 interface OnboardingProps {
   onNavigate: (screen: Screen) => void;
@@ -21,14 +22,19 @@ export const OnboardingQuestionnaire: React.FC<OnboardingProps> = ({ onNavigate 
   };
 
   return (
-    <div className="flex-1 bg-[#111111] flex flex-col items-center px-6 pt-16 overflow-hidden relative">
+    <div className="flex-1 bg-[#111111] flex flex-col items-center px-6 pt-12 overflow-hidden relative">
       {/* Background gradients */}
-      <div className="absolute top-0 left-0 right-0 h-[50vh] bg-gradient-to-b from-blue-900/20 to-transparent pointer-events-none" />
+      <div className="absolute top-0 left-0 right-0 h-[50vh] bg-gradient-to-b from-emerald-900/10 to-transparent pointer-events-none" />
       
+      {/* Logo in Header */}
+      <div className="w-full flex justify-start mb-8 z-20">
+        <Logo size="sm" light={true} />
+      </div>
+
       <div className={`transition-all duration-1000 ease-out transform ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'} flex flex-col items-center w-full z-10`}>
         <h1 className="text-[42px] font-semibold text-white text-center leading-[1.1] tracking-tight">
           Your LEGO Collection Is<br />
-          <span className="text-blue-400">Secretly Worth Thousands</span>
+          <span className="text-emerald-400">Secretly Worth Thousands</span>
         </h1>
         
         <p className="text-zinc-400 text-lg mt-4 font-medium text-center">

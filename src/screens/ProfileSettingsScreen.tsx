@@ -291,7 +291,7 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({ on
         </div>
 
         <div className="mt-12 text-center pb-20">
-          <p className="text-[10px] font-black text-slate-700 uppercase tracking-[0.2em]">HelloBrick v1.4.0</p>
+          <p className="text-[10px] font-black text-slate-700 tracking-[0.2em]">HelloBrick v1.4.0</p>
         </div>
       </div>
 

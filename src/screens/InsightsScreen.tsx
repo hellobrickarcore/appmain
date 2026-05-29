@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { TrendingUp, Trophy, ArrowUpRight, ArrowDownRight, Crown } from 'lucide-react';
 import { Screen } from '../types';
+import { Logo } from '../components/Logo';
 
 interface InsightsScreenProps {
   onNavigate: (screen: Screen) => void;
@@ -20,8 +21,11 @@ export const InsightsScreen: React.FC<InsightsScreenProps> = ({ onNavigate }) =>
 
   return (
     <div className="flex flex-col h-full bg-[#111111] font-sans text-white pb-24 overflow-y-auto">
-      <div className="pt-[max(env(safe-area-inset-top),3rem)] px-6 pb-6">
-        <h1 className="text-3xl font-bold tracking-tight mb-6">Market Insights</h1>
+      <div className="pt-[max(env(safe-area-inset-top),2rem)] px-6 pb-6">
+        <div className="flex items-center gap-3 mb-6">
+            <Logo size="sm" showText={false} className="w-8 h-8" />
+            <span className="font-bold text-xl text-white">Market Insights</span>
+        </div>
 
         {/* Custom Tabs */}
         <div className="bg-[#1A1A1A] rounded-full p-1 flex mb-8 border border-white/5">

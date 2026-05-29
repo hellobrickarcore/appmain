@@ -97,7 +97,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
                     </div>
 
                     <h2 className="mt-4 text-xl font-black text-white">{profileName}</h2>
-                    <p className="text-[11px] font-mono text-slate-500 mt-1 font-bold">{email}</p>
+                    <p className="text-[12px] font-bold text-slate-400 mt-1">{email}</p>
                 </div>
 
                 {/* PRO MEMBERSHIP STATUS CARD */}
@@ -223,7 +223,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
                 </div>
 
                 <div className="mt-12 text-center">
-                    <p className="text-[10px] font-black text-slate-700 uppercase tracking-[0.2em]">HelloBrick v1.7.5</p>
+                    <p className="text-[10px] font-black text-slate-700 tracking-[0.2em]">HelloBrick v1.7.5</p>
                 </div>
             </div>
         </div>

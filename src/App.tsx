@@ -12,8 +12,11 @@ import { WishlistScreen } from './screens/WishlistScreen';
 import { SubscriptionScreen } from './screens/SubscriptionScreen';
 import { NotificationsIntroScreen } from './screens/NotificationsIntroScreen';
 import { EmailAuthScreen } from './screens/EmailAuthScreen';
+import { AuthScreen } from './screens/AuthScreen';
 import { SetDetailScreen } from './screens/SetDetailScreen';
 import { InsightsScreen } from './screens/InsightsScreen';
+import { ProfileScreen } from './screens/ProfileScreen';
+import { ProfileSettingsScreen } from './screens/ProfileSettingsScreen';
 import { BottomNav } from './components/BottomNav';
 import { BootingScreen } from './components/BootingScreen';
 import { appStateService } from './services/appStateService';
@@ -268,6 +271,10 @@ const App: React.FC = () => {
         return <InsightsScreen onNavigate={handleNavigate} />;
       case Screen.PROFILE:
         return <ProfileScreen onNavigate={handleNavigate} />;
+      case Screen.WISHLIST:
+        return <WishlistScreen onNavigate={handleNavigate} />;
+      case Screen.PROFILE_SETTINGS:
+        return <ProfileSettingsScreen onNavigate={handleNavigate} />;
       case Screen.SET_DETAIL:
         return <SetDetailScreen setNum={screenParams?.setNum} onNavigate={handleNavigate} />;
       default:
@@ -307,7 +314,7 @@ const App: React.FC = () => {
         </div>
       )}
       */}
-      {[Screen.HOME, Screen.SCANNER, Screen.COLLECTION, Screen.WISHLIST, Screen.SET_DETAIL, Screen.PORTFOLIO_ANALYTICS, Screen.LEGO_MAP, Screen.PROFILE, Screen.PUZZLES, Screen.TRAINING, Screen.QUESTS, Screen.LEADERBOARD, Screen.MY_CREATIONS, Screen.IDEAS, Screen.NOTIFICATIONS_INTRO].includes(currentScreen) && showNav && (
+      {![Screen.ONBOARDING_QUESTIONNAIRE, Screen.AUTH, Screen.EMAIL_SIGNUP, Screen.EMAIL_LOGIN, Screen.SUBSCRIPTION].includes(currentScreen) && showNav && (
         <BottomNav currentScreen={currentScreen} onNavigate={handleNavigate} />
       )}
     </div>

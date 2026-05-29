@@ -4,6 +4,7 @@ import { User, Plus, Heart, BarChart2, PackageOpen, Camera } from 'lucide-react'
 import { Screen, CollectionItem } from '../types';
 import { valuationService } from '../services/valuationService';
 import { getCollectionFromStorage, getSets, getValuationsMap } from '../lib/dataProvider';
+import { Logo } from '../components/Logo';
 
 interface HomeScreenProps {
   onNavigate: (screen: Screen, params?: any) => void;
@@ -53,9 +54,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
       
       {/* Header */}
       <div className="px-6 pt-[max(env(safe-area-inset-top),3rem)] pb-2 flex items-center justify-between z-10">
-        <h1 className="text-[20px] font-black tracking-widest text-white/90">
-          HELLO<span className="text-zinc-500 font-medium">BRICK</span>
-        </h1>
+        <Logo size="sm" light={true} />
         <button 
           onClick={() => onNavigate(Screen.PROFILE)}
           className="w-10 h-10 rounded-full bg-zinc-800 border border-white/10 flex items-center justify-center overflow-hidden active:scale-95 transition-transform"

@@ -168,7 +168,7 @@ export const WishlistScreen: React.FC<WishlistScreenProps> = ({ onNavigate }) =>
                 <React.Fragment key="alert-container">
                   {/* The exact competitor red/coral notification card */}
                   <div 
-                    onClick={() => onNavigate(Screen.LEADERBOARD)}
+                    onClick={() => onNavigate(Screen.INSIGHTS)}
                     className="bg-[#FF6B6B] rounded-3xl p-5 flex items-center justify-between shadow-xl cursor-pointer active:scale-[0.99] transition-all relative overflow-hidden text-left"
                   >
                     <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full blur-lg pointer-events-none" />
