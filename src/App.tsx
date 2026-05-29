@@ -182,7 +182,7 @@ const App: React.FC = () => {
             const { error } = await supabase.auth.exchangeCodeForSession(code);
             if (!error) {
               console.log('[App] ✅ Session exchanged successfully via code');
-              handleNavigate(Screen.SUBSCRIPTION);
+              // onAuthStateChange will automatically handle the routing to NOTIFICATIONS_INTRO
             } else {
               console.error('[App] Code exchange failed:', error);
             }
@@ -195,7 +195,7 @@ const App: React.FC = () => {
             
             if (!error) {
               console.log('[App] ✅ Session updated successfully via tokens');
-              handleNavigate(Screen.SUBSCRIPTION);
+              // onAuthStateChange will automatically handle the routing to NOTIFICATIONS_INTRO
             } else {
               console.error('[App] Token session set failed:', error);
             }
