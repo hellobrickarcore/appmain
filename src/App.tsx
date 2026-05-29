@@ -253,12 +253,21 @@ const App: React.FC = () => {
             console.log('[App] Subscription successful, forcing status lock');
             localStorage.setItem('hellobrick_is_pro', 'true');
             subscriptionService.getSubscriptionStatus().catch(() => {});
-          }
-          const onboardingFinished = localStorage.getItem('hellobrick_onboarding_finished') === 'true';
-          if (!onboardingFinished) {
-            handleNavigate(Screen.NOTIFICATIONS_INTRO);
+            // After paywall: if onboarding not done → NotificationsIntro; else → Home
+            const onboardingFinished = localStorage.getItem('hellobrick_onboarding_finished') === 'true';
+            if (!onboardingFinished) {
+              handleNavigate(Screen.NOTIFICATIONS_INTRO);
+            } else {
+              handleNavigate(Screen.HOME);
+            }
           } else {
-            handleNavigate(Screen.HOME);
+            // Dismissed — if not authenticated yet send back to onboarding; else go home
+            const isAuthenticated = localStorage.getItem('hellobrick_authenticated') === 'true';
+            if (!isAuthenticated) {
+              handleNavigate(Screen.ONBOARDING_QUESTIONNAIRE);
+            } else {
+              handleNavigate(Screen.HOME);
+            }
           }
         }} />;
       case Screen.HOME:
@@ -314,7 +323,7 @@ const App: React.FC = () => {
         </div>
       )}
       */}
-      {![Screen.ONBOARDING_QUESTIONNAIRE, Screen.AUTH, Screen.EMAIL_SIGNUP, Screen.EMAIL_LOGIN, Screen.SUBSCRIPTION].includes(currentScreen) && showNav && (
+      {![Screen.ONBOARDING_QUESTIONNAIRE, Screen.AUTH, Screen.EMAIL_SIGNUP, Screen.EMAIL_LOGIN, Screen.SUBSCRIPTION, Screen.NOTIFICATIONS_INTRO].includes(currentScreen) && showNav && (
         <BottomNav currentScreen={currentScreen} onNavigate={handleNavigate} />
       )}
     </div>

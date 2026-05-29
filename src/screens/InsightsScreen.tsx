@@ -45,6 +45,63 @@ export const InsightsScreen: React.FC<InsightsScreenProps> = ({ onNavigate }) =>
 
         {activeTab === 'insights' ? (
           <div className="space-y-6 animate-fade-in">
+            {/* Global Set Search */}
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search any LEGO set or minifig..."
+                className="w-full bg-[#1A1A1A] border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-white placeholder-zinc-500 text-sm focus:border-emerald-500/50 focus:outline-none transition-colors"
+              />
+              <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+
+            {/* Browse by Theme */}
+            <div className="bg-[#1A1A1A] p-5 rounded-[24px] border border-white/5">
+              <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-4">Browse by Theme</h2>
+              <div className="space-y-2">
+                {[
+                  { name: 'Star Wars', icon: '⚔️', sets: 1046, minifigs: 1588 },
+                  { name: 'City', icon: '🏙️', sets: 1617, minifigs: 3781 },
+                  { name: 'Technic', icon: '⚙️', sets: 892, minifigs: 120 },
+                  { name: 'Creator Expert', icon: '🏛️', sets: 245, minifigs: 410 },
+                  { name: 'Harry Potter', icon: '⚡', sets: 312, minifigs: 580 },
+                ].map((theme, i) => (
+                  <button
+                    key={i}
+                    className="w-full flex items-center justify-between p-3.5 rounded-2xl hover:bg-white/5 transition-colors active:scale-[0.98]"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">{theme.icon}</span>
+                      <div className="text-left">
+                        <p className="text-sm font-semibold text-white">{theme.name}</p>
+                        <p className="text-[10px] text-zinc-500">{theme.sets} sets · {theme.minifigs} minifigs</p>
+                      </div>
+                    </div>
+                    <svg className="w-4 h-4 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* What Can I Build */}
+            <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 p-6 rounded-[24px] border border-purple-500/20">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-2xl">🧩</span>
+                <h2 className="text-lg font-semibold">What Can I Build?</h2>
+              </div>
+              <p className="text-sm text-zinc-400 mb-4">Scan your loose bricks and discover what amazing creations you can make with them.</p>
+              <button
+                onClick={() => onNavigate(Screen.SCANNER)}
+                className="w-full py-3 bg-purple-500/20 border border-purple-500/30 rounded-xl text-purple-300 font-semibold text-sm active:scale-[0.98] transition-transform"
+              >
+                Start Scanning Pieces →
+              </button>
+            </div>
+
             {/* Trend Card */}
             <div className="bg-[#1A1A1A] p-6 rounded-[24px] border border-white/5">
               <div className="flex items-center gap-3 mb-4">

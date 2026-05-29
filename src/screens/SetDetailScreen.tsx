@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ChevronLeft, Share2, Search, TrendingUp, Info } from 'lucide-react';
 import { Screen, LegoSetModel } from '../types';
+import { Logo } from '../components/Logo';
 import { mockSets, mockValuations, mockMinifigs } from '../lib/mock-data';
 
 interface SetDetailScreenProps {
@@ -41,6 +42,18 @@ export const SetDetailScreen: React.FC<SetDetailScreenProps> = ({ onNavigate, se
   // Fake history chart data
   const chartPoints = "0,80 50,50 100,60 150,30 200,40 250,15 300,20";
 
+  const [timeframe, setTimeframe] = useState<'1D' | '1W' | '1M' | '1Y' | 'ALL'>('1Y');
+
+  // Different chart data per timeframe for visual variety
+  const chartDataByTimeframe = {
+    '1D': '0,45 50,42 100,48 150,44 200,46 250,43 300,47',
+    '1W': '0,60 50,55 100,58 150,45 200,42 250,38 300,35',
+    '1M': '0,70 50,65 100,55 150,50 200,45 250,30 300,25',
+    '1Y': '0,80 50,50 100,60 150,30 200,40 250,15 300,20',
+    'ALL': '0,95 50,80 100,70 150,65 200,50 250,30 300,15',
+  };
+  const activeChartPoints = chartDataByTimeframe[timeframe];
+
   return (
     <div className="flex flex-col min-h-screen bg-[#111111] font-sans text-white overflow-y-auto pb-32">
       
@@ -52,12 +65,7 @@ export const SetDetailScreen: React.FC<SetDetailScreenProps> = ({ onNavigate, se
         >
           <ChevronLeft className="w-7 h-7 text-white" />
         </button>
-        <div className="flex items-center gap-2">
-           <div className="w-8 h-8 flex items-center justify-center bg-white/10 rounded-full">
-             <span className="font-bold text-xs">HB</span>
-           </div>
-           <span className="font-bold tracking-wide">HelloBrick</span>
-        </div>
+        <Logo size="sm" light={true} />
         <button className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-full -mr-2 active:scale-95 transition-transform">
           <Search className="w-5 h-5 text-white" />
         </button>
@@ -86,15 +94,15 @@ export const SetDetailScreen: React.FC<SetDetailScreenProps> = ({ onNavigate, se
         <div className="grid grid-cols-3 gap-3 mb-8">
           <div className="bg-white rounded-[24px] p-4 flex flex-col items-center justify-center shadow-lg">
              <span className="text-zinc-500 font-semibold text-sm mb-1">Sealed</span>
-             <span className="text-black font-bold text-xl">${(set.retailPrice * 1.8).toFixed(0)}</span>
+             <span className="text-black font-bold text-xl">${((set.retailPrice ?? 99) * 1.8).toFixed(0)}</span>
           </div>
           <div className="bg-[#FFB067] rounded-[24px] p-4 flex flex-col items-center justify-center shadow-[0_8px_24px_rgba(255,176,103,0.3)]">
              <span className="text-black/70 font-semibold text-sm mb-1">Used</span>
-             <span className="text-black font-bold text-xl">${(set.retailPrice * 1.2).toFixed(0)}</span>
+             <span className="text-black font-bold text-xl">${((set.retailPrice ?? 99) * 1.2).toFixed(0)}</span>
           </div>
           <div className="bg-white rounded-[24px] p-4 flex flex-col items-center justify-center shadow-lg">
              <span className="text-zinc-500 font-semibold text-sm mb-1">Resale</span>
-             <span className="text-black font-bold text-xl">${(set.retailPrice * 1.5).toFixed(0)}</span>
+             <span className="text-black font-bold text-xl">${((set.retailPrice ?? 99) * 1.5).toFixed(0)}</span>
           </div>
         </div>
 
@@ -103,6 +111,22 @@ export const SetDetailScreen: React.FC<SetDetailScreenProps> = ({ onNavigate, se
            <div className="flex justify-between items-center mb-6 relative z-10">
               <h3 className="font-bold text-lg">Price History</h3>
               <span className="text-zinc-400 font-semibold text-sm">Drop</span>
+           </div>
+
+           <div className="flex gap-2 mb-4">
+             {(['1D', '1W', '1M', '1Y', 'ALL'] as const).map(tf => (
+               <button
+                 key={tf}
+                 onClick={() => setTimeframe(tf)}
+                 className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                   timeframe === tf
+                     ? 'bg-[#FF7A30] text-white shadow-md'
+                     : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
+                 }`}
+               >
+                 {tf}
+               </button>
+             ))}
            </div>
 
            {/* Elegant Graph Area */}
@@ -125,11 +149,11 @@ export const SetDetailScreen: React.FC<SetDetailScreenProps> = ({ onNavigate, se
                       </linearGradient>
                     </defs>
                     <path 
-                      d={`M0,100 L${chartPoints} L300,100 Z`}
+                      d={`M0,100 L${activeChartPoints} L300,100 Z`}
                       fill="url(#gradientArea)"
                     />
                     <path 
-                      d={`M${chartPoints}`}
+                      d={`M${activeChartPoints}`}
                       fill="none" 
                       stroke="#FF7A30" 
                       strokeWidth="4" 

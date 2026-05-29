@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, Lock, Globe, Bell, Shield, FileText, Trash2, Camera, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, Lock, Globe, Bell, Shield, FileText, Trash2, Camera, AlertTriangle, DollarSign, Volume2 } from 'lucide-react';
 import { Screen } from '../types';
 import { notificationService } from '../services/notificationService';
 import { userSettingsService } from '../services/userSettingsService';
@@ -25,6 +25,32 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({ on
   const [profileName, setProfileName] = useState(
     localStorage.getItem('hellobrick_profile_name') || 'Builder'
   );
+  const [currency, setCurrency] = useState(
+    localStorage.getItem('hellobrick_currency') || 'USD'
+  );
+  const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+  const [scanSound, setScanSound] = useState(
+    localStorage.getItem('hellobrick_scan_sound') !== 'false'
+  );
+
+  const currencies = [
+    { code: 'USD', symbol: '$', flag: '🇺🇸' },
+    { code: 'EUR', symbol: '€', flag: '🇪🇺' },
+    { code: 'GBP', symbol: '£', flag: '🇬🇧' },
+    { code: 'CAD', symbol: 'C$', flag: '🇨🇦' },
+    { code: 'AUD', symbol: 'A$', flag: '🇦🇺' },
+    { code: 'DKK', symbol: 'kr', flag: '🇩🇰' },
+    { code: 'NOK', symbol: 'kr', flag: '🇳🇴' },
+    { code: 'SEK', symbol: 'kr', flag: '🇸🇪' },
+    { code: 'CHF', symbol: 'Fr', flag: '🇨🇭' },
+    { code: 'JPY', symbol: '¥', flag: '🇯🇵' },
+  ];
+
+  const handleCurrencyChange = (code: string) => {
+    setCurrency(code);
+    localStorage.setItem('hellobrick_currency', code);
+    setShowCurrencyPicker(false);
+  };
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const saveTimeoutRef = useRef<any>(null);
@@ -215,6 +241,68 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({ on
                     <div className={`w-5 h-5 bg-white rounded-full absolute top-0.75 transition-all ${notificationsEnabled ? 'left-[23px]' : 'left-[5px]'}`} />
                   </div>
                 </button>
+
+                <button 
+                  onClick={() => {
+                    const newVal = !scanSound;
+                    setScanSound(newVal);
+                    localStorage.setItem('hellobrick_scan_sound', String(newVal));
+                  }}
+                  className="w-full h-16 px-4 flex items-center justify-between hover:bg-white/5 transition-colors rounded-2xl"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center text-purple-400">
+                      <Volume2 className="w-5 h-5" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-bold text-white">Scan Sound</p>
+                      <p className="text-[10px] text-slate-400 font-medium">Play a sound when sets are identified</p>
+                    </div>
+                  </div>
+                  <div className={`w-12 h-6.5 rounded-full transition-all relative ${scanSound ? 'bg-orange-500' : 'bg-white/10'}`}>
+                    <div className={`w-5 h-5 bg-white rounded-full absolute top-0.75 transition-all ${scanSound ? 'left-[23px]' : 'left-[5px]'}`} />
+                  </div>
+                </button>
+
+                <button 
+                  onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
+                  className="w-full h-16 px-4 flex items-center justify-between hover:bg-white/5 transition-colors rounded-2xl"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-400">
+                      <DollarSign className="w-5 h-5" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-bold text-white">Currency</p>
+                      <p className="text-[10px] text-slate-400 font-medium">Display prices in your local currency</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-white">{currencies.find(c => c.code === currency)?.flag} {currency}</span>
+                    <ChevronLeft className="w-4 h-4 text-slate-600 rotate-180" />
+                  </div>
+                </button>
+
+                {showCurrencyPicker && (
+                  <div className="bg-white/5 rounded-2xl border border-white/10 p-2 mx-2 mb-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="grid grid-cols-2 gap-1">
+                      {currencies.map(c => (
+                        <button
+                          key={c.code}
+                          onClick={() => handleCurrencyChange(c.code)}
+                          className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                            currency === c.code
+                              ? 'bg-emerald-500/20 border border-emerald-500/30'
+                              : 'hover:bg-white/5'
+                          }`}
+                        >
+                          <span className="text-lg">{c.flag}</span>
+                          <span className={`text-sm font-bold ${currency === c.code ? 'text-emerald-400' : 'text-white'}`}>{c.code}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

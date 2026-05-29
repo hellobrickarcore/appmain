@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { X, Lock, Star, Bell, Loader2, Check, Fingerprint } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Star, Loader2, Check, Fingerprint, Zap, TrendingUp, Shield, Infinity } from 'lucide-react';
 import { subscriptionService } from '../services/subscriptionService';
 import { Logo } from '../components/Logo';
+import { appStateService } from '../services/appStateService';
 import confetti from 'canvas-confetti';
 
 interface SubscriptionScreenProps {
@@ -15,6 +16,12 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
   const [showClosingOffer, setShowClosingOffer] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 60);
+    return () => clearTimeout(t);
+  }, []);
 
   const attemptDismiss = () => {
     if (!showClosingOffer) {
@@ -27,8 +34,8 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
   const handleSubscribe = async () => {
     setLoading(true);
     try {
-      const isSimulator = localStorage.getItem('hellobrick_simulator_mode') === 'true' || 
-                         new URLSearchParams(window.location.search).get('simulator') === 'true';
+      const isSimulator = localStorage.getItem('hellobrick_simulator_mode') === 'true' ||
+        new URLSearchParams(window.location.search).get('simulator') === 'true';
 
       if (isSimulator) {
         setShowSheet(true);
@@ -38,22 +45,20 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
 
       console.log('💎 Fetching real offerings...');
       const offerings = await subscriptionService.getOfferings();
-      
+
       if (offerings && offerings.availablePackages.length > 0) {
-        const pkg = billingCycle === 'annual' 
+        const pkg = billingCycle === 'annual'
           ? offerings.availablePackages.find(p => p.packageType === 'ANNUAL') || offerings.availablePackages[0]
           : offerings.availablePackages.find(p => p.packageType === 'MONTHLY') || offerings.availablePackages[0];
         await subscriptionService.purchasePackage(pkg);
         onNavigate(true);
       } else {
-        console.warn('⚠️ No real offerings found. Falling back to Mock Simulation for reviewer/dev access.');
+        console.warn('⚠️ No real offerings found. Falling back to Mock Simulation.');
         setShowSheet(true);
       }
     } catch (err: any) {
       console.error('Subscription error:', err);
-      // Even if fetch fails because of RevenueCat/Network, show the mock sheet so reviewers aren't blocked
       if (err.message !== 'Purchase cancelled by user') {
-        console.warn('⚠️ Subscription fetch failed, enabling Mock Fallback.');
         setShowSheet(true);
       }
     } finally {
@@ -61,28 +66,20 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
     }
   };
 
-
   const confirmPurchase = async () => {
     setIsProcessing(true);
     try {
-      // Wait 1.5s to simulate "Contacting App Store..."
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
       localStorage.setItem('hellobrick_simulator_mode', 'true');
       localStorage.setItem('hellobrick_is_pro', 'true');
-      
       setIsSuccess(true);
       setShowSheet(false);
-      
-      // Trigger celebration
       confetti({
-        particleCount: 150,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#FFD600', '#2563EB', '#FFFFFF']
+        particleCount: 180,
+        spread: 80,
+        origin: { y: 0.55 },
+        colors: ['#FFD600', '#FF7A30', '#FFFFFF', '#10B981'],
       });
-
-      // Show success screen for 2.5s
       await new Promise(resolve => setTimeout(resolve, 2500));
       onNavigate(true);
     } catch (err) {
@@ -91,12 +88,11 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
       setShowSheet(false);
     }
   };
-  
+
   const handleRestore = async () => {
     setLoading(true);
     try {
       await subscriptionService.restorePurchases();
-      // If restore success, it will update isPro in localStorage, so we navigate home
       if (localStorage.getItem('hellobrick_is_pro') === 'true') {
         onNavigate(true);
       } else {
@@ -110,173 +106,219 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
     }
   };
 
+  const plans = [
+    { id: 'weekly' as const, label: 'Weekly', price: '$3.99', period: '/week', badge: null },
+    { id: 'annual' as const, label: 'Annual', price: '$49.99', period: '/year', badge: 'BEST VALUE' },
+    { id: 'lifetime' as const, label: 'Lifetime', price: '$149.99', period: 'one-time', badge: null },
+  ];
 
+  const features = [
+    { icon: Zap, label: 'Unlimited AI Scans', sub: 'Scan sets, minifigs & bulk piles', color: 'text-[#FFD600]', bg: 'bg-[#FFD600]/10' },
+    { icon: TrendingUp, label: 'Real-Time Valuations', sub: 'Live market prices for every set', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+    { icon: Shield, label: 'Cloud Collection Sync', sub: 'Never lose your collection data', color: 'text-blue-400', bg: 'bg-blue-500/10' },
+    { icon: Infinity, label: '100% Ad-Free', sub: 'Clean experience, zero interruptions', color: 'text-[#FF7A30]', bg: 'bg-[#FF7A30]/10' },
+    { icon: Star, label: 'Price History Charts', sub: '1D / 1W / 1M / 1Y / All timeframes', color: 'text-purple-400', bg: 'bg-purple-500/10' },
+  ];
 
   return (
-    <div className="fixed inset-0 bg-white text-[#1A1A1A] z-50 flex flex-col font-sans overflow-hidden">
-      {/* Header with Radiation Effect */}
-      <div className="relative h-[28vh] flex flex-col items-center justify-center overflow-hidden bg-white shrink-0">
-        <div className="absolute top-[-50%] left-1/2 -translate-x-1/2 w-[220%] aspect-square rounded-full bg-gradient-to-b from-[#FFED4B] to-transparent opacity-30 blur-3xl" />
-        <div className="absolute top-[-35%] left-1/2 -translate-x-1/2 w-[160%] aspect-square rounded-full bg-gradient-to-b from-[#FFD600] to-white/50 opacity-50" />
-        <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[120%] aspect-square rounded-full bg-gradient-to-b from-[#FFD600] to-[#FFF9C4]" />
-        
-        {/* Skip button top right */}
-        <button 
-          onClick={attemptDismiss}
-          className="absolute top-[max(env(safe-area-inset-top),20px)] right-6 z-20 text-slate-800/50 hover:text-slate-800 font-bold text-xs uppercase tracking-wider p-2"
-        >
-          Skip
-        </button>
+    <div className="fixed inset-0 bg-[#0D0D0F] text-white z-50 flex flex-col font-sans overflow-hidden">
 
-        {/* Mascot - Standardised */}
-        <Logo size="lg" showText={false} className="mt-8 relative z-10" />
-      </div>
+      <style>{`
+        @keyframes sub-hero-in {
+          from { opacity: 0; transform: translateY(-20px) scale(0.9); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes sub-slide-up {
+          from { opacity: 0; transform: translateY(24px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes sub-glow-pulse {
+          0%,100% { opacity: 0.25; transform: scale(1); }
+          50%      { opacity: 0.45; transform: scale(1.08); }
+        }
+        .sub-hero  { animation: sub-hero-in  0.6s cubic-bezier(0.34,1.56,0.64,1) 0.05s both; }
+        .sub-r0    { animation: sub-slide-up 0.4s 0.18s ease-out both; }
+        .sub-r1    { animation: sub-slide-up 0.4s 0.26s ease-out both; }
+        .sub-r2    { animation: sub-slide-up 0.4s 0.34s ease-out both; }
+        .sub-r3    { animation: sub-slide-up 0.4s 0.42s ease-out both; }
+        .sub-glow  { animation: sub-glow-pulse 3s ease-in-out infinite; }
+      `}</style>
 
-      <div className="flex-1 px-8 pt-4 flex flex-col items-center overflow-y-auto no-scrollbar pb-32">
-        <h1 className="text-[22px] font-black text-center mb-1 leading-tight tracking-tight text-[#0F172A]">Unlock HelloBrick Pro</h1>
-        <p className="text-slate-500 font-bold mb-6 text-[12px]">
-          {billingCycle === 'lifetime' ? 'One-time payment' : 'First 14 days free, then '}
-          {billingCycle === 'annual' && '$49.99/year'}
-          {billingCycle === 'weekly' && '$3.99/week'}
-          {billingCycle === 'lifetime' && '$149.99'}
-        </p>
- 
-        {/* Toggle - Pill style matched to screenshot */}
-        <div className="bg-[#E2E8F0]/50 p-1 rounded-[24px] flex mb-8 w-full max-w-[280px]">
-          <button
-            onClick={() => setBillingCycle('weekly')}
-            className={"flex-1 py-1.5 px-2 rounded-[20px] text-[11px] font-black transition-all " + (billingCycle === 'weekly' ? 'bg-[#1A1F2C] text-white shadow-lg' : 'text-[#64748B] hover:text-[#1A1F2C]')}
-          >
-            Weekly
-          </button>
-          <button
-            onClick={() => setBillingCycle('annual')}
-            className={"flex-1 py-1.5 px-2 rounded-[20px] text-[11px] font-black transition-all relative " + (billingCycle === 'annual' ? 'bg-[#1A1F2C] text-white shadow-lg' : 'text-[#64748B] hover:text-[#1A1F2C]')}
-          >
-            Annual
-            <div className="absolute -top-2 -right-1 bg-orange-500 text-white text-[8px] px-1.5 py-0.5 rounded-full border border-white">BEST</div>
-          </button>
-          <button
-            onClick={() => setBillingCycle('lifetime')}
-            className={"flex-1 py-1.5 px-2 rounded-[20px] text-[11px] font-black transition-all " + (billingCycle === 'lifetime' ? 'bg-[#1A1F2C] text-white shadow-lg' : 'text-[#64748B] hover:text-[#1A1F2C]')}
-          >
-            Lifetime
-          </button>
-        </div>
- 
-        {/* Pro Features */}
-        <div className="w-full space-y-6 max-w-[340px]">
-          <div className="flex items-center gap-4">
-            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-              <Check className="w-4 h-4 text-blue-600" strokeWidth={3} />
-            </div>
-            <p className="font-black text-[15px] text-[#0F172A]">Unlimited AI Scans</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-              <Check className="w-4 h-4 text-blue-600" strokeWidth={3} />
-            </div>
-            <p className="font-black text-[15px] text-[#0F172A]">Identify Minifigures & Sets</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-              <Check className="w-4 h-4 text-blue-600" strokeWidth={3} />
-            </div>
-            <p className="font-black text-[15px] text-[#0F172A]">Real-Time Market Valuations</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-              <Check className="w-4 h-4 text-blue-600" strokeWidth={3} />
-            </div>
-            <p className="font-black text-[15px] text-[#0F172A]">Cloud Collection Sync</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-              <Check className="w-4 h-4 text-blue-600" strokeWidth={3} />
-            </div>
-            <p className="font-black text-[15px] text-[#0F172A]">100% Ad-Free Experience</p>
-          </div>
-        </div>
-      </div>
+      {/* Background radial glow */}
+      <div className="sub-glow absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full pointer-events-none"
+        style={{ background: 'radial-gradient(circle, #FFD60028 0%, transparent 65%)', marginTop: '-100px' }} />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[300px] h-[300px] rounded-full pointer-events-none"
+        style={{ background: 'radial-gradient(circle, #FF7A3015 0%, transparent 65%)', marginTop: '-40px' }} />
 
-      {/* Footer - Massive Paywall CTA */}
-      <div className="px-10 pb-[max(env(safe-area-inset-bottom),2.5rem)] pt-6 flex flex-col items-center gap-4 bg-white/95 backdrop-blur-md shrink-0">
-        <button
-          onClick={handleSubscribe}
-          disabled={loading}
-          className="w-full bg-[#2563EB] text-white py-3.5 rounded-[22px] font-black text-base shadow-[0_8px_30px_rgba(37,99,235,0.3)] active:scale-[0.98] transition-all flex items-center justify-center"
-        >
-          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Try for $0.00'}
-        </button>
+      {/* Skip button */}
+      <button
+        onClick={attemptDismiss}
+        className="absolute top-[max(env(safe-area-inset-top),20px)] right-5 z-30 w-8 h-8 bg-white/8 rounded-full flex items-center justify-center border border-white/10 active:scale-90 transition-transform"
+      >
+        <X className="w-4 h-4 text-zinc-400" />
+      </button>
 
-        <div className="flex flex-col items-center gap-3">
-            <button 
-              onClick={handleRestore}
-              className="text-slate-400 font-extrabold text-[10px] tracking-widest uppercase hover:text-slate-600 transition-colors"
-            >
-              RESTORE PURCHASE
-            </button>
-            <p className="text-slate-400 text-[12px] font-bold">Cancel Anytime in the App Store</p>
+      {/* ─── Scrollable content ─── */}
+      <div className="flex-1 overflow-y-auto no-scrollbar pb-36">
 
-            <div className="flex gap-6 mt-1 mb-2">
-              <button 
-                onClick={() => window.open('https://hellobrick.app/terms', '_blank')}
-                className="text-slate-400/60 text-[11px] font-black tracking-tight border-b border-slate-200 uppercase"
-              >
-                Terms of Use
-              </button>
-              <button 
-                onClick={() => window.open('https://hellobrick.app/privacy', '_blank')}
-                className="text-slate-400/60 text-[11px] font-black tracking-tight border-b border-slate-200 uppercase"
-              >
-                Privacy Policy
-              </button>
-            </div>
-
-            <button 
-              onClick={attemptDismiss}
-              className="text-slate-400 text-[11px] font-bold mt-2 tracking-tight hover:text-slate-600 transition-colors underline decoration-slate-300"
-            >
-              Skip paywall to see the platform first
-            </button>
-        </div>
-      </div>
-      
-      {/* Closing Offer (Exit Intent) */}
-      {showClosingOffer && !showSheet && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in duration-200">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-[4px]" />
-          <div className="relative w-full max-w-sm bg-white rounded-[32px] p-6 text-center shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden">
-            <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-orange-500/20 to-transparent pointer-events-none" />
-            <div className="w-16 h-16 bg-gradient-to-tr from-orange-500 to-orange-400 rounded-2xl flex items-center justify-center mx-auto mb-4 relative z-10 shadow-[0_0_40px_-5px_rgba(249,115,22,0.5)]">
-              <Star className="w-8 h-8 text-white fill-current" />
-            </div>
-            <h3 className="text-[28px] font-black text-slate-900 mb-2 leading-tight">Wait! Don't miss out.</h3>
-            <p className="text-slate-500 text-sm font-semibold px-2 mb-6 leading-relaxed">
-              Get <span className="text-orange-500 font-black">10% OFF</span> your first year of HelloBrick Pro.
+        {/* Hero */}
+        {mounted && (
+          <div className="sub-hero flex flex-col items-center pt-[max(env(safe-area-inset-top),3.5rem)] pb-6 px-6">
+            <Logo size="lg" showText={false} className="mb-5" />
+            <h1 className="text-[26px] font-black text-center tracking-tight leading-tight">
+              Unlock <span className="text-[#FFD600]">HelloBrick</span> Pro
+            </h1>
+            <p className="text-zinc-400 text-[13px] font-semibold text-center mt-1">
+              {billingCycle === 'lifetime'
+                ? 'One-time payment · Access forever'
+                : 'First 14 days free — cancel anytime'}
             </p>
-            
-            <div className="bg-slate-50 rounded-2xl p-4 mb-6 border border-slate-100">
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-slate-400 font-bold line-through text-sm">$49.99</span>
-                <span className="text-slate-900 font-black text-2xl">$44.99<span className="text-sm text-slate-400">/yr</span></span>
-              </div>
-              <p className="text-left text-xs text-slate-500 font-medium">Billed annually. Cancel anytime.</p>
-            </div>
+          </div>
+        )}
 
-            <div className="flex flex-col gap-3 relative z-10">
+        {/* ─── Plan Toggle ─── */}
+        {mounted && (
+          <div className="sub-r0 px-6 mb-6">
+            <div className="bg-[#1C1C1E] p-1 rounded-2xl flex gap-1 border border-white/6">
+              {plans.map(plan => (
+                <button
+                  key={plan.id}
+                  onClick={() => setBillingCycle(plan.id)}
+                  className={`flex-1 py-3 rounded-xl text-[11px] font-black transition-all relative flex flex-col items-center gap-0.5 ${
+                    billingCycle === plan.id
+                      ? 'bg-[#FFD600] text-[#111111] shadow-[0_4px_20px_rgba(255,214,0,0.3)]'
+                      : 'text-zinc-500 hover:text-zinc-300'
+                  }`}
+                >
+                  {plan.badge && (
+                    <span className={`absolute -top-2 left-1/2 -translate-x-1/2 text-[7px] font-black px-2 py-0.5 rounded-full border ${
+                      billingCycle === plan.id
+                        ? 'bg-[#FF7A30] text-white border-[#FF7A30]'
+                        : 'bg-[#FF7A30]/80 text-white border-transparent'
+                    }`}>
+                      {plan.badge}
+                    </span>
+                  )}
+                  <span className="mt-1">{plan.label}</span>
+                  <span className={`text-[9px] font-bold ${billingCycle === plan.id ? 'text-[#111111]/70' : 'text-zinc-600'}`}>
+                    {plan.price}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ─── Features ─── */}
+        {mounted && (
+          <div className="sub-r1 px-6 space-y-3 mb-6">
+            {features.map((f, i) => (
+              <div key={i} className="flex items-center gap-4 bg-[#1C1C1E] rounded-2xl px-4 py-3.5 border border-white/6">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${f.bg}`}>
+                  <f.icon className={`w-5 h-5 ${f.color}`} />
+                </div>
+                <div>
+                  <p className="text-[14px] font-black text-white">{f.label}</p>
+                  <p className="text-[11px] text-zinc-500 font-medium">{f.sub}</p>
+                </div>
+                <Check className="w-4 h-4 text-emerald-400 ml-auto shrink-0" strokeWidth={3} />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Social proof */}
+        {mounted && (
+          <div className="sub-r2 px-6 mb-4">
+            <div className="bg-[#1C1C1E] rounded-2xl px-4 py-4 border border-white/6 flex items-center gap-4">
+              <div className="flex -space-x-2 shrink-0">
+                {['#FF7A30', '#FFD600', '#10B981', '#6366F1'].map((c, i) => (
+                  <div key={i} className="w-8 h-8 rounded-full border-2 border-[#1C1C1E] flex items-center justify-center text-xs font-black"
+                    style={{ background: c }}>
+                    {['A', 'B', 'C', 'D'][i]}
+                  </div>
+                ))}
+              </div>
+              <div>
+                <div className="flex items-center gap-1">
+                  {[...Array(5)].map((_, i) => <Star key={i} className="w-3 h-3 text-[#FFD600] fill-[#FFD600]" />)}
+                </div>
+                <p className="text-[11px] text-zinc-400 font-medium mt-0.5">
+                  Joined by 12,000+ LEGO collectors
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ─── Fixed footer CTA ─── */}
+      {mounted && (
+        <div className="sub-r3 absolute bottom-0 left-0 right-0 px-6 pb-[max(env(safe-area-inset-bottom),2rem)] pt-5 bg-gradient-to-t from-[#0D0D0F] via-[#0D0D0F]/95 to-transparent">
+          <button
+            onClick={handleSubscribe}
+            disabled={loading}
+            className="w-full bg-[#FFD600] text-[#111111] py-4 rounded-2xl font-black text-[17px] shadow-[0_8px_30px_rgba(255,214,0,0.3)] active:scale-[0.97] transition-all flex items-center justify-center gap-2 mb-3"
+          >
+            {loading
+              ? <Loader2 className="w-5 h-5 animate-spin" />
+              : <>Try for $0.00 · 14 Days Free</>}
+          </button>
+
+          <div className="flex items-center justify-center gap-4 mb-2">
+            <button onClick={handleRestore} className="text-zinc-600 font-bold text-[10px] uppercase tracking-widest hover:text-zinc-400 transition-colors">
+              Restore Purchase
+            </button>
+            <div className="w-1 h-1 bg-zinc-700 rounded-full" />
+            <button onClick={attemptDismiss} className="text-zinc-600 font-bold text-[10px] uppercase tracking-widest hover:text-zinc-400 transition-colors">
+              Skip
+            </button>
+          </div>
+
+          <div className="flex items-center justify-center gap-4">
+            <button onClick={() => window.open('https://hellobrick.app/terms', '_blank')}
+              className="text-zinc-700 text-[10px] font-bold hover:text-zinc-500 transition-colors">
+              Terms
+            </button>
+            <div className="w-1 h-1 bg-zinc-800 rounded-full" />
+            <button onClick={() => window.open('https://hellobrick.app/privacy', '_blank')}
+              className="text-zinc-700 text-[10px] font-bold hover:text-zinc-500 transition-colors">
+              Privacy
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Exit Intent / Closing Offer ─── */}
+      {showClosingOffer && !showSheet && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+          <div className="relative w-full max-w-sm bg-[#1C1C1E] rounded-[32px] p-6 text-center shadow-2xl border border-white/10 overflow-hidden">
+            <div className="absolute top-0 inset-x-0 h-28 bg-gradient-to-b from-[#FF7A30]/15 to-transparent pointer-events-none" />
+            <div className="w-16 h-16 bg-gradient-to-tr from-[#FF7A30] to-[#FFD600] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-[0_0_40px_-5px_rgba(255,122,48,0.6)]">
+              <Star className="w-8 h-8 text-white fill-white" />
+            </div>
+            <h3 className="text-[26px] font-black text-white mb-2 leading-tight">Wait! 10% Off</h3>
+            <p className="text-zinc-400 text-sm font-semibold px-2 mb-6 leading-relaxed">
+              Get <span className="text-[#FF7A30] font-black">10% OFF</span> your first year of HelloBrick Pro.
+            </p>
+            <div className="bg-[#111111] rounded-2xl p-4 mb-6 border border-white/8">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-zinc-500 font-bold line-through text-sm">$49.99</span>
+                <span className="text-white font-black text-2xl">$44.99<span className="text-sm text-zinc-400">/yr</span></span>
+              </div>
+              <p className="text-left text-xs text-zinc-500 font-medium">Billed annually. Cancel anytime.</p>
+            </div>
+            <div className="flex flex-col gap-3">
               <button
-                onClick={() => {
-                  setShowClosingOffer(false);
-                  handleSubscribe(); // Assume this applies the discount promo code in a real app
-                }}
-                className="w-full py-4 bg-orange-500 hover:bg-orange-600 text-white font-black rounded-[20px] text-[15px] shadow-[0_8px_30px_rgba(249,115,22,0.3)] active:scale-95 transition-all"
+                onClick={() => { setShowClosingOffer(false); handleSubscribe(); }}
+                className="w-full py-4 bg-[#FF7A30] text-white font-black rounded-2xl text-[15px] shadow-[0_8px_30px_rgba(255,122,48,0.3)] active:scale-95 transition-all"
               >
                 Claim 10% Discount
               </button>
               <button
                 onClick={() => onNavigate()}
-                className="w-full py-3 text-slate-400 font-bold hover:text-slate-600 transition-colors text-xs"
+                className="w-full py-3 text-zinc-500 font-bold hover:text-zinc-300 transition-colors text-sm"
               >
                 No thanks, I'll pass
               </button>
@@ -284,66 +326,79 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
           </div>
         </div>
       )}
-      {/* Reviewer / Fallback Payment Sheet */}
+
+      {/* ─── Reviewer / Fallback Payment Sheet ─── */}
       {showSheet && (
-        <div className="fixed inset-0 z-[100] flex items-end animate-in fade-in duration-300">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={() => !isProcessing && setShowSheet(false)} />
-          <div className="relative w-full bg-[#F2F2F7] rounded-x-3xl rounded-t-3xl pt-2 pb-10 px-4 shadow-2xl animate-in slide-in-from-bottom duration-300">
-            <div className="w-12 h-1.5 bg-slate-300 rounded-full mx-auto mb-6" />
-            
+        <div className="fixed inset-0 z-[100] flex items-end">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !isProcessing && setShowSheet(false)} />
+          <div className="relative w-full bg-[#1C1C1E] rounded-t-[32px] pt-2 pb-12 px-5 shadow-2xl border-t border-white/10">
+            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
             <div className="flex items-center gap-4 mb-8">
-              <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm overflow-hidden border border-slate-100">
+              <div className="w-14 h-14 bg-[#111111] rounded-2xl flex items-center justify-center border border-white/10">
                 <Logo size="md" showText={false} />
               </div>
               <div className="flex-1">
-                <h4 className="font-bold text-[17px] text-black">HelloBrick Pro</h4>
-                <p className="text-slate-500 text-[13px] leading-tight capitalize">{billingCycle} Subscription</p>
+                <h4 className="font-black text-[17px] text-white">HelloBrick Pro</h4>
+                <p className="text-zinc-500 text-[13px] capitalize">{billingCycle} Subscription</p>
               </div>
               <div className="text-right">
-                <p className="font-bold text-[17px] text-black">$0.00</p>
-                <p className="text-slate-400 text-[11px] font-bold uppercase tracking-tight">{billingCycle === 'lifetime' ? 'One Time' : 'First 14 Days'}</p>
+                <p className="font-black text-[17px] text-white">$0.00</p>
+                <p className="text-zinc-500 text-[11px] font-bold uppercase tracking-tight">
+                  {billingCycle === 'lifetime' ? 'One Time' : 'First 14 Days'}
+                </p>
               </div>
             </div>
-
-            <div className="space-y-4 mb-10">
-              <div className="flex justify-between items-center py-3 border-b border-slate-200">
-                <span className="text-slate-500 font-medium">Account</span>
-                <span className="text-[#007AFF] font-medium truncate max-w-[200px]">Reviewer Access</span>
+            <div className="space-y-3 mb-8">
+              <div className="flex justify-between items-center py-3 border-b border-white/8">
+                <span className="text-zinc-500 font-medium">Account</span>
+                <span className="text-[#FF7A30] font-semibold">Reviewer Access</span>
               </div>
               <div className="flex justify-between items-center py-1">
-                <span className="text-slate-500 font-medium">Total Price</span>
-                <span className="text-black font-black text-xl">$0.00</span>
+                <span className="text-zinc-500 font-medium">Total</span>
+                <span className="text-white font-black text-xl">$0.00</span>
               </div>
             </div>
-
             <button
               onClick={confirmPurchase}
               disabled={isProcessing}
-              className="w-full bg-[#007AFF] text-white py-4 rounded-xl font-bold text-[17px] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+              className="w-full bg-[#FF7A30] text-white py-4 rounded-2xl font-black text-[17px] active:scale-[0.98] transition-all flex items-center justify-center gap-3 shadow-[0_8px_30px_rgba(255,122,48,0.3)]"
             >
               {isProcessing ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
                 <>
-                  <Fingerprint className="w-5 h-5 text-white/50" />
+                  <Fingerprint className="w-5 h-5 text-white/60" />
                   Confirm Purchase
                 </>
               )}
             </button>
-            <p className="text-center text-slate-400 text-[11px] mt-4 font-medium italic">Double tap to purchase</p>
+            <p className="text-center text-zinc-600 text-[11px] mt-3 font-medium">Tap to confirm · Face ID / Touch ID</p>
           </div>
         </div>
       )}
 
-      {/* Success Overlay */}
+      {/* ─── Success Overlay ─── */}
       {isSuccess && (
-        <div className="fixed inset-0 z-[110] bg-white flex flex-col items-center justify-center animate-in zoom-in duration-500">
-          <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6 scale-in duration-700">
-            <Check className="w-12 h-12 text-green-600 stroke-[3]" />
+        <div className="fixed inset-0 z-[110] bg-[#0D0D0F] flex flex-col items-center justify-center">
+          <style>{`
+            @keyframes success-pop {
+              0%   { transform: scale(0.3); opacity: 0; }
+              60%  { transform: scale(1.15); }
+              100% { transform: scale(1); opacity: 1; }
+            }
+            .success-icon { animation: success-pop 0.6s cubic-bezier(0.34,1.56,0.64,1) both; }
+            .success-text { animation: sub-slide-up 0.4s 0.4s ease-out both; }
+          `}</style>
+          <div className="success-icon w-28 h-28 bg-emerald-500/15 rounded-full flex items-center justify-center mb-6 border border-emerald-500/30">
+            <Check className="w-14 h-14 text-emerald-400" strokeWidth={2.5} />
           </div>
-          <h2 className="text-3xl font-black text-[#0F172A] mb-2">Purchase Successful</h2>
-          <p className="text-slate-500 font-bold text-lg">Your Pro account is now active!</p>
-          <p className="text-slate-400 mt-8 animate-pulse text-sm">Returning to home...</p>
+          <h2 className="success-text text-3xl font-black text-white mb-2">Welcome to Pro! 🎉</h2>
+          <p className="success-text text-zinc-400 font-semibold text-lg" style={{ animationDelay: '0.5s' }}>
+            Your account is now active
+          </p>
+          <p className="success-text text-zinc-600 mt-10 animate-pulse text-sm" style={{ animationDelay: '0.6s' }}>
+            Taking you home...
+          </p>
         </div>
       )}
     </div>

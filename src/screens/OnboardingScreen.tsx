@@ -7,5 +7,5 @@ interface OnboardingScreenProps {
 }
 
 export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onNavigate }) => {
-  return <OnboardingQuestionnaire />;
+  return <OnboardingQuestionnaire onNavigate={onNavigate} />;
 };

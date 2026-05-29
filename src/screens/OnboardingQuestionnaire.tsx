@@ -1,85 +1,299 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Screen } from '../types';
 import { appStateService } from '../services/appStateService';
 import { Logo } from '../components/Logo';
 
 interface OnboardingProps {
-  onNavigate: (screen: Screen) => void;
+  onNavigate?: (screen: Screen) => void;
 }
 
+const slides = [
+  {
+    id: 'value',
+    headline: 'Your LEGO Collection\nIs Worth Thousands',
+    sub: 'Discover the true market value of every set you own — automatically.',
+    accent: '#10B981',
+    cards: [
+      { img: 'https://cdn.rebrickable.com/media/sets/75192-1/1.jpg', label: 'Millennium Falcon', price: '$849', rot: -8, x: '5%', y: '0%', delay: '0s', size: 140 },
+      { img: 'https://cdn.rebrickable.com/media/sets/10294-1/1.jpg', label: 'Titanic', price: '$679', rot: 6, x: '52%', y: '10%', delay: '0.4s', size: 148 },
+    ]
+  },
+  {
+    id: 'scan',
+    headline: 'Scan Any Set\nin Seconds',
+    sub: 'Point. Tap. Done. Our AI identifies any LEGO set or minifigure instantly.',
+    accent: '#FF7A30',
+    cards: [
+      { img: 'https://cdn.rebrickable.com/media/sets/10300-1/1.jpg', label: 'Back to Future', price: '$234', rot: -5, x: '8%', y: '5%', delay: '0.1s', size: 136 },
+      { img: 'https://cdn.rebrickable.com/media/sets/75313-1/1.jpg', label: 'AT-AT', price: '$549', rot: 7, x: '50%', y: '0%', delay: '0.5s', size: 152 },
+    ]
+  },
+  {
+    id: 'track',
+    headline: 'Track, Wishlist\n& Invest Smarter',
+    sub: 'Watch prices rise, get retirement alerts, and grow your collection like a portfolio.',
+    accent: '#6366F1',
+    cards: [
+      { img: 'https://cdn.rebrickable.com/media/sets/10255-1/1.jpg', label: 'Assembly Square', price: '$412', rot: -6, x: '3%', y: '8%', delay: '0.2s', size: 138 },
+      { img: 'https://cdn.rebrickable.com/media/sets/10270-1/1.jpg', label: 'Bookshop', price: '$339', rot: 8, x: '55%', y: '2%', delay: '0.6s', size: 144 },
+    ]
+  },
+  {
+    id: 'ready',
+    headline: 'Ready to Discover\nYour Vault?',
+    sub: 'Join thousands of LEGO collectors who track and grow their collections with HelloBrick.',
+    accent: '#FFD600',
+    cards: [
+      { img: 'https://cdn.rebrickable.com/media/sets/21318-1/1.jpg', label: 'Tree House', price: '$297', rot: -7, x: '6%', y: '3%', delay: '0s', size: 142 },
+      { img: 'https://cdn.rebrickable.com/media/sets/71040-1/1.jpg', label: 'Disney Castle', price: '$998', rot: 5, x: '53%', y: '8%', delay: '0.4s', size: 146 },
+    ]
+  }
+];
+
 export const OnboardingQuestionnaire: React.FC<OnboardingProps> = ({ onNavigate }) => {
+  const [slideIdx, setSlideIdx] = useState(0);
   const [mounted, setMounted] = useState(false);
+  const [transitioning, setTransitioning] = useState(false);
+  const [direction, setDirection] = useState<'forward' | 'back'>('forward');
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
 
   useEffect(() => {
-    setMounted(true);
+    // Slight delay so mount animation fires
+    const t = setTimeout(() => setMounted(true), 60);
+    return () => clearTimeout(t);
   }, []);
+
+  const goTo = (idx: number, dir: 'forward' | 'back' = 'forward') => {
+    if (transitioning || idx < 0 || idx >= slides.length) return;
+    setTransitioning(true);
+    setDirection(dir);
+    // Small pause so exit animation plays, then swap slide
+    setTimeout(() => {
+      setSlideIdx(idx);
+      setTimeout(() => setTransitioning(false), 350);
+    }, 180);
+  };
+
+  const handleNext = () => {
+    if (slideIdx < slides.length - 1) {
+      goTo(slideIdx + 1, 'forward');
+    } else {
+      handleStart();
+    }
+  };
+
+  const handleBack = () => {
+    if (slideIdx > 0) goTo(slideIdx - 1, 'back');
+  };
 
   const handleStart = () => {
     try {
-      // Do not set onboarding_finished yet. Wait until the end of the funnel.
       appStateService.navigate(Screen.AUTH);
     } catch (e) {}
   };
 
+  // Swipe gestures
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dy = Math.abs(e.changedTouches[0].clientY - (touchStartY.current || 0));
+    if (Math.abs(dx) > 50 && dy < 80) {
+      if (dx < 0) handleNext();
+      else handleBack();
+    }
+    touchStartX.current = null;
+    touchStartY.current = null;
+  };
+
+  const slide = slides[slideIdx];
+  const isLast = slideIdx === slides.length - 1;
+
   return (
-    <div className="flex-1 bg-[#111111] flex flex-col items-center px-6 pt-12 overflow-hidden relative">
-      {/* Background gradients */}
-      <div className="absolute top-0 left-0 right-0 h-[50vh] bg-gradient-to-b from-emerald-900/10 to-transparent pointer-events-none" />
-      
-      {/* Logo in Header */}
-      <div className="w-full flex justify-start mb-8 z-20">
-        <Logo size="sm" light={true} />
-      </div>
-
-      <div className={`transition-all duration-1000 ease-out transform ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'} flex flex-col items-center w-full z-10`}>
-        <h1 className="text-[42px] font-semibold text-white text-center leading-[1.1] tracking-tight">
-          Your LEGO Collection Is<br />
-          <span className="text-emerald-400">Secretly Worth Thousands</span>
-        </h1>
-        
-        <p className="text-zinc-400 text-lg mt-4 font-medium text-center">
-          Discover the true value of your LEGO sets.
-        </p>
-
-        <div className="mt-14 flex flex-row flex-wrap justify-center gap-6 relative w-full h-[280px]">
-          
-          {/* Card 1 */}
-          <div className="absolute top-0 left-2 w-[140px] bg-[#1A1A1A] rounded-[24px] p-4 shadow-[0_20px_40px_rgba(0,0,0,0.8)] border border-white/5 transform -rotate-6 animate-[float_6s_ease-in-out_infinite]">
-            <div className="aspect-square bg-zinc-800/50 rounded-xl mb-3 overflow-hidden p-2 flex items-center justify-center">
-              <img src="https://cdn.rebrickable.com/media/sets/75192-1/1.jpg" alt="Millennium Falcon" className="w-full h-full object-contain drop-shadow-2xl" />
-            </div>
-            <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider text-center">Falcon</p>
-            <p className="text-emerald-400 text-center mt-1 font-bold text-lg">$849.99</p>
-          </div>
-
-          {/* Card 2 */}
-          <div className="absolute top-12 right-2 w-[150px] bg-[#1A1A1A] rounded-[24px] p-4 shadow-[0_20px_40px_rgba(0,0,0,0.8)] border border-white/5 transform rotate-3 animate-[float_5s_ease-in-out_infinite_1s]">
-            <div className="aspect-square bg-zinc-800/50 rounded-xl mb-3 overflow-hidden p-2 flex items-center justify-center">
-              <img src="https://cdn.rebrickable.com/media/sets/10294-1/1.jpg" alt="Titanic" className="w-full h-full object-contain drop-shadow-2xl" />
-            </div>
-            <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider text-center">Titanic</p>
-            <p className="text-emerald-400 text-center mt-1 font-bold text-lg">$679.99</p>
-          </div>
-
-        </div>
-
-        <div className="w-full mt-auto pb-[max(env(safe-area-inset-bottom),2rem)] pt-10">
-          <button 
-            onClick={handleStart}
-            className="w-full bg-white text-[#111111] rounded-full py-5 px-10 active:scale-95 transition-transform shadow-[0_0_30px_rgba(255,255,255,0.2)]"
-          >
-            <span className="text-xl font-semibold">Start Scanning Free</span>
-          </button>
-        </div>
-      </div>
-
+    <div
+      className="flex-1 bg-[#111111] flex flex-col overflow-hidden relative select-none"
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+      style={{ userSelect: 'none' }}
+    >
+      {/* Global CSS for the onboarding animations */}
       <style>{`
-        @keyframes float {
-          0% { transform: translateY(0px) rotate(var(--tw-rotate)); }
-          50% { transform: translateY(-15px) rotate(var(--tw-rotate)); }
-          100% { transform: translateY(0px) rotate(var(--tw-rotate)); }
+        @keyframes ob-float-a {
+          0%, 100% { transform: translateY(0px) rotate(var(--ob-rot)) scale(1); }
+          50%       { transform: translateY(-14px) rotate(var(--ob-rot)) scale(1.02); }
+        }
+        @keyframes ob-float-b {
+          0%, 100% { transform: translateY(0px) rotate(var(--ob-rot)) scale(1); }
+          50%       { transform: translateY(-10px) rotate(var(--ob-rot)) scale(1.015); }
+        }
+        @keyframes ob-slide-in-fwd {
+          from { opacity: 0; transform: translateX(48px) scale(0.97); }
+          to   { opacity: 1; transform: translateX(0) scale(1); }
+        }
+        @keyframes ob-slide-in-bwd {
+          from { opacity: 0; transform: translateX(-48px) scale(0.97); }
+          to   { opacity: 1; transform: translateX(0) scale(1); }
+        }
+        @keyframes ob-slide-out-fwd {
+          from { opacity: 1; transform: translateX(0); }
+          to   { opacity: 0; transform: translateX(-48px); }
+        }
+        @keyframes ob-slide-out-bwd {
+          from { opacity: 1; transform: translateX(0); }
+          to   { opacity: 0; transform: translateX(48px); }
+        }
+        @keyframes ob-pulse-ring {
+          0%   { transform: scale(0.8); opacity: 0.6; }
+          100% { transform: scale(2.4); opacity: 0; }
+        }
+        @keyframes ob-shimmer {
+          0%   { background-position: -200% center; }
+          100% { background-position: 200% center; }
+        }
+        .ob-card-a { animation: ob-float-a 5.5s ease-in-out infinite; }
+        .ob-card-b { animation: ob-float-b 4.8s ease-in-out infinite; }
+        .ob-content-in-fwd  { animation: ob-slide-in-fwd  0.35s cubic-bezier(0.25,0.46,0.45,0.94) both; }
+        .ob-content-in-bwd  { animation: ob-slide-in-bwd  0.35s cubic-bezier(0.25,0.46,0.45,0.94) both; }
+        .ob-content-out-fwd { animation: ob-slide-out-fwd 0.18s cubic-bezier(0.55,0,1,0.45) both; }
+        .ob-content-out-bwd { animation: ob-slide-out-bwd 0.18s cubic-bezier(0.55,0,1,0.45) both; }
+        .ob-pulse-ring { animation: ob-pulse-ring 1.8s ease-out infinite; }
+        .ob-shimmer-btn {
+          background: linear-gradient(90deg, var(--btn-from) 0%, var(--btn-mid) 50%, var(--btn-from) 100%);
+          background-size: 200% auto;
+          animation: ob-shimmer 2.2s linear infinite;
         }
       `}</style>
+
+      {/* Radial glow behind everything — accent colour */}
+      <div
+        className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] h-[400px] rounded-full pointer-events-none transition-all duration-700"
+        style={{
+          background: `radial-gradient(circle, ${slide.accent}22 0%, transparent 70%)`,
+          marginTop: '-80px',
+        }}
+      />
+
+      {/* ─── Header ─────────────────────────────────── */}
+      <div className="relative z-20 pt-[max(env(safe-area-inset-top),2.5rem)] px-6 flex items-center justify-between">
+        <Logo size="sm" light={true} />
+        {slideIdx < slides.length - 1 && (
+          <button
+            onClick={handleStart}
+            className="text-zinc-500 text-xs font-bold uppercase tracking-widest px-2 py-1 active:opacity-70 transition-opacity"
+          >
+            Skip
+          </button>
+        )}
+      </div>
+
+      {/* ─── Floating Preview Cards ──────────────────── */}
+      <div className="relative z-10 h-[260px] w-full shrink-0 mt-4 overflow-visible">
+        {slide.cards.map((card, i) => (
+          <div
+            key={`${slide.id}-${i}`}
+            className={`absolute bg-[#1C1C1E] rounded-[22px] shadow-[0_20px_50px_rgba(0,0,0,0.7)] border border-white/8 overflow-hidden p-3 ${i === 0 ? 'ob-card-a' : 'ob-card-b'}`}
+            style={{
+              width: card.size,
+              left: card.x,
+              top: card.y,
+              '--ob-rot': `${card.rot}deg`,
+              transform: `rotate(${card.rot}deg)`,
+              animationDelay: card.delay,
+            } as React.CSSProperties}
+          >
+            <div className="w-full aspect-square bg-[#2C2C2E] rounded-[14px] mb-2.5 overflow-hidden flex items-center justify-center p-2">
+              <img src={card.img} alt={card.label} className="w-full h-full object-contain drop-shadow-xl" loading="lazy" />
+            </div>
+            <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider text-center truncate">{card.label}</p>
+            <p className="text-center font-black text-base mt-0.5" style={{ color: slide.accent }}>{card.price}</p>
+          </div>
+        ))}
+
+        {/* Pulsing accent dot behind cards */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+          <div className="ob-pulse-ring w-16 h-16 rounded-full border-2" style={{ borderColor: slide.accent + '66' }} />
+        </div>
+      </div>
+
+      {/* ─── Text Content ────────────────────────────── */}
+      <div className="flex-1 flex flex-col px-7 pt-6 z-20 relative overflow-hidden">
+        <div
+          key={`text-${slideIdx}`}
+          className={
+            transitioning
+              ? direction === 'forward' ? 'ob-content-out-fwd' : 'ob-content-out-bwd'
+              : mounted
+                ? direction === 'forward' ? 'ob-content-in-fwd' : 'ob-content-in-bwd'
+                : ''
+          }
+        >
+          {/* Page indicator dots */}
+          <div className="flex items-center gap-2 mb-5">
+            {slides.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => goTo(i, i > slideIdx ? 'forward' : 'back')}
+                className="transition-all duration-300 rounded-full"
+                style={{
+                  width: i === slideIdx ? 20 : 6,
+                  height: 6,
+                  background: i === slideIdx ? slide.accent : '#3A3A3C',
+                }}
+              />
+            ))}
+          </div>
+
+          <h1 className="text-[34px] font-black text-white leading-[1.1] tracking-tight mb-3 whitespace-pre-line">
+            {slide.headline}
+          </h1>
+          <p className="text-zinc-400 text-[16px] font-medium leading-relaxed">
+            {slide.sub}
+          </p>
+        </div>
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* ─── CTA Buttons ─── */}
+        <div className="pb-[max(env(safe-area-inset-bottom),2.5rem)] space-y-3">
+          {/* Primary CTA */}
+          <button
+            onClick={handleNext}
+            disabled={transitioning}
+            className="w-full py-5 rounded-[18px] font-black text-[17px] text-white active:scale-[0.97] transition-transform shadow-lg relative overflow-hidden"
+            style={{
+              background: slide.accent,
+              boxShadow: `0 8px 30px ${slide.accent}44`,
+              '--btn-from': slide.accent,
+              '--btn-mid': slide.accent + 'dd',
+            } as React.CSSProperties}
+          >
+            {isLast ? 'Get Started' : 'Continue'}
+          </button>
+
+          {/* Back or Sign-in link */}
+          {slideIdx > 0 ? (
+            <button
+              onClick={handleBack}
+              className="w-full py-3 text-zinc-500 font-bold text-[13px] active:opacity-70 transition-opacity"
+            >
+              ← Back
+            </button>
+          ) : (
+            <button
+              onClick={() => appStateService.navigate(Screen.EMAIL_LOGIN)}
+              className="w-full py-3 text-zinc-500 font-bold text-[13px] active:opacity-70 transition-opacity"
+            >
+              Already have an account? <span className="text-white font-black">Sign in</span>
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

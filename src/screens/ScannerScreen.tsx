@@ -11,6 +11,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
   const [isScanning, setIsScanning] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [scanMode, setScanMode] = useState<'live' | 'ar'>('live');
+  const [scanType, setScanType] = useState<'set' | 'minifig' | 'pile' | 'mystery'>('set');
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -88,6 +89,31 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
         </div>
       </div>
 
+        {/* Scan Type Selector */}
+        <div className="absolute top-[max(calc(env(safe-area-inset-top)+4.5rem),7rem)] left-0 right-0 z-40 flex justify-center">
+          <div className="flex gap-1 bg-black/50 backdrop-blur-md rounded-full p-1 border border-white/10">
+            {[
+              { id: 'set' as const, label: 'Set', emoji: '📦' },
+              { id: 'minifig' as const, label: 'Minifig', emoji: '🧑' },
+              { id: 'pile' as const, label: 'Pile', emoji: '🧱' },
+              { id: 'mystery' as const, label: 'Mystery', emoji: '🎁' },
+            ].map(t => (
+              <button
+                key={t.id}
+                onClick={() => setScanType(t.id)}
+                className={`px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wider transition-all flex items-center gap-1 ${
+                  scanType === t.id
+                    ? 'bg-white/15 text-white border border-white/20'
+                    : 'text-zinc-500'
+                }`}
+              >
+                <span>{t.emoji}</span>
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
       <div className="flex-1 relative flex flex-col justify-end">
         {/* Live Camera Viewport */}
         <div className="absolute inset-0 bg-zinc-900 z-0">
@@ -143,7 +169,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
           <div className="absolute bottom-0 left-0 right-0 bg-[#1A1A1A] rounded-t-[32px] p-6 shadow-[0_-20px_50px_rgba(0,0,0,0.8)] border-t border-white/5 z-20 animate-in slide-in-from-bottom-10 fade-in duration-500 pb-[max(env(safe-area-inset-bottom),2rem)]">
             <div className="flex justify-between items-start mb-6">
               <div>
-                <p className="text-sm font-medium text-zinc-400 mb-1">Creator Expert</p>
+                <p className="text-sm font-medium text-zinc-400 mb-1">{scanType === 'minifig' ? 'Minifigure' : scanType === 'pile' ? 'Bulk Pile' : scanType === 'mystery' ? 'Mystery Pack' : 'Creator Expert'}</p>
                 <h2 className="text-2xl font-semibold text-white">Bookshop</h2>
               </div>
               <button onClick={resetScan} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
@@ -258,7 +284,10 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
             ) : (
               <div className="flex flex-col items-center w-full">
                 <h3 className="text-xl font-medium tracking-wide text-white mb-8">
-                  {scanMode === 'ar' ? 'Point at built model or box' : 'Point at any LEGO box'}
+                  {scanType === 'set' ? (scanMode === 'ar' ? 'Point at built model or box' : 'Point at any LEGO box') :
+                   scanType === 'minifig' ? 'Focus on a single minifigure' :
+                   scanType === 'pile' ? 'Capture your entire pile' :
+                   'Point at mystery pack barcode'}
                 </h3>
                 <button 
                   onClick={startScan}

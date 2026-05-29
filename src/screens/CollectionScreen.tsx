@@ -1,14 +1,24 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { ArrowLeft, Plus, X, TrendingUp, BookOpen, Trash2, ChevronRight } from 'lucide-react';
+import { Plus, X, TrendingUp, Trash2, ChevronRight, Eye, EyeOff, ArrowUpRight, Search, Package, BarChart2, Filter } from 'lucide-react';
 import { Screen, CollectionItem } from '../types';
-import { mockCollection, mockSets, mockValuations, mockMinifigs } from '../lib/mock-data';
+import { mockSets, mockValuations, mockMinifigs } from '../lib/mock-data';
 import { valuationService } from '../services/valuationService';
+import { Logo } from '../components/Logo';
 import confetti from 'canvas-confetti';
 
 interface CollectionScreenProps {
   onNavigate: (screen: Screen, params?: any) => void;
   highlightSet?: string;
 }
+
+// Distribution breakdown
+const VALUE_DISTRIBUTION = [
+  { label: 'Star Wars', pct: 38, color: '#FF7A30' },
+  { label: 'Technic',   pct: 22, color: '#6366F1' },
+  { label: 'Creator',   pct: 18, color: '#10B981' },
+  { label: 'City',      pct: 14, color: '#F59E0B' },
+  { label: 'Other',     pct:  8, color: '#71717A' },
+];
 
 export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }) => {
   const [collection, setCollection] = useState<CollectionItem[]>([]);
@@ -19,72 +29,72 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
   const [sets, setSets] = React.useState<any[]>([]);
   const [valuationsMap, setValuationsMap] = React.useState(new Map<string, any>());
   const [hideValue, setHideValue] = useState(false);
+  const [search, setSearch] = useState('');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 60);
+    return () => clearTimeout(t);
+  }, []);
 
   const loadCollection = async () => {
     try {
       const items = await valuationService.getCollectionItems();
       setCollection(items);
-      const [fetchedSets, valuations] = await Promise.all([
-        Promise.resolve(mockSets), 
-        Promise.resolve(new Map(Object.entries(mockValuations)))
-      ]);
+      const fetchedSets = mockSets;
+      const valuations = new Map(Object.entries(mockValuations));
       setSets(fetchedSets);
       setValuationsMap(valuations);
     } catch (e) {
       const stored = localStorage.getItem('hellobrick_collection_sets');
-      if (stored) {
-        try {
-          setCollection(JSON.parse(stored));
-        } catch (err) {
-          setCollection([]);
-        }
-      } else {
-        setCollection([]);
-      }
+      try { setCollection(stored ? JSON.parse(stored) : []); } catch { setCollection([]); }
       setSets(mockSets);
       setValuationsMap(new Map(Object.entries(mockValuations)));
     }
   };
 
   useEffect(() => { loadCollection(); }, []);
-
   useEffect(() => {
-    const handler = () => loadCollection();
-    window.addEventListener('hellobrick:collection-updated', handler);
-    return () => window.removeEventListener('hellobrick:collection-updated', handler);
+    const h = () => loadCollection();
+    window.addEventListener('hellobrick:collection-updated', h);
+    return () => window.removeEventListener('hellobrick:collection-updated', h);
   }, []);
 
   const hydratedCollection = useMemo(() => {
     if (!sets.length && !collection.length) return [];
-    return collection.map((item, idx) => {
-      const set = sets.find(s => s.setNum === item.setNum) || 
-                  mockSets.find(s => s.setNum === item.setNum) ||
-                  mockMinifigs.find(f => f.figNum === item.setNum) ||
-                  { 
-                    name: `Custom LEGO Asset (${item.setNum})`, 
-                    setNum: item.setNum, 
-                    retailPrice: item.purchasePrice || 49.99, 
-                    imageUrl: 'https://cdn.rebrickable.com/media/sets/10305-1.jpg',
-                    theme: 'Custom'
-                  };
+    return collection.map((item) => {
+      const set = sets.find(s => s.setNum === item.setNum) ||
+        mockSets.find(s => s.setNum === item.setNum) ||
+        mockMinifigs.find(f => f.figNum === item.setNum) ||
+        { name: `Set ${item.setNum}`, setNum: item.setNum, retailPrice: item.purchasePrice || 49.99, imageUrl: 'https://cdn.rebrickable.com/media/sets/10305-1.jpg', theme: 'Custom' };
       const val = valuationsMap.get(item.setNum) || {
         sealedValue: set.retailPrice || 149.99,
         usedValue: (set.retailPrice || 149.99) * 0.7,
-        sealedChange30d: 4.2,
-        usedChange30d: 3.1,
+        sealedChange30d: 4.2, usedChange30d: 3.1,
       };
       const quantity = (item as any).quantity ?? 1;
       const currentValue = (item.condition === 'sealed' ? val.sealedValue : val.usedValue) * quantity;
       const purchaseCost = (item.purchasePrice || (set.retailPrice || 100) * 0.8) * quantity;
       const returnVal = currentValue - purchaseCost;
-      return { ...item, set, val, currentValue, purchaseCost, returnVal };
+      const returnPct = purchaseCost > 0 ? (returnVal / purchaseCost) * 100 : 0;
+      return { ...item, set, val, currentValue, purchaseCost, returnVal, returnPct };
     });
   }, [collection, sets, valuationsMap]);
 
-  const totalValue = useMemo(() => hydratedCollection.reduce((s, i) => s + i.currentValue, 0), [hydratedCollection]);
-  const totalCost = useMemo(() => hydratedCollection.reduce((s, i) => s + i.purchaseCost, 0), [hydratedCollection]);
+  const filteredCollection = useMemo(() =>
+    search.trim()
+      ? hydratedCollection.filter(i =>
+          i.set.name?.toLowerCase().includes(search.toLowerCase()) ||
+          i.setNum?.toLowerCase().includes(search.toLowerCase()))
+      : hydratedCollection,
+  [hydratedCollection, search]);
+
+  const totalValue  = useMemo(() => hydratedCollection.reduce((s, i) => s + i.currentValue, 0), [hydratedCollection]);
+  const totalCost   = useMemo(() => hydratedCollection.reduce((s, i) => s + i.purchaseCost, 0), [hydratedCollection]);
   const totalReturn = useMemo(() => totalValue - totalCost, [totalValue, totalCost]);
-  const returnPct = useMemo(() => totalCost > 0 ? (totalReturn / totalCost) * 100 : 0, [totalReturn, totalCost]);
+  const returnPct   = useMemo(() => totalCost > 0 ? (totalReturn / totalCost) * 100 : 0, [totalReturn, totalCost]);
+  const isEmpty = hydratedCollection.length === 0;
 
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -93,174 +103,325 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
     setCollection(updated);
   };
 
+  const fmt = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+
+  const statsRow = [
+    { label: 'Sets',     value: hydratedCollection.length.toString(), icon: '📦' },
+    { label: 'Minifigs', value: '0',                                  icon: '🧑' },
+    { label: 'Invested', value: hideValue ? '••' : fmt(totalCost),    icon: '💵' },
+    { label: 'ROI',      value: `+${returnPct.toFixed(1)}%`,          icon: '📈' },
+  ];
+
   return (
-    <div className="flex flex-col min-h-screen bg-[#131313] font-sans text-white relative overflow-hidden select-none" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="flex flex-col h-full bg-[#111111] font-sans text-white overflow-hidden select-none">
+      <style>{`
+        @keyframes col-in {
+          from { opacity: 0; transform: translateY(18px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes col-val {
+          from { opacity: 0; transform: scale(0.88); }
+          to   { opacity: 1; transform: scale(1); }
+        }
+        .col-r0 { animation: col-in  0.4s 0.05s ease-out both; }
+        .col-r1 { animation: col-val 0.5s 0.1s  cubic-bezier(0.34,1.56,0.64,1) both; }
+        .col-r2 { animation: col-in  0.4s 0.18s ease-out both; }
+        .col-r3 { animation: col-in  0.4s 0.26s ease-out both; }
+        .col-r4 { animation: col-in  0.4s 0.34s ease-out both; }
+        .col-r5 { animation: col-in  0.4s 0.42s ease-out both; }
+      `}</style>
 
-      {/* Header */}
-      <div className="relative z-50 px-5 pt-[max(env(safe-area-inset-top),3.5rem)] pb-4 flex items-center justify-between shrink-0">
-        <button
-          onClick={() => onNavigate(Screen.HOME)}
-          className="w-9 h-9 flex items-center justify-center text-white active:scale-90 transition-transform"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="text-base font-black text-white tracking-tight">Collection Dashboard +</h1>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="w-9 h-9 flex items-center justify-center text-white active:scale-90 transition-transform"
-        >
-          <Plus className="w-5 h-5" />
-        </button>
-      </div>
-
-      {/* Scrollable body */}
-      <div className="flex-1 relative overflow-hidden">
-        <div className="absolute inset-0 overflow-y-auto no-scrollbar pb-36 px-5 space-y-5">
-
-          {/* Main Value Card */}
-          <div
-            onClick={() => onNavigate(Screen.PORTFOLIO_ANALYTICS)}
-            className="bg-[#1C1C1C] border border-white/8 rounded-3xl p-5 cursor-pointer active:scale-[0.99] transition-all shadow-xl"
+      {/* ─── Header ─── */}
+      {mounted && (
+        <div className="col-r0 px-6 pt-[max(env(safe-area-inset-top),2.8rem)] pb-3 flex items-center justify-between shrink-0 z-10">
+          <Logo size="sm" light={true} />
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="w-10 h-10 bg-[#FF7A30] rounded-full flex items-center justify-center shadow-[0_4px_15px_rgba(255,122,48,0.35)] active:scale-90 transition-transform"
           >
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-slate-400 text-sm font-medium">Total Value</p>
-                <div className="flex items-center gap-3 mt-1">
-                  <h2 className="text-4xl font-black text-white tracking-tight">
-                    {hideValue ? '••••••' : `$${totalValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
-                  </h2>
-                  <TrendingUp className="w-6 h-6 text-emerald-400" />
-                </div>
-                <div className="mt-2">
-                  <span className="text-emerald-400 font-black text-lg">+{returnPct.toFixed(1)}%</span>
-                </div>
+            <Plus className="w-5 h-5 text-white" />
+          </button>
+        </div>
+      )}
+
+      <div className="flex-1 overflow-y-auto no-scrollbar pb-28">
+
+        {/* ─── Value Hero ─── */}
+        {mounted && (
+          <div className="col-r1 px-6 mb-5">
+            <p className="text-[10px] font-black text-[#FF7A30] uppercase tracking-[0.2em] mb-1">PORTFOLIO DASHBOARD</p>
+            <div className="flex items-end gap-3 mb-1">
+              <div className="text-[46px] font-black text-white tracking-tight leading-none">
+                {hideValue ? '••••••' : fmt(isEmpty ? 0 : totalValue)}
               </div>
-              <button
-                onClick={(e) => { e.stopPropagation(); setHideValue(v => !v); }}
-                className="bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-xs font-black px-3 py-1.5 rounded-full"
-              >
-                {hideValue ? 'Show' : 'Hide'}
+              <button onClick={() => setHideValue(!hideValue)} className="mb-2 text-zinc-600 active:opacity-50">
+                {hideValue ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
               </button>
             </div>
-          </div>
-
-          {/* Section header */}
-          <div className="flex items-center justify-between pt-1">
-            <span className="text-slate-400 text-xs font-semibold uppercase tracking-widest">Duo Portfolio Preview</span>
-            <span className="text-slate-500 text-xs font-medium">{hydratedCollection.length} sets</span>
-          </div>
-
-          {/* 2-Column Set Grid */}
-          <div className="grid grid-cols-2 gap-3">
-            {hydratedCollection.map((item, idx) => (
-              <div
-                key={item.id}
-                onClick={() => onNavigate(Screen.SET_DETAIL, { setNum: item.set.setNum })}
-                className="bg-[#1C1C1C] border border-white/8 rounded-2xl p-3 cursor-pointer active:scale-[0.98] transition-all relative group"
-              >
-                {/* Delete */}
-                <button
-                  onClick={(e) => handleDelete(item.id, e)}
-                  className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 bg-red-500/20 text-red-400 border border-red-500/30 p-1.5 rounded-lg transition-all z-10"
-                >
-                  <Trash2 className="w-3 h-3" />
-                </button>
-
-                {/* Set image */}
-                <div className="w-full h-20 bg-[#111] rounded-xl flex items-center justify-center overflow-hidden mb-3">
-                  <img
-                    src={`https://cdn.rebrickable.com/media/sets/${item.set.setNum}.jpg`}
-                    alt={item.set.name}
-                    className="w-full h-full object-contain p-2"
-                    onError={(e) => {
-                      const el = e.currentTarget;
-                      if (!el.dataset.fallback) {
-                        el.dataset.fallback = '1';
-                        el.src = `https://cdn.rebrickable.com/media/sets/${item.set.setNum}-1.jpg`;
-                      }
-                    }}
-                  />
-                </div>
-
-                {/* Name */}
-                <p className="text-slate-400 text-[11px] font-medium truncate leading-tight">{item.set.name || `Set ${idx + 1}`}</p>
-
-                {/* Price + sparkline */}
-                <div className="flex items-center justify-between mt-1.5">
-                  <span className="text-white font-black text-base">
-                    ${item.currentValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}
-                  </span>
-                  <svg viewBox="0 0 40 20" className="w-8 h-4 stroke-emerald-400" fill="none" strokeWidth="2">
-                    <path d={item.returnVal >= 0
-                      ? "M0,18 C10,18 15,8 20,10 C25,12 30,4 40,2"
-                      : "M0,4 C10,4 15,12 20,10 C25,8 30,14 40,16"} />
-                  </svg>
-                </div>
+            <div className="flex items-center gap-2">
+              <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] font-black ${returnPct >= 0 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}`}>
+                <ArrowUpRight className="w-3 h-3" />
+                {returnPct >= 0 ? '+' : ''}{returnPct.toFixed(1)}%
               </div>
-            ))}
+              <span className="text-zinc-500 text-[12px] font-medium">
+                {totalReturn >= 0 ? '+' : ''}{fmt(isEmpty ? 0 : totalReturn)} total return
+              </span>
+            </div>
           </div>
+        )}
 
-          {/* Empty state */}
-          {hydratedCollection.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-20 px-8 text-center bg-[#1C1C1C]/40 rounded-3xl border border-dashed border-white/10">
-              <BookOpen className="w-12 h-12 text-slate-700 mb-4" strokeWidth={1.5} />
-              <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest">No Sets Logged</h3>
-              <p className="text-xs text-slate-600 mt-2 font-medium leading-relaxed">
-                Your portfolio is currently empty. Tap the scanner to capture official box art and populate your value list!
-              </p>
+        {/* ─── Stats Row ─── */}
+        {mounted && (
+          <div className="col-r2 px-6 mb-5">
+            <div className="grid grid-cols-4 gap-2">
+              {statsRow.map((s, i) => (
+                <div key={i} className="bg-[#1A1A1A] rounded-2xl px-2 py-3 border border-white/6 flex flex-col items-center gap-1">
+                  <span className="text-base">{s.icon}</span>
+                  <p className="text-[13px] font-black text-white">{s.value}</p>
+                  <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider text-center">{s.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ─── Value Distribution mini bar ─── */}
+        {mounted && !isEmpty && (
+          <div className="col-r3 px-6 mb-5">
+            <div className="bg-[#1A1A1A] rounded-[20px] border border-white/6 p-4">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.15em]">BY THEME</p>
+                <BarChart2 className="w-4 h-4 text-zinc-700" />
+              </div>
+              {/* Bar */}
+              <div className="flex w-full h-2.5 rounded-full overflow-hidden gap-0.5 mb-3">
+                {VALUE_DISTRIBUTION.map((d, i) => (
+                  <div key={i} className="rounded-full transition-all" style={{ width: `${d.pct}%`, background: d.color }} />
+                ))}
+              </div>
+              {/* Legend */}
+              <div className="flex flex-wrap gap-x-3 gap-y-1">
+                {VALUE_DISTRIBUTION.map((d, i) => (
+                  <div key={i} className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full" style={{ background: d.color }} />
+                    <span className="text-[10px] font-semibold text-zinc-500">{d.label} {d.pct}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ─── Quick Actions ─── */}
+        {mounted && (
+          <div className="col-r3 px-6 mb-5">
+            <div className="flex gap-3">
               <button
                 onClick={() => onNavigate(Screen.SCANNER)}
-                className="mt-5 bg-white text-black font-black px-6 py-3 rounded-2xl text-sm flex items-center gap-2"
+                className="flex-1 flex items-center justify-center gap-2 bg-[#FF7A30] text-white rounded-2xl py-3 font-black text-[12px] active:scale-95 transition-transform shadow-[0_4px_15px_rgba(255,122,48,0.25)]"
               >
-                Start Scanning <ChevronRight className="w-4 h-4" />
+                <Plus className="w-4 h-4" /> Add Set
+              </button>
+              <button
+                onClick={() => onNavigate(Screen.WISHLIST)}
+                className="flex-1 flex items-center justify-center gap-2 bg-[#1A1A1A] border border-white/10 text-white rounded-2xl py-3 font-black text-[12px] active:scale-95 transition-transform"
+              >
+                Wishlist
+              </button>
+              <button
+                onClick={() => onNavigate(Screen.INSIGHTS)}
+                className="flex-1 flex items-center justify-center gap-2 bg-[#1A1A1A] border border-white/10 text-white rounded-2xl py-3 font-black text-[12px] active:scale-95 transition-transform"
+              >
+                Insights
               </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
+
+        {/* ─── Search + View Toggle ─── */}
+        {mounted && !isEmpty && (
+          <div className="col-r4 px-6 mb-4 flex items-center gap-3">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
+              <input
+                type="text"
+                placeholder="Search sets..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full bg-[#1A1A1A] border border-white/8 rounded-2xl h-11 pl-10 pr-4 text-white text-[13px] font-medium placeholder:text-zinc-600 outline-none focus:border-[#FF7A30]/50 transition-all"
+              />
+            </div>
+            <button
+              onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+              className="w-11 h-11 bg-[#1A1A1A] border border-white/8 rounded-2xl flex items-center justify-center active:scale-90 transition-transform"
+            >
+              <Filter className="w-4 h-4 text-zinc-500" />
+            </button>
+          </div>
+        )}
+
+        {/* ─── Portfolio Grid / List ─── */}
+        {mounted && (
+          <div className="col-r5 px-6 mb-4">
+            {isEmpty ? (
+              // Empty state
+              <div className="bg-[#1A1A1A] rounded-[24px] border border-dashed border-white/10 p-10 flex flex-col items-center text-center">
+                <div className="w-16 h-16 rounded-full bg-[#FF7A30]/10 border border-[#FF7A30]/20 flex items-center justify-center mb-4">
+                  <Package className="w-8 h-8 text-[#FF7A30]" />
+                </div>
+                <h3 className="text-[18px] font-black text-white mb-2">No Sets Logged</h3>
+                <p className="text-zinc-500 text-[13px] font-medium mb-6 leading-relaxed max-w-[240px]">
+                  Your portfolio is empty. Scan a set to instantly reveal its market value and add it here.
+                </p>
+                <button
+                  onClick={() => onNavigate(Screen.SCANNER)}
+                  className="bg-[#FF7A30] text-white px-7 py-3.5 rounded-2xl font-black text-[14px] flex items-center gap-2 shadow-[0_8px_25px_rgba(255,122,48,0.3)] active:scale-95 transition-transform"
+                >
+                  <Plus className="w-5 h-5" />
+                  Scan First Set
+                </button>
+              </div>
+            ) : viewMode === 'grid' ? (
+              // ── Grid View ──
+              <div className="grid grid-cols-2 gap-3">
+                {filteredCollection.map((item, idx) => (
+                  <div
+                    key={item.id}
+                    onClick={() => onNavigate(Screen.SET_DETAIL, { setNum: item.set.setNum })}
+                    className="bg-[#1A1A1A] border border-white/8 rounded-[22px] p-3 cursor-pointer active:scale-[0.97] transition-all relative group overflow-hidden"
+                  >
+                    {/* Delete btn */}
+                    <button
+                      onClick={(e) => handleDelete(item.id, e)}
+                      className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 bg-red-500/20 text-red-400 border border-red-500/30 p-1.5 rounded-xl transition-all z-10"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+
+                    {/* Image */}
+                    <div className="w-full h-[90px] bg-[#111] rounded-[14px] flex items-center justify-center overflow-hidden mb-3">
+                      <img
+                        src={`https://cdn.rebrickable.com/media/sets/${item.set.setNum}.jpg`}
+                        alt={item.set.name}
+                        className="w-full h-full object-contain p-2"
+                        onError={e => {
+                          const el = e.currentTarget;
+                          if (!el.dataset.fallback) { el.dataset.fallback = '1'; el.src = `https://cdn.rebrickable.com/media/sets/${item.set.setNum}-1.jpg`; }
+                          else if (el.dataset.fallback === '1') { el.dataset.fallback = '2'; el.src = item.set.imageUrl || ''; }
+                        }}
+                      />
+                    </div>
+
+                    {/* Name */}
+                    <p className="text-zinc-400 text-[10px] font-medium truncate mb-1 leading-tight">
+                      #{item.set.setNum?.split('-')[0]} · {item.condition}
+                    </p>
+                    <p className="text-white text-[12px] font-bold truncate mb-2">{item.set.name || `Set ${idx + 1}`}</p>
+
+                    {/* Value + trend */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-white font-black text-[15px]">
+                        ${item.currentValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                      </span>
+                      <div className={`flex items-center gap-0.5 text-[10px] font-black ${item.returnPct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        <ArrowUpRight className="w-3 h-3" />
+                        {item.returnPct >= 0 ? '+' : ''}{item.returnPct.toFixed(1)}%
+                      </div>
+                    </div>
+
+                    {/* Sparkline */}
+                    <svg viewBox="0 0 60 20" className="w-full h-4 mt-2" fill="none">
+                      <path
+                        d={item.returnVal >= 0
+                          ? 'M0,18 C15,16 25,10 35,8 C45,6 52,3 60,2'
+                          : 'M0,4 C15,6 25,12 35,14 C45,16 52,17 60,18'}
+                        stroke={item.returnVal >= 0 ? '#10B981' : '#EF4444'}
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              // ── List View ──
+              <div className="space-y-2">
+                {filteredCollection.map((item, idx) => (
+                  <div
+                    key={item.id}
+                    onClick={() => onNavigate(Screen.SET_DETAIL, { setNum: item.set.setNum })}
+                    className="bg-[#1A1A1A] border border-white/8 rounded-2xl px-4 py-3.5 flex items-center gap-4 cursor-pointer active:bg-white/5 transition-colors"
+                  >
+                    <div className="w-12 h-12 bg-[#111] rounded-xl overflow-hidden shrink-0 p-1">
+                      <img
+                        src={`https://cdn.rebrickable.com/media/sets/${item.set.setNum}-1.jpg`}
+                        alt={item.set.name}
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-bold text-white truncate">{item.set.name || `Set ${idx + 1}`}</p>
+                      <p className="text-[10px] text-zinc-500 font-medium">#{item.set.setNum?.split('-')[0]} · {item.condition}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-[14px] font-black text-white">${item.currentValue.toFixed(0)}</p>
+                      <p className={`text-[10px] font-bold ${item.returnPct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {item.returnPct >= 0 ? '+' : ''}{item.returnPct.toFixed(1)}%
+                      </p>
+                    </div>
+                    <button onClick={e => handleDelete(item.id, e)} className="text-zinc-700 hover:text-red-400 transition-colors shrink-0">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Manual Add Modal */}
+      {/* ─── Manual Add Modal ─── */}
       {showAddModal && (
         <div className="fixed inset-0 z-[99999] flex items-end justify-center px-4 pb-8">
-          <div className="absolute inset-0 bg-black/85 backdrop-blur-md" onClick={() => setShowAddModal(false)} />
-          <div className="bg-[#1A1A1A] border border-white/10 w-full max-w-sm rounded-3xl p-8 relative z-10 animate-in slide-in-from-bottom-10 shadow-3xl text-left">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-base font-black text-white">Add Set</h3>
-              <button onClick={() => setShowAddModal(false)} className="w-8 h-8 bg-white/5 rounded-full flex items-center justify-center text-slate-400">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowAddModal(false)} />
+          <div className="bg-[#1A1A1A] border border-white/10 w-full max-w-sm rounded-[28px] p-7 relative z-10 shadow-2xl text-left">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-[16px] font-black text-white">Add Set</h3>
+              <button onClick={() => setShowAddModal(false)} className="w-8 h-8 bg-white/6 rounded-full flex items-center justify-center text-zinc-400 border border-white/10">
                 <X className="w-4 h-4" />
               </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-semibold text-slate-400 mb-2 block">Set Number</label>
+                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 block">Set Number</label>
                 <input
                   type="text"
                   placeholder="e.g. 10270-1"
                   value={manualSetNum}
-                  onChange={(e) => setManualSetNum(e.target.value)}
-                  className="w-full bg-[#222] border border-white/10 rounded-2xl px-4 py-4 text-white font-semibold text-sm outline-none focus:border-white/30 transition-all"
+                  onChange={e => setManualSetNum(e.target.value)}
+                  className="w-full bg-[#111] border border-white/10 rounded-2xl px-4 py-4 text-white font-semibold text-[13px] outline-none focus:border-[#FF7A30]/50 transition-all placeholder:text-zinc-700"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-slate-400 mb-2 block">Condition</label>
+                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 block">Condition</label>
                   <select
                     value={manualCondition}
-                    onChange={(e) => setManualCondition(e.target.value as any)}
-                    className="w-full bg-[#222] border border-white/10 rounded-2xl px-4 py-4 text-white font-semibold text-sm outline-none"
+                    onChange={e => setManualCondition(e.target.value as any)}
+                    className="w-full bg-[#111] border border-white/10 rounded-2xl px-4 py-4 text-white font-semibold text-[13px] outline-none"
                   >
                     <option value="sealed">Sealed</option>
                     <option value="used">Used</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-slate-400 mb-2 block">Purchase Price ($)</label>
+                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 block">Price ($)</label>
                   <input
                     type="number"
                     placeholder="e.g. 199.99"
                     value={manualPrice}
-                    onChange={(e) => setManualPrice(e.target.value)}
-                    className="w-full bg-[#222] border border-white/10 rounded-2xl px-4 py-4 text-white font-semibold text-sm outline-none focus:border-white/30 transition-all"
+                    onChange={e => setManualPrice(e.target.value)}
+                    className="w-full bg-[#111] border border-white/10 rounded-2xl px-4 py-4 text-white font-semibold text-[13px] outline-none focus:border-[#FF7A30]/50 transition-all placeholder:text-zinc-700"
                   />
                 </div>
               </div>
@@ -278,7 +439,7 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                     addedAt: new Date().toISOString(),
                     notes: 'Manually logged',
                     itemType: 'set',
-                    quantity: 1
+                    quantity: 1,
                   } as any;
                   const updated = [newItem, ...collection];
                   localStorage.setItem('hellobrick_collection_sets', JSON.stringify(updated));
@@ -286,11 +447,11 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                   setShowAddModal(false);
                   setManualSetNum('');
                   setManualPrice('');
-                  confetti({ particleCount: 100, spread: 60, origin: { y: 0.85 }, colors: ['#C9A84C', '#FFFFFF'] });
+                  confetti({ particleCount: 120, spread: 70, origin: { y: 0.8 }, colors: ['#FF7A30', '#FFD600', '#FFFFFF'] });
                 }}
-                className="w-full bg-white text-black font-black py-4 rounded-2xl text-sm active:scale-95 transition-all shadow-xl mt-2"
+                className="w-full bg-[#FF7A30] text-white font-black py-4 rounded-2xl text-[14px] active:scale-95 transition-all shadow-[0_8px_25px_rgba(255,122,48,0.3)] mt-1"
               >
-                Add to Collection
+                Add to Portfolio
               </button>
             </div>
           </div>
