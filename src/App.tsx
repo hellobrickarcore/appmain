@@ -284,7 +284,7 @@ const App: React.FC = () => {
           
           const onboardingFinished = localStorage.getItem('hellobrick_onboarding_finished') === 'true';
           if (!onboardingFinished) {
-            handleNavigate(Screen.AUTH);
+            handleNavigate(Screen.NOTIFICATIONS_INTRO);
           } else {
             handleNavigate(Screen.HOME);
           }

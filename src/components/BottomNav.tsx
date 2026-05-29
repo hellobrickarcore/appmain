@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Scan, Heart, LayoutGrid } from 'lucide-react';
+import { Home, Layers, Scan, BarChart2, User } from 'lucide-react';
 import { Screen } from '../types';
 
 interface BottomNavProps {
@@ -8,35 +8,57 @@ interface BottomNavProps {
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({ currentScreen, onNavigate }) => {
-  const getIconClass = (screen: Screen) =>
-    `w-6 h-6 transition-all duration-300 ${currentScreen === screen ? 'text-[#C9A84C] stroke-[2.5px] scale-110 drop-shadow-[0_0_12px_rgba(201,168,76,0.8)]' : 'text-slate-600 stroke-[2px] group-hover:text-slate-300'}`;
-
+  // Navigation mapping
   const isActive = (screen: Screen) => currentScreen === screen;
 
+  const getIconClass = (screen: Screen) =>
+    `w-[22px] h-[22px] transition-all duration-300 ${
+      isActive(screen) 
+        ? 'text-blue-400 stroke-[2.5px] drop-shadow-[0_0_8px_rgba(96,165,250,0.8)]' 
+        : 'text-zinc-500 stroke-[2px] group-hover:text-zinc-300'
+    }`;
+
+  const getLabelClass = (screen: Screen) =>
+    `text-[10px] font-medium mt-1 transition-all duration-300 ${
+      isActive(screen) ? 'text-blue-400' : 'text-zinc-500 group-hover:text-zinc-300'
+    }`;
+
   return (
-    <div className="fixed bottom-[max(2rem,env(safe-area-inset-bottom)+1rem)] left-0 right-0 px-6 flex justify-center z-[99999]">
-      <div className="bg-[#0A0F1E]/95 backdrop-blur-3xl border border-white/10 rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.8)] px-3 py-2 flex items-center justify-between w-full max-w-[340px] relative overflow-hidden">
-        {/* Subtle glow effect */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#C9A84C]/5 to-transparent opacity-50" />
+    <div className="fixed bottom-0 left-0 right-0 z-[99999] px-4 pb-[max(env(safe-area-inset-bottom),1rem)]">
+      <div className="bg-[#1A1C23]/90 backdrop-blur-2xl border-t border-white/5 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] rounded-full px-2 py-2 flex items-center justify-between w-full max-w-[400px] mx-auto relative">
         
-        <button onClick={() => onNavigate(Screen.HOME)} className="p-4 relative group">
-          <div className={`absolute inset-0 bg-[#C9A84C]/10 rounded-2xl blur-xl transition-opacity duration-300 ${isActive(Screen.HOME) ? 'opacity-100' : 'opacity-0'}`} />
+        {/* Home */}
+        <button onClick={() => onNavigate(Screen.HOME)} className="flex flex-col items-center justify-center w-16 group active:scale-95 transition-transform">
           <Home className={getIconClass(Screen.HOME)} />
+          <span className={getLabelClass(Screen.HOME)}>Home</span>
         </button>
         
-        <button onClick={() => onNavigate(Screen.SCANNER)} className="p-4 relative group">
-          <div className={`absolute inset-0 bg-[#C9A84C]/10 rounded-2xl blur-xl transition-opacity duration-300 ${isActive(Screen.SCANNER) ? 'opacity-100' : 'opacity-0'}`} />
-          <Scan className={getIconClass(Screen.SCANNER)} />
+        {/* Collection */}
+        <button onClick={() => onNavigate(Screen.COLLECTION)} className="flex flex-col items-center justify-center w-16 group active:scale-95 transition-transform">
+          <Layers className={getIconClass(Screen.COLLECTION)} />
+          <span className={getLabelClass(Screen.COLLECTION)}>Collection</span>
         </button>
         
-        <button onClick={() => onNavigate(Screen.COLLECTION)} className="p-4 relative group">
-          <div className={`absolute inset-0 bg-[#C9A84C]/10 rounded-2xl blur-xl transition-opacity duration-300 ${isActive(Screen.COLLECTION) ? 'opacity-100' : 'opacity-0'}`} />
-          <LayoutGrid className={getIconClass(Screen.COLLECTION)} />
+        {/* Scan (Center Prominent) */}
+        <div className="relative -top-5 flex justify-center w-16">
+          <button 
+            onClick={() => onNavigate(Screen.SCANNER)} 
+            className="w-14 h-14 bg-emerald-500 rounded-full flex items-center justify-center shadow-[0_8px_24px_rgba(16,185,129,0.4)] active:scale-95 transition-transform border-4 border-[#111111]"
+          >
+            <Scan className="w-6 h-6 text-white stroke-[2.5px]" />
+          </button>
+        </div>
+        
+        {/* Analytics */}
+        <button onClick={() => onNavigate(Screen.PORTFOLIO_ANALYTICS)} className="flex flex-col items-center justify-center w-16 group active:scale-95 transition-transform">
+          <BarChart2 className={getIconClass(Screen.PORTFOLIO_ANALYTICS)} />
+          <span className={getLabelClass(Screen.PORTFOLIO_ANALYTICS)}>Analytics</span>
         </button>
 
-        <button onClick={() => onNavigate(Screen.WISHLIST)} className="p-4 relative group">
-          <div className={`absolute inset-0 bg-[#C9A84C]/10 rounded-2xl blur-xl transition-opacity duration-300 ${isActive(Screen.WISHLIST) ? 'opacity-100' : 'opacity-0'}`} />
-          <Heart className={getIconClass(Screen.WISHLIST)} />
+        {/* Profile */}
+        <button onClick={() => onNavigate(Screen.PROFILE)} className="flex flex-col items-center justify-center w-16 group active:scale-95 transition-transform">
+          <User className={getIconClass(Screen.PROFILE)} />
+          <span className={getLabelClass(Screen.PROFILE)}>Profile</span>
         </button>
       </div>
     </div>

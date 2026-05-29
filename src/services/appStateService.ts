@@ -203,11 +203,11 @@ class AppStateService {
 
   // ── AUTH COMPLETE ─────────────────────────────────
   public onAuthSuccess() {
-    console.log('[AppState] Auth success → NOTIFICATIONS_INTRO');
+    console.log('[AppState] Auth success → SUBSCRIPTION');
     localStorage.setItem('hellobrick_authenticated', 'true');
     
-    // After auth, show notifications opt-in (which leads to paywall)
-    this.navigate(Screen.NOTIFICATIONS_INTRO);
+    // After auth, show paywall to maximize conversion
+    this.navigate(Screen.SUBSCRIPTION);
     
     // Initialize subscriptions after auth
     const userId = localStorage.getItem('hellobrick_userId');

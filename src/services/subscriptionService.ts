@@ -37,7 +37,7 @@ class SubscriptionService {
     
     const wasProInLocalStorage = localStorage.getItem('hellobrick_is_pro') === 'true';
     
-    let isPro = hasProEntitlement;
+    let isPro = hasProEntitlement || localStorage.getItem('hellobrick_simulator_mode') === 'true';
     if (import.meta.env.DEV) {
       isPro = isPro || 
               localStorage.getItem('hellobrick_admin_bypass') === 'true' ||
@@ -131,8 +131,9 @@ class SubscriptionService {
       ? (isAdminBypass || (userEmail && bypassEmails.includes(userEmail.toLowerCase())))
       : (userEmail && bypassEmails.includes(userEmail.toLowerCase()));
 
-    if (isBypassAllowed) {
-      console.log('💎 Bypass Account/Admin Detected: Granting Pro Access');
+    const isSimulatorBought = localStorage.getItem('hellobrick_simulator_mode') === 'true';
+    if (isBypassAllowed || isSimulatorBought) {
+      console.log('💎 Bypass Account/Admin/Simulator Detected: Granting Pro Access');
       localStorage.setItem('hellobrick_is_pro', 'true');
       return { isPro: true, isActive: true };
     }
