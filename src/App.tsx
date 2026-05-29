@@ -160,11 +160,11 @@ const App: React.FC = () => {
         const url = new URL(data.url);
         const path = url.pathname || '';
         
-        if (data.url.includes('//scan') || path.includes('scan')) {
+        if (data.url.includes('//scan') || path.includes('/scan')) {
           handleNavigate(Screen.SCANNER);
-        } else if (data.url.includes('//pro') || path.includes('pro')) {
+        } else if (data.url.includes('//pro') || path.includes('/pro')) {
           handleNavigate(Screen.SUBSCRIPTION);
-        } else if (data.url.includes('//ideas') || path.includes('ideas')) {
+        } else if (data.url.includes('//ideas') || path.includes('/ideas')) {
           handleNavigate(Screen.IDEAS);
         }
 
