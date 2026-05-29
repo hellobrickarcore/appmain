@@ -9,34 +9,11 @@ import { HomeScreen } from './screens/HomeScreen';
 import { ScannerScreen } from './screens/ScannerScreen';
 import { CollectionScreen } from './screens/CollectionScreen';
 import { WishlistScreen } from './screens/WishlistScreen';
-import { ProfileScreen } from './screens/ProfileScreen';
-import { QuestsScreen } from './screens/QuestsScreen';
-import { PuzzlesScreen } from './screens/PuzzlesScreen';
-import { FeedScreen } from './screens/FeedScreen';
-import { HeadToHeadScreen } from './screens/HeadToHeadScreen';
-import { HeadToHeadModesScreen } from './screens/HeadToHeadModesScreen';
-import { HeadToHeadMatchmakingScreen } from './screens/HeadToHeadMatchmakingScreen';
-import { HeadToHeadBattleScreen } from './screens/HeadToHeadBattleScreen';
-import { HeadToHeadResultScreen } from './screens/HeadToHeadResultScreen';
-import { ProfileSettingsScreen } from './screens/ProfileSettingsScreen';
-import { TrainingScreen } from './screens/TrainingScreen';
-import { TrainingIntroScreen } from './screens/TrainingIntroScreen';
-import { LeaderboardScreen } from './screens/LeaderboardScreen';
-import { RewardsScreen } from './screens/RewardsScreen';
-import { MyCreationsScreen } from './screens/MyCreationsScreen';
-import { CreatePostScreen } from './screens/CreatePostScreen';
-import { AuthScreen } from './screens/AuthScreen';
 import { SubscriptionScreen } from './screens/SubscriptionScreen';
-import { HowItWorksScreen } from './screens/HowItWorksScreen';
-import { IdeasGeneratorScreen } from './screens/IdeasGeneratorScreen';
-import { BuildingIntroScreen } from './screens/BuildingIntroScreen';
-import { FeatureIntroScreen } from './screens/FeatureIntroScreen';
 import { NotificationsIntroScreen } from './screens/NotificationsIntroScreen';
 import { EmailAuthScreen } from './screens/EmailAuthScreen';
-import { AdminDashboardScreen } from './screens/AdminDashboardScreen';
 import { SetDetailScreen } from './screens/SetDetailScreen';
-import { PortfolioAnalyticsScreen } from './screens/PortfolioAnalyticsScreen';
-import { LegoMapScreen } from './screens/LegoMapScreen';
+import { InsightsScreen } from './screens/InsightsScreen';
 import { BottomNav } from './components/BottomNav';
 import { BootingScreen } from './components/BootingScreen';
 import { appStateService } from './services/appStateService';
@@ -258,13 +235,7 @@ const App: React.FC = () => {
   const renderScreen = () => {
     switch (currentScreen) {
       case Screen.ONBOARDING_QUESTIONNAIRE:
-        return <OnboardingQuestionnaire />;
-      case Screen.FEATURE_INTRO:
-        return <FeatureIntroScreen onNavigate={handleNavigate} />;
-      case Screen.BUILDING_INTRO:
-        return <BuildingIntroScreen onNavigate={handleNavigate} />;
-      case Screen.HOW_IT_WORKS:
-        return <HowItWorksScreen onNavigate={handleNavigate} />;
+        return <OnboardingQuestionnaire onNavigate={handleNavigate} />;
       case Screen.NOTIFICATIONS_INTRO:
         return <NotificationsIntroScreen onNavigate={handleNavigate} />;
       case Screen.AUTH:
@@ -278,10 +249,8 @@ const App: React.FC = () => {
           if (success) {
             console.log('[App] Subscription successful, forcing status lock');
             localStorage.setItem('hellobrick_is_pro', 'true');
-            // Background refresh to confirm but the local state is now locked to true
             subscriptionService.getSubscriptionStatus().catch(() => {});
           }
-          
           const onboardingFinished = localStorage.getItem('hellobrick_onboarding_finished') === 'true';
           if (!onboardingFinished) {
             handleNavigate(Screen.NOTIFICATIONS_INTRO);
@@ -292,53 +261,15 @@ const App: React.FC = () => {
       case Screen.HOME:
         return <HomeScreen onNavigate={handleNavigate} />;
       case Screen.SCANNER:
-        return <ScannerScreen onNavigate={handleNavigate} focusSearch={screenParams?.focusSearch} mode={screenParams?.mode} />;
+        return <ScannerScreen onNavigate={handleNavigate} />;
       case Screen.COLLECTION:
-        return <CollectionScreen onNavigate={handleNavigate} highlightSet={screenParams?.highlightSet} />;
-      case Screen.WISHLIST:
-        return <WishlistScreen onNavigate={handleNavigate} />;
-      case Screen.SET_DETAIL:
-        return <SetDetailScreen onNavigate={handleNavigate} setNum={screenParams?.setNum} />;
-      case Screen.PORTFOLIO_ANALYTICS:
-        return <PortfolioAnalyticsScreen onNavigate={handleNavigate} />;
-      case Screen.LEGO_MAP:
-        return <LegoMapScreen onNavigate={handleNavigate} />;
+        return <CollectionScreen onNavigate={handleNavigate} />;
+      case Screen.INSIGHTS:
+        return <InsightsScreen onNavigate={handleNavigate} />;
       case Screen.PROFILE:
         return <ProfileScreen onNavigate={handleNavigate} />;
-      case Screen.PROFILE_SETTINGS:
-        return <ProfileSettingsScreen onNavigate={handleNavigate} />;
-      case Screen.QUESTS:
-        return <QuestsScreen onNavigate={handleNavigate} />;
-      case Screen.PUZZLES:
-        return <PuzzlesScreen onNavigate={handleNavigate} />;
-      case Screen.IDEAS:
-        return <IdeasGeneratorScreen onNavigate={handleNavigate} allBricks={screenParams?.allBricks} initialBrick={screenParams?.initialBrick} />;
-      case Screen.FEED:
-        return <FeedScreen onNavigate={handleNavigate} />;
-      case Screen.TRAINING:
-        return <TrainingScreen onNavigate={handleNavigate} />;
-      case Screen.TRAINING_INTRO:
-        return <TrainingIntroScreen onNavigate={handleNavigate} />;
-      case Screen.LEADERBOARD:
-        return <LeaderboardScreen onNavigate={handleNavigate} />;
-      case Screen.REWARDS:
-        return <RewardsScreen onNavigate={handleNavigate} />;
-      case Screen.MY_CREATIONS:
-        return <MyCreationsScreen onNavigate={handleNavigate} />;
-      case Screen.CREATE_POST:
-        return <CreatePostScreen onNavigate={handleNavigate} />;
-      case Screen.HEAD_TO_HEAD:
-        return <HeadToHeadScreen onNavigate={handleNavigate} />;
-      case Screen.H2H_MODES:
-        return <HeadToHeadModesScreen onNavigate={handleNavigate} onSelectMode={setSelectedMode} />;
-      case Screen.H2H_MATCHMAKING:
-        return <HeadToHeadMatchmakingScreen onNavigate={handleNavigate} modeId={selectedMode} />;
-      case Screen.H2H_BATTLE:
-        return <HeadToHeadBattleScreen onNavigate={handleNavigate} modeId={selectedMode} onBattleComplete={setBattleResult} isPro={true} />;
-      case Screen.H2H_RESULT:
-        return <HeadToHeadResultScreen onNavigate={handleNavigate} result={battleResult} />;
-      case Screen.ADMIN:
-        return <AdminDashboardScreen onNavigate={handleNavigate} />;
+      case Screen.SET_DETAIL:
+        return <SetDetailScreen setNum={screenParams?.setNum} onNavigate={handleNavigate} />;
       default:
         return <HomeScreen onNavigate={handleNavigate} />;
     }

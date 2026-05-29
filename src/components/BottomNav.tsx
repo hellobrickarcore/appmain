@@ -49,10 +49,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentScreen, onNavigate 
           </button>
         </div>
         
-        {/* Analytics */}
-        <button onClick={() => onNavigate(Screen.PORTFOLIO_ANALYTICS)} className="flex flex-col items-center justify-center w-16 group active:scale-95 transition-transform">
-          <BarChart2 className={getIconClass(Screen.PORTFOLIO_ANALYTICS)} />
-          <span className={getLabelClass(Screen.PORTFOLIO_ANALYTICS)}>Analytics</span>
+        {/* Insights */}
+        <button onClick={() => onNavigate(Screen.INSIGHTS)} className="flex flex-col items-center justify-center w-16 group active:scale-95 transition-transform">
+          <BarChart2 className={getIconClass(Screen.INSIGHTS)} />
+          <span className={getLabelClass(Screen.INSIGHTS)}>Insights</span>
         </button>
 
         {/* Profile */}

@@ -36,11 +36,10 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
         try {
           setCollection(JSON.parse(stored));
         } catch (err) {
-          setCollection(mockCollection);
+          setCollection([]);
         }
       } else {
-        setCollection(mockCollection);
-        localStorage.setItem('hellobrick_collection_sets', JSON.stringify(mockCollection));
+        setCollection([]);
       }
       setSets(mockSets);
       setValuationsMap(new Map(Object.entries(mockValuations)));

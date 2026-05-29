@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Share2, Info, ChevronRight, Lock } from 'lucide-react';
+import React from 'react';
+import { ChevronLeft, Share2, Search, TrendingUp, Info } from 'lucide-react';
 import { Screen, LegoSetModel } from '../types';
 import { mockSets, mockValuations, mockMinifigs } from '../lib/mock-data';
 
@@ -9,8 +9,7 @@ interface SetDetailScreenProps {
 }
 
 export const SetDetailScreen: React.FC<SetDetailScreenProps> = ({ onNavigate, setNum }) => {
-  // Fallback to Lion Knights' Castle to match the screenshot perfectly if no setNum
-  const activeSetNum = setNum || '10305-1';
+  const activeSetNum = setNum || '10274-1'; // Default to Ecto-1 or similar
   
   const isMinifig = activeSetNum.startsWith('fig') || 
                     activeSetNum.startsWith('sp') || 
@@ -21,11 +20,11 @@ export const SetDetailScreen: React.FC<SetDetailScreenProps> = ({ onNavigate, se
                  mockMinifigs.find(f => f.figNum === activeSetNum) || 
                  {
                    id: "set-default",
-                   name: "Lion Knights' Castle",
-                   setNum: "10305-1",
-                   retailPrice: 399.99,
-                   imageUrl: 'https://cdn.rebrickable.com/media/sets/10305-1.jpg',
-                   isRetired: false,
+                   name: "Ghostbusters ECTO-1",
+                   setNum: "10274-1",
+                   retailPrice: 239.99,
+                   imageUrl: 'https://cdn.rebrickable.com/media/sets/10274-1.jpg',
+                   isRetired: true,
                    type: 'set' as const
                  };
 
@@ -33,183 +32,141 @@ export const SetDetailScreen: React.FC<SetDetailScreenProps> = ({ onNavigate, se
     id: rawSet.id,
     name: rawSet.name,
     setNum: 'setNum' in rawSet ? rawSet.setNum : ('figNum' in rawSet ? rawSet.figNum : activeSetNum),
-    retailPrice: 'retailPrice' in rawSet ? rawSet.retailPrice : ('resaleValue' in rawSet ? rawSet.resaleValue : null),
+    retailPrice: 'retailPrice' in rawSet ? rawSet.retailPrice : ('resaleValue' in rawSet ? rawSet.resaleValue : 199.99),
     imageUrl: rawSet.imageUrl,
     isRetired: 'isRetired' in rawSet ? rawSet.isRetired : true,
     type: 'type' in rawSet ? rawSet.type : 'minifig'
   };
 
-  const mockVal = mockValuations.get(activeSetNum);
-  const val = mockVal || (
-    isMinifig 
-      ? {
-          sealedValue: (set as any).resaleValue || 45.00,
-          usedValue: (set as any).resaleValue || 45.00,
-          resaleAvg: (set as any).resaleValue || 45.00,
-          sealedChange30d: 5.2,
-          usedChange30d: 5.2,
-          rarityScore: (set as any).rarityScore || 7,
-          demandScore: (set as any).rarityScore || 7,
-          isRetired: true,
-          priceHistory: []
-        }
-      : {
-          sealedValue: 450.00,
-          usedValue: 399.99,
-          resaleAvg: 410.00,
-          sealedChange30d: 4.2,
-          usedChange30d: 2.1,
-          rarityScore: 9.8,
-          demandScore: 9,
-          isRetired: false,
-          priceHistory: []
-        }
-  );
+  // Fake history chart data
+  const chartPoints = "0,80 50,50 100,60 150,30 200,40 250,15 300,20";
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F8F9FB] font-sans text-slate-900 overflow-hidden select-none">
+    <div className="flex flex-col min-h-screen bg-[#111111] font-sans text-white overflow-y-auto pb-32">
       
       {/* Header */}
-      <div className="px-6 pt-[max(env(safe-area-inset-top),3rem)] pb-4 flex items-center justify-between bg-white border-b border-slate-100 z-10 shrink-0">
+      <div className="px-6 pt-[max(env(safe-area-inset-top),3rem)] pb-4 flex items-center justify-between z-10 sticky top-0 bg-[#111111]/90 backdrop-blur-md">
         <button
           onClick={() => onNavigate(Screen.HOME)}
           className="w-10 h-10 flex items-center justify-center -ml-2 active:scale-95 transition-transform"
         >
-          <ChevronLeft className="w-6 h-6 text-slate-900" />
+          <ChevronLeft className="w-7 h-7 text-white" />
         </button>
-        <div className="text-center flex-1 mx-4">
-          <span className="text-[11px] font-bold text-slate-400 block uppercase tracking-widest">{set.setNum}</span>
-          <h1 className="text-base font-black text-slate-900 truncate leading-tight">{set.name}</h1>
+        <div className="flex items-center gap-2">
+           <div className="w-8 h-8 flex items-center justify-center bg-white/10 rounded-full">
+             <span className="font-bold text-xs">HB</span>
+           </div>
+           <span className="font-bold tracking-wide">HelloBrick</span>
         </div>
-        <button className="w-10 h-10 flex items-center justify-center -mr-2 active:scale-95 transition-transform">
-          <Share2 className="w-5 h-5 text-slate-900" />
+        <button className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-full -mr-2 active:scale-95 transition-transform">
+          <Search className="w-5 h-5 text-white" />
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar pb-32">
-        
-        {/* Hero Image */}
-        <div className="w-full bg-white px-6 py-8 flex items-center justify-center border-b border-slate-100 shadow-sm relative">
-          <img 
-            src={set.imageUrl || `https://cdn.rebrickable.com/media/sets/${set.setNum}.jpg`} 
-            alt={set.name}
-            onError={(e) => {
-              e.currentTarget.src = `https://cdn.rebrickable.com/media/sets/${set.setNum}-1.jpg`;
-            }}
-            className="w-[240px] h-[180px] object-contain drop-shadow-xl"
-          />
+      <div className="px-6 mt-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <h1 className="text-3xl font-bold mb-6 tracking-tight">Set Detail</h1>
+
+        {/* Hero Image Card */}
+        <div className="bg-[#1A1A1A] rounded-[32px] p-6 flex flex-col items-center relative border border-white/5 shadow-2xl mb-6">
+           <img 
+              src={set.imageUrl} 
+              alt={set.name}
+              className="w-full max-w-[280px] h-[200px] object-contain drop-shadow-2xl mb-4"
+           />
+           {set.isRetired && (
+             <div className="absolute bottom-6 left-6 bg-[#FF6B6B]/20 border border-[#FF6B6B]/50 text-[#FF6B6B] px-4 py-1.5 rounded-full font-bold text-sm tracking-wide">
+               Retired
+             </div>
+           )}
         </div>
 
-        {/* Set Details Stats */}
-        <div className="px-6 pt-6">
-          <h3 className="text-[13px] font-black text-slate-900 uppercase tracking-widest mb-3">Set Details</h3>
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex items-center justify-between">
-            <div className="text-center flex-1">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Total Value</span>
-              <span className="text-lg font-black text-[#1DA1F2]">${(set.retailPrice || 399.99).toFixed(2)}</span>
-            </div>
-            <div className="w-px h-10 bg-slate-100 mx-2" />
-            <div className="text-center flex-1">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Items</span>
-              <span className="text-lg font-black text-slate-900">1</span>
-            </div>
-            <div className="w-px h-10 bg-slate-100 mx-2" />
-            <div className="text-center flex-1">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Unique</span>
-              <span className="text-lg font-black text-slate-900">1</span>
-            </div>
+        <h2 className="text-xl font-semibold mb-6 px-2">{set.name}</h2>
+
+        {/* Value Cards (Sealed, Used, Resale) */}
+        <div className="grid grid-cols-3 gap-3 mb-8">
+          <div className="bg-white rounded-[24px] p-4 flex flex-col items-center justify-center shadow-lg">
+             <span className="text-zinc-500 font-semibold text-sm mb-1">Sealed</span>
+             <span className="text-black font-bold text-xl">${(set.retailPrice * 1.8).toFixed(0)}</span>
+          </div>
+          <div className="bg-[#FFB067] rounded-[24px] p-4 flex flex-col items-center justify-center shadow-[0_8px_24px_rgba(255,176,103,0.3)]">
+             <span className="text-black/70 font-semibold text-sm mb-1">Used</span>
+             <span className="text-black font-bold text-xl">${(set.retailPrice * 1.2).toFixed(0)}</span>
+          </div>
+          <div className="bg-white rounded-[24px] p-4 flex flex-col items-center justify-center shadow-lg">
+             <span className="text-zinc-500 font-semibold text-sm mb-1">Resale</span>
+             <span className="text-black font-bold text-xl">${(set.retailPrice * 1.5).toFixed(0)}</span>
           </div>
         </div>
 
-        {/* Rarity & Condition Grid */}
-        <div className="px-6 pt-4 flex gap-4">
-          
-          {/* Rarity Score */}
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex-[0.4] flex flex-col items-center justify-center relative">
-            <div className="absolute top-3 right-3">
-              <Info className="w-4 h-4 text-slate-300" />
-            </div>
-            <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">Rarity Score</h3>
-            
-            {/* Circular Progress Mock */}
-            <div className="w-20 h-20 relative flex items-center justify-center mb-2">
-              <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
-                <path
-                  className="text-slate-100"
-                  strokeWidth="3"
-                  stroke="currentColor"
-                  fill="none"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-                <path
-                  className="text-red-500"
-                  strokeWidth="3"
-                  strokeDasharray="98, 100"
-                  strokeLinecap="round"
-                  stroke="currentColor"
-                  fill="none"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-              </svg>
-              <span className="absolute text-xl font-black text-slate-900">9.8</span>
-            </div>
-            <span className="text-[10px] font-black text-red-500 uppercase tracking-widest bg-red-50 px-2 py-0.5 rounded-md">SCARCE</span>
-          </div>
+        {/* Price History Chart */}
+        <div className="bg-white rounded-[32px] p-6 text-black shadow-xl mb-6 relative overflow-hidden">
+           <div className="flex justify-between items-center mb-6 relative z-10">
+              <h3 className="font-bold text-lg">Price History</h3>
+              <span className="text-zinc-400 font-semibold text-sm">Drop</span>
+           </div>
 
-          {/* Value Breakdown */}
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex-[0.6] flex flex-col justify-center">
-            <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-4">Value Breakdown</h3>
-            
-            <div className="space-y-4">
-              {/* Condition */}
-              <div>
-                <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider mb-1.5">
-                  <span className="text-slate-400">Condition</span>
-                  <span className="text-slate-900">Used, Opened</span>
-                </div>
-                <div className="w-full bg-slate-100 rounded-full h-1.5">
-                  <div className="bg-[#1DA1F2] h-1.5 rounded-full" style={{ width: '40%' }}></div>
-                </div>
+           {/* Elegant Graph Area */}
+           <div className="h-[140px] w-full relative mb-6">
+              {/* Grid Lines */}
+              <div className="absolute inset-0 flex flex-col justify-between">
+                <div className="border-t border-zinc-100 w-full flex items-start"><span className="text-xs text-zinc-400 -mt-2 ml-1">$5k</span></div>
+                <div className="border-t border-zinc-100 w-full flex items-start"><span className="text-xs text-zinc-400 -mt-2 ml-1">$2k</span></div>
+                <div className="border-t border-zinc-100 w-full flex items-start"><span className="text-xs text-zinc-400 -mt-2 ml-1">$1k</span></div>
+                <div className="border-t border-zinc-100 w-full flex items-start"><span className="text-xs text-zinc-400 -mt-2 ml-1">$50</span></div>
               </div>
               
-              {/* Box */}
-              <div>
-                <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider mb-1.5">
-                  <span className="text-slate-400">Box</span>
-                  <span className="text-slate-900">Minor Wear</span>
-                </div>
-                <div className="w-full bg-slate-100 rounded-full h-1.5">
-                  <div className="bg-[#1DA1F2] h-1.5 rounded-full" style={{ width: '70%' }}></div>
-                </div>
+              {/* SVG Line */}
+              <div className="absolute inset-0 pl-8 pb-4">
+                 <svg viewBox="0 0 300 100" className="w-full h-full overflow-visible" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="gradientArea" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#FF7A30" stopOpacity="0.3" />
+                        <stop offset="100%" stopColor="#FF7A30" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                    <path 
+                      d={`M0,100 L${chartPoints} L300,100 Z`}
+                      fill="url(#gradientArea)"
+                    />
+                    <path 
+                      d={`M${chartPoints}`}
+                      fill="none" 
+                      stroke="#FF7A30" 
+                      strokeWidth="4" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                    />
+                    <circle cx="300" cy="20" r="6" fill="#FF7A30" stroke="white" strokeWidth="2" />
+                 </svg>
               </div>
-              
-              {/* Instructions */}
-              <div>
-                <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider mb-1.5">
-                  <span className="text-slate-400">Instructions</span>
-                  <span className="text-slate-900">Included</span>
-                </div>
-                <div className="w-full bg-slate-100 rounded-full h-1.5">
-                  <div className="bg-[#1DA1F2] h-1.5 rounded-full" style={{ width: '100%' }}></div>
-                </div>
+           </div>
+
+           {/* X-Axis labels */}
+           <div className="flex justify-between px-8 text-zinc-400 font-semibold text-xs relative z-10">
+              <span>40</span>
+              <span>31</span>
+              <span>44</span>
+              <span>19</span>
+              <span>31</span>
+              <span>22</span>
+           </div>
+        </div>
+
+        {/* Rarity Score Card */}
+        <div className="bg-white rounded-[24px] p-5 flex items-center justify-between text-black shadow-lg">
+           <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-[#FF7A30] rounded-xl flex items-center justify-center shadow-[0_4px_12px_rgba(255,122,48,0.3)]">
+                <Info className="w-6 h-6 text-white" />
               </div>
-            </div>
-          </div>
+              <div className="flex items-center gap-2">
+                 <span className="text-2xl font-black">9.5</span>
+                 <span className="text-zinc-500 font-semibold text-sm pt-1">Rarity Score</span>
+              </div>
+           </div>
+           <ChevronLeft className="w-6 h-6 text-zinc-400 transform rotate-180" />
         </div>
 
       </div>
-
-      {/* Bottom Action Area */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-100 px-6 pt-4 pb-[max(env(safe-area-inset-bottom),1.5rem)] shadow-[0_-10px_40px_rgba(0,0,0,0.05)] flex gap-3">
-        <button
-          className="flex-1 h-14 bg-[#FF7A30] text-white rounded-2xl font-black text-sm uppercase tracking-widest active:scale-95 transition-transform flex items-center justify-center gap-2 shadow-lg shadow-[#FF7A30]/30"
-        >
-          <Lock className="w-4 h-4" />
-          View Full Report
-        </button>
-      </div>
-
     </div>
   );
 };
-
