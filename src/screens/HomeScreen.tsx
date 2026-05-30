@@ -4,6 +4,7 @@ import { User, Camera, Heart, TrendingUp, Package, Zap, Eye, EyeOff, ArrowUpRigh
 import { Screen } from '../types';
 import { valuationService } from '../services/valuationService';
 import { getCollectionFromStorage, getSets, getValuationsMap } from '../lib/dataProvider';
+import { mockSets, mockValuations, mockMinifigs } from '../lib/mock-data';
 import { Logo } from '../components/Logo';
 
 interface HomeScreenProps {
@@ -46,7 +47,6 @@ const RETIRING_SOON = [
 export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
   const [collection, setCollection] = useState<any[]>([]);
   const [sets, setSets] = useState<any[]>([]);
-  const [totalValue, setTotalValue] = useState(0);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('1M');
   const [hideValue, setHideValue] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -60,16 +60,30 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
   useEffect(() => {
     (async () => {
       try {
-        const stats = await valuationService.getPortfolioValuation();
-        setTotalValue(stats.totalValueNew);
-      } catch (e) {}
-      try {
         const [col, fetchSets] = await Promise.all([getCollectionFromStorage(), getSets()]);
         setCollection(col);
         setSets(fetchSets);
       } catch (e) {}
     })();
   }, []);
+
+  const totalValue = useMemo(() => {
+    if (collection.length === 0) return 0;
+    const valuationsMap = new Map(Object.entries(mockValuations));
+    return collection.reduce((sum, item) => {
+      const set = sets.find(s => s.setNum === item.setNum) ||
+        mockSets.find(s => s.setNum === item.setNum) ||
+        mockMinifigs.find(f => f.figNum === item.setNum) ||
+        { retailPrice: item.purchasePrice || 49.99 };
+      const val = valuationsMap.get(item.setNum) || {
+        sealedValue: set.retailPrice || 149.99,
+        usedValue: (set.retailPrice || 149.99) * 0.7,
+      };
+      const quantity = (item as any).quantity ?? 1;
+      const currentValue = (item.condition === 'sealed' ? val.sealedValue : val.usedValue) * quantity;
+      return sum + currentValue;
+    }, 0);
+  }, [collection, sets]);
 
   const isEmpty = collection.length === 0;
   const changePercent = GROWTH_BY_FILTER[timeFilter];
@@ -169,7 +183,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
                   {hideValue ? '••••••' : (
                     isEmpty
                       ? '$0.00'
-                      : `$${totalValue > 0 ? totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '18,740.00'}`
+                      : `$${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                   )}
                 </div>
                 <button

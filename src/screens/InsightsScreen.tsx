@@ -1,141 +1,290 @@
-import React, { useState } from 'react';
-import { TrendingUp, Trophy, ArrowUpRight, ArrowDownRight, Crown } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { TrendingUp, Trophy, ArrowUpRight, ArrowDownRight, Crown, Building2, Globe, Shield, Box, Heart, Smile, Users, Search, Sliders, ChevronRight, Info } from 'lucide-react';
 import { Screen } from '../types';
 import { Logo } from '../components/Logo';
+import { getCollectionFromStorage, getSets } from '../lib/dataProvider';
+import { mockSets, mockValuations, mockMinifigs } from '../lib/mock-data';
 
 interface InsightsScreenProps {
   onNavigate: (screen: Screen) => void;
 }
 
 export const InsightsScreen: React.FC<InsightsScreenProps> = ({ onNavigate }) => {
-  const [activeTab, setActiveTab] = useState<'insights' | 'leaderboard'>('insights');
+  const [activeTab, setActiveTab] = useState<'insights' | 'database' | 'leaderboard'>('insights');
+  const [collection, setCollection] = useState<any[]>([]);
+  const [sets, setSets] = useState<any[]>([]);
 
-  // Dummy Leaderboard Data
-  const leaderboard = [
-    { rank: 1, name: 'BrickMaster99', value: 45200, growth: 12.4 },
-    { rank: 2, name: 'LegoInvestor_X', value: 38450, growth: 8.2 },
-    { rank: 3, name: 'CollectorDan', value: 32100, growth: 15.1 },
-    { rank: 4, name: 'You', value: 18740, growth: 4.2 },
-    { rank: 5, name: 'StudShooter', value: 15400, growth: 2.1 },
+  useEffect(() => {
+    (async () => {
+      try {
+        const [col, fetchSets] = await Promise.all([getCollectionFromStorage(), getSets()]);
+        setCollection(col);
+        setSets(fetchSets);
+      } catch (e) {}
+    })();
+  }, []);
+
+  const totalValue = useMemo(() => {
+    if (collection.length === 0) return 0;
+    const valuationsMap = new Map(Object.entries(mockValuations));
+    return collection.reduce((sum, item) => {
+      const set = sets.find(s => s.setNum === item.setNum) ||
+        mockSets.find(s => s.setNum === item.setNum) ||
+        mockMinifigs.find(f => f.figNum === item.setNum) ||
+        { retailPrice: item.purchasePrice || 49.99 };
+      const val = valuationsMap.get(item.setNum) || {
+        sealedValue: set.retailPrice || 149.99,
+        usedValue: (set.retailPrice || 149.99) * 0.7,
+      };
+      const quantity = (item as any).quantity ?? 1;
+      const currentValue = (item.condition === 'sealed' ? val.sealedValue : val.usedValue) * quantity;
+      return sum + currentValue;
+    }, 0);
+  }, [collection, sets]);
+
+  // Leaderboard — realistic values, non-round numbers, 25 entries dynamically sorted
+  const leaderboard = useMemo(() => {
+    const rawList = [
+      { name: 'BrickVault_UK',      value: 87312.48, growth: 18.7 },
+      { name: 'MasterBuilder_Pete',  value: 74891.15, growth: 14.3 },
+      { name: 'LegoProfessor',       value: 68447.80, growth: 22.1 },
+      { name: 'StudsAndStacks',      value: 61083.52, growth: 9.8  },
+      { name: 'CollectorJen_NYC',    value: 54729.19, growth: 11.4 },
+      { name: 'BrickInvestorAU',     value: 49166.75, growth: 16.2 },
+      { name: 'TheLegoDad',          value: 43584.22, growth: 7.5  },
+      { name: 'NinjagoNate',         value: 38917.90, growth: 12.9 },
+      { name: 'StarBrickTrader',     value: 34203.40, growth: 5.3  },
+      { name: 'You',                 value: totalValue, growth: 4.23 },
+      { name: 'BricksOverBanks',     value: 27841.60, growth: 8.1  },
+      { name: 'MinifigHunter',       value: 24698.85, growth: 19.4 },
+      { name: 'CreatorExpert_CF',    value: 22374.30, growth: 6.7  },
+      { name: 'LegoFlipperDE',       value: 19912.10, growth: 13.2 },
+      { name: 'PlasticGoldRush',     value: 18437.55, growth: 4.9  },
+      { name: 'BricksByBex',         value: 16783.20, growth: 10.6 },
+      { name: 'TechnicTom_CA',       value: 15094.40, growth: 3.2  },
+      { name: 'RetiredSetAlert',     value: 13661.12, growth: 21.8 },
+      { name: 'StarWarsCollects',    value: 12288.70, growth: 17.5 },
+      { name: 'LegoPortfolioMgr',    value: 10947.60, growth: 8.8  },
+      { name: 'BrickflipperSG',      value: 9812.45,  growth: 6.1  },
+      { name: 'HarryBricksWiz',      value: 8573.18,  growth: 14.7 },
+      { name: 'IdeasInvestor_JP',    value: 7316.90,  growth: 9.3  },
+      { name: 'StudShooter99',       value: 6184.50,  growth: 2.8  },
+      { name: 'NewCollector_MX',     value: 4927.35,  growth: 31.2 },
+    ];
+
+    // Sort by value descending
+    const sorted = [...rawList].sort((a, b) => b.value - a.value);
+
+    // Assign ranks
+    return sorted.map((user, idx) => ({
+      rank: idx + 1,
+      name: user.name,
+      value: user.value,
+      growth: user.growth
+    }));
+  }, [totalValue]);
+
+  const retiredStats = useMemo(() => {
+    if (collection.length === 0) return { count: 0, pct: 0, value: 0 };
+    const valuationsMap = new Map(Object.entries(mockValuations));
+    let retiredCount = 0;
+    let retiredVal = 0;
+    collection.forEach(item => {
+      const set = sets.find(s => s.setNum === item.setNum) ||
+        mockSets.find(s => s.setNum === item.setNum) ||
+        mockMinifigs.find(f => f.figNum === item.setNum);
+      const isRetired = set?.isRetired;
+      if (isRetired) {
+        retiredCount += (item.quantity ?? 1);
+        const val = valuationsMap.get(item.setNum) || {
+          sealedValue: set?.retailPrice || 149.99,
+          usedValue: (set?.retailPrice || 149.99) * 0.7,
+        };
+        const currentValue = (item.condition === 'sealed' ? val.sealedValue : val.usedValue) * (item.quantity ?? 1);
+        retiredVal += currentValue;
+      }
+    });
+    const totalCount = collection.reduce((s, i) => s + (i.quantity ?? 1), 0);
+    const pct = totalCount > 0 ? Math.round((retiredCount / totalCount) * 100) : 0;
+    return { count: retiredCount, pct, value: retiredVal };
+  }, [collection, sets]);
+
+  const [dbSearch, setDbSearch] = useState('');
+
+  const dbThemes = [
+    { name: 'City', icon: Building2, sets: 1617, minifigs: 3781 },
+    { name: 'Star Wars', icon: Globe, sets: 1046, minifigs: 1588 },
+    { name: 'Super Heroes', icon: Shield, sets: 600, minifigs: 1150 },
+    { name: 'DUPLO', icon: Box, sets: 1336, minifigs: 1121 },
+    { name: 'NINJAGO', icon: Smile, sets: 615, minifigs: 976 },
+    { name: 'Friends', icon: Heart, sets: 644, minifigs: 908 },
+    { name: 'Collectible Minifigures', icon: Users, sets: 974, minifigs: 834 },
   ];
 
+  const filteredDbThemes = useMemo(() => 
+    dbThemes.filter(t => 
+      t.name.toLowerCase().includes(dbSearch.toLowerCase())
+    )
+  , [dbSearch]);
+
   return (
-    <div className="flex flex-col h-full bg-[#111111] font-sans text-white pb-24 overflow-y-auto">
-      <div className="pt-[max(env(safe-area-inset-top),2rem)] px-6 pb-6">
-        <div className="flex items-center gap-3 mb-6">
-            <Logo size="sm" showText={false} className="w-8 h-8" />
-            <span className="font-bold text-xl text-white">Market Insights</span>
-        </div>
+    <div className="flex flex-col h-full bg-[#111111] font-sans text-white overflow-hidden">
+      {/* ─── Header ─── */}
+      <div className="px-6 pt-[max(env(safe-area-inset-top),2.8rem)] pb-3 flex items-center justify-between shrink-0 z-10 border-b border-white/5 bg-[#111111]/90 backdrop-blur-md">
+        <Logo size="sm" light={true} />
+        <span className="text-[12px] font-black text-zinc-500 uppercase tracking-[0.2em]">Data</span>
+      </div>
+
+      <div className="flex-1 overflow-y-auto no-scrollbar pb-28 px-6 pt-6">
 
         {/* Custom Tabs */}
         <div className="bg-[#1A1A1A] rounded-full p-1 flex mb-8 border border-white/5">
           <button 
             onClick={() => setActiveTab('insights')}
-            className={`flex-1 py-3 rounded-full text-sm font-semibold transition-colors ${activeTab === 'insights' ? 'bg-[#2A2A2A] text-white shadow-md' : 'text-zinc-500'}`}
+            className={`flex-1 py-3 rounded-full text-xs font-bold transition-all ${activeTab === 'insights' ? 'bg-[#2A2A2A] text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}
           >
             Insights
           </button>
           <button 
+            onClick={() => setActiveTab('database')}
+            className={`flex-1 py-3 rounded-full text-xs font-bold transition-all ${activeTab === 'database' ? 'bg-[#2A2A2A] text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}
+          >
+            Database
+          </button>
+          <button 
             onClick={() => setActiveTab('leaderboard')}
-            className={`flex-1 py-3 rounded-full text-sm font-semibold transition-colors ${activeTab === 'leaderboard' ? 'bg-[#2A2A2A] text-white shadow-md' : 'text-zinc-500'}`}
+            className={`flex-1 py-3 rounded-full text-xs font-bold transition-all ${activeTab === 'leaderboard' ? 'bg-[#2A2A2A] text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}
           >
             Leaderboard
           </button>
         </div>
 
-        {activeTab === 'insights' ? (
+        {activeTab === 'insights' && (
           <div className="space-y-6 animate-fade-in">
-            {/* Global Set Search */}
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search any LEGO set or minifig..."
-                className="w-full bg-[#1A1A1A] border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-white placeholder-zinc-500 text-sm focus:border-emerald-500/50 focus:outline-none transition-colors"
-              />
-              <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+            {/* Primary explanatory header card */}
+            <div className="bg-[#1A1A1A] p-6 rounded-[28px] border border-white/5 relative overflow-hidden">
+              <div className="absolute top-0 right-0 -mr-8 -mt-8 w-24 h-24 bg-emerald-500/5 blur-2xl rounded-full" />
+              <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-2">Market Dynamics</p>
+              <h2 className="text-lg font-black text-white mb-3">Scan the Market for LEGO</h2>
+              <p className="text-sm text-zinc-400 leading-relaxed">
+                LEGO sets eventually leave active retail production (commonly referred to as 'retiring'). 
+                Once a set leaves active retail production, primary market supply permanently stops. 
+                Transaction velocity shifts to secondary collector markets, where limited supply and active demand typically appreciate individual asset valuations. 
+                HelloBrick indexes availability metrics so you can optimize inventory accrual.
+              </p>
             </div>
 
-            {/* Browse by Theme */}
-            <div className="bg-[#1A1A1A] p-5 rounded-[24px] border border-white/5">
-              <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-4">Browse by Theme</h2>
-              <div className="space-y-2">
-                {[
-                  { name: 'Star Wars', icon: '⚔️', sets: 1046, minifigs: 1588 },
-                  { name: 'City', icon: '🏙️', sets: 1617, minifigs: 3781 },
-                  { name: 'Technic', icon: '⚙️', sets: 892, minifigs: 120 },
-                  { name: 'Creator Expert', icon: '🏛️', sets: 245, minifigs: 410 },
-                  { name: 'Harry Potter', icon: '⚡', sets: 312, minifigs: 580 },
-                ].map((theme, i) => (
-                  <button
-                    key={i}
-                    className="w-full flex items-center justify-between p-3.5 rounded-2xl hover:bg-white/5 transition-colors active:scale-[0.98]"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl">{theme.icon}</span>
-                      <div className="text-left">
-                        <p className="text-sm font-semibold text-white">{theme.name}</p>
-                        <p className="text-[10px] text-zinc-500">{theme.sets} sets · {theme.minifigs} minifigs</p>
-                      </div>
-                    </div>
-                    <svg className="w-4 h-4 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* What Can I Build */}
-            <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 p-6 rounded-[24px] border border-purple-500/20">
-              <div className="flex items-center gap-3 mb-3">
-                <span className="text-2xl">🧩</span>
-                <h2 className="text-lg font-semibold">What Can I Build?</h2>
-              </div>
-              <p className="text-sm text-zinc-400 mb-4">Scan your loose bricks and discover what amazing creations you can make with them.</p>
-              <button
-                onClick={() => onNavigate(Screen.SCANNER)}
-                className="w-full py-3 bg-purple-500/20 border border-purple-500/30 rounded-xl text-purple-300 font-semibold text-sm active:scale-[0.98] transition-transform"
-              >
-                Start Scanning Pieces →
-              </button>
-            </div>
-
-            {/* Trend Card */}
-            <div className="bg-[#1A1A1A] p-6 rounded-[24px] border border-white/5">
+            {/* Collection Health Scanner Card */}
+            <div className="bg-[#1A1A1A] p-6 rounded-[28px] border border-white/5">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 text-emerald-500" />
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                  <TrendingUp className="w-5 h-5" />
                 </div>
-                <h2 className="text-lg font-semibold">Portfolio Trend</h2>
+                <h3 className="text-sm font-black text-white uppercase tracking-wider">Asset Discontinuation Scan</h3>
               </div>
-              <p className="text-3xl font-bold mb-1">+4.2%</p>
-              <p className="text-sm text-zinc-400">Your collection is outperforming the market average by 1.2% this month.</p>
+
+              {collection.length === 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-zinc-500 text-xs font-semibold">Your portfolio is currently empty.</p>
+                  <p className="text-zinc-600 text-[10px] mt-1">Scan or log sets in your Collection to analyze market production coverage.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-xs text-zinc-500 font-bold uppercase tracking-wider">Discontinued Assets</span>
+                    <span className="text-sm font-mono font-black text-white">{retiredStats.count} Sets</span>
+                  </div>
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-xs text-zinc-500 font-bold uppercase tracking-wider">Portfolio Coverage</span>
+                    <span className="text-sm font-mono font-black text-emerald-400">{retiredStats.pct}% of Vault</span>
+                  </div>
+                  <div className="flex justify-between items-center py-1 border-t border-white/5 pt-3">
+                    <span className="text-xs text-zinc-500 font-bold uppercase tracking-wider">Discontinued Valuation</span>
+                    <span className="text-sm font-mono font-black text-white">
+                      ${retiredStats.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Retiring Soon */}
-            <div className="bg-[#1A1A1A] p-6 rounded-[24px] border border-white/5">
-              <h2 className="text-lg font-semibold mb-4">Retiring Soon Alerts</h2>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center pb-4 border-b border-white/5">
-                  <div>
-                    <p className="font-semibold">Bookshop #10270</p>
-                    <p className="text-sm text-rose-400">Retiring Dec 2026</p>
-                  </div>
-                  <span className="text-emerald-400 font-medium">+15% Proj.</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="font-semibold">Assembly Square #10255</p>
-                    <p className="text-sm text-rose-400">Retiring Dec 2026</p>
-                  </div>
-                  <span className="text-emerald-400 font-medium">+22% Proj.</span>
-                </div>
+            {/* Informational banner about real-time market data */}
+            <div className="bg-gradient-to-br from-[#1C1C1E] to-[#111111] p-6 rounded-[28px] border border-white/5 flex gap-4 items-start">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0 text-blue-400">
+                <Info className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-xs font-black text-white uppercase tracking-wider mb-1">Interactive Indexing</h4>
+                <p className="text-[11px] text-zinc-500 font-semibold leading-relaxed">
+                  We are indexing retail availability catalogs globally. Tap into the <strong className="text-white">Database</strong> tab to browse themes and inspect detailed structural logs.
+                </p>
               </div>
             </div>
           </div>
-        ) : (
+        )}
+
+        {activeTab === 'database' && (
+          <div className="space-y-6 animate-fade-in">
+            {/* Catalog Subheader matching the Brickify Screenshot! */}
+            <div>
+              <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-1">CATALOG</p>
+              <h2 className="text-3xl font-black text-white tracking-tight">Database</h2>
+            </div>
+
+            {/* Search and Filter Row matching screenshot styling */}
+            <div className="flex gap-3">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  value={dbSearch}
+                  onChange={(e) => setDbSearch(e.target.value)}
+                  placeholder="Search any set or mi..."
+                  className="w-full bg-[#1A1A1A] border border-white/10 rounded-full pl-12 pr-4 py-3.5 text-white placeholder-zinc-500 text-sm focus:border-emerald-500/30 focus:outline-none transition-colors"
+                />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              </div>
+              <button className="bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 px-5 rounded-full text-xs font-black uppercase tracking-wider hover:bg-emerald-500/25 active:scale-95 transition-all flex items-center gap-1.5 shrink-0">
+                <Sliders className="w-3.5 h-3.5" />
+                Filter
+              </button>
+            </div>
+
+            {/* Theme list header */}
+            <div className="flex items-center gap-2 mt-4 px-1">
+              <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+              <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Browse by Theme</h3>
+            </div>
+
+            {/* Theme Rows exactly matching the Brickify Screenshot values */}
+            <div className="space-y-3">
+              {filteredDbThemes.map((theme, i) => (
+                <button
+                  key={i}
+                  className="w-full flex items-center justify-between p-4 bg-[#1A1A1A] rounded-[24px] border border-white/5 hover:bg-white/5 transition-all active:scale-[0.99] text-left"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-11 h-11 rounded-full border border-emerald-500/20 bg-emerald-500/5 flex items-center justify-center text-emerald-400 shrink-0">
+                      <theme.icon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="font-black text-[15px] text-white tracking-tight">{theme.name}</p>
+                      <p className="text-[11px] text-zinc-500 font-semibold mt-0.5">
+                        This theme has {theme.minifigs.toLocaleString()} minifigs and {theme.sets.toLocaleString()} sets
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-zinc-600 shrink-0" />
+                </button>
+              ))}
+
+              {filteredDbThemes.length === 0 && (
+                <p className="text-zinc-600 text-xs text-center py-6 font-semibold">No themes matching search query found.</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'leaderboard' && (
           <div className="space-y-4 animate-fade-in">
             <div className="flex items-center justify-between mb-6 px-2">
               <h2 className="text-lg font-semibold">Global Top Collectors</h2>
@@ -150,7 +299,7 @@ export const InsightsScreen: React.FC<InsightsScreenProps> = ({ onNavigate }) =>
                   </div>
                   <div>
                     <p className="font-semibold text-white">{user.name}</p>
-                    <p className="text-xs text-zinc-400">${user.value.toLocaleString()}</p>
+                    <p className="text-xs text-zinc-400">${user.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 bg-emerald-500/10 px-2 py-1 rounded-lg">

@@ -11,14 +11,18 @@ interface CollectionScreenProps {
   highlightSet?: string;
 }
 
-// Distribution breakdown
-const VALUE_DISTRIBUTION = [
-  { label: 'Star Wars', pct: 38, color: '#FF7A30' },
-  { label: 'Technic',   pct: 22, color: '#6366F1' },
-  { label: 'Creator',   pct: 18, color: '#10B981' },
-  { label: 'City',      pct: 14, color: '#F59E0B' },
-  { label: 'Other',     pct:  8, color: '#71717A' },
-];
+const THEME_COLORS: Record<string, string> = {
+  'Star Wars': '#FF7A30',
+  'Technic': '#6366F1',
+  'Creator': '#10B981',
+  'City': '#F59E0B',
+  'Harry Potter': '#8B5CF6',
+  'Marvel': '#EF4444',
+  'Ideas': '#06B6D4',
+  'Icons': '#EC4899',
+  'Custom': '#71717A',
+  'Other': '#71717A',
+};
 
 export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }) => {
   const [collection, setCollection] = useState<CollectionItem[]>([]);
@@ -96,6 +100,25 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
   const returnPct   = useMemo(() => totalCost > 0 ? (totalReturn / totalCost) * 100 : 0, [totalReturn, totalCost]);
   const isEmpty = hydratedCollection.length === 0;
 
+  // Compute real theme distribution from actual collection
+  const themeDistribution = useMemo(() => {
+    if (isEmpty) return [];
+    const themeCounts: Record<string, number> = {};
+    hydratedCollection.forEach(item => {
+      const theme = item.set?.theme || 'Other';
+      themeCounts[theme] = (themeCounts[theme] || 0) + item.currentValue;
+    });
+    const total = Object.values(themeCounts).reduce((a, b) => a + b, 0) || 1;
+    return Object.entries(themeCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5)
+      .map(([label, val]) => ({
+        label,
+        pct: Math.round((val / total) * 100),
+        color: THEME_COLORS[label] || '#71717A',
+      }));
+  }, [hydratedCollection, isEmpty]);
+
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     const updated = collection.filter(item => item.id !== id);
@@ -105,11 +128,15 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
 
   const fmt = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
+  const totalPieces = useMemo(() =>
+    hydratedCollection.reduce((s, i) => s + ((i.set?.numParts || 0) * ((i as any).quantity ?? 1)), 0),
+  [hydratedCollection]);
+
   const statsRow = [
-    { label: 'Sets',     value: hydratedCollection.length.toString(), icon: '📦' },
-    { label: 'Minifigs', value: '0',                                  icon: '🧑' },
-    { label: 'Invested', value: hideValue ? '••' : fmt(totalCost),    icon: '💵' },
-    { label: 'ROI',      value: `+${returnPct.toFixed(1)}%`,          icon: '📈' },
+    { label: 'Sets',    value: isEmpty ? '0' : hydratedCollection.length.toString(),               icon: '📦' },
+    { label: 'Pieces',  value: isEmpty ? '—' : totalPieces > 0 ? totalPieces.toLocaleString() : '—', icon: '🧱' },
+    { label: 'Invested', value: isEmpty ? '—' : hideValue ? '••' : fmt(totalCost),                  icon: '💵' },
+    { label: 'ROI',     value: isEmpty ? '—' : `${returnPct >= 0 ? '+' : ''}${returnPct.toFixed(1)}%`, icon: '📈' },
   ];
 
   return (
@@ -195,13 +222,13 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
               </div>
               {/* Bar */}
               <div className="flex w-full h-2.5 rounded-full overflow-hidden gap-0.5 mb-3">
-                {VALUE_DISTRIBUTION.map((d, i) => (
+                {themeDistribution.map((d, i) => (
                   <div key={i} className="rounded-full transition-all" style={{ width: `${d.pct}%`, background: d.color }} />
                 ))}
               </div>
               {/* Legend */}
               <div className="flex flex-wrap gap-x-3 gap-y-1">
-                {VALUE_DISTRIBUTION.map((d, i) => (
+                {themeDistribution.map((d, i) => (
                   <div key={i} className="flex items-center gap-1.5">
                     <div className="w-2 h-2 rounded-full" style={{ background: d.color }} />
                     <span className="text-[10px] font-semibold text-zinc-500">{d.label} {d.pct}%</span>

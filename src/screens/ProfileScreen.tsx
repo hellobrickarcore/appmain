@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Zap, Star, ShieldCheck, ChevronRight, RefreshCw, LogOut, Bell, Sparkles } from 'lucide-react';
+import { Settings, Zap, Star, ShieldCheck, ChevronRight, RefreshCw, LogOut, Bell, Sparkles, Share2, Download, Sliders } from 'lucide-react';
 import { Screen } from '../types';
 import { Logo } from '../components/Logo';
 import { supabase } from '../services/supabaseService';
@@ -30,7 +30,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
                 setCollectionsCount(parsed.reduce((sum: number, item: any) => sum + (item.quantity ?? 1), 0));
             } catch(e){}
         } else {
-            setCollectionsCount(2);
+            setCollectionsCount(0);
         }
     };
 
@@ -45,13 +45,42 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
         return () => window.removeEventListener('hellobrick:collection-updated', handleCollectionUpdate);
     }, []);
 
-    const handleClearCache = () => {
-        if (window.confirm('Are you sure you want to purge your collection and wishlist? This will restore clean mock data.')) {
-            localStorage.removeItem('hellobrick_collection_sets');
-            localStorage.removeItem('hellobrick_wishlist_sets');
-            window.dispatchEvent(new CustomEvent('hellobrick:collection-updated'));
-            loadProfileData();
-            alert('Vault cache cleared successfully!');
+    const handleExportCSV = () => {
+        const storedColl = localStorage.getItem('hellobrick_collection_sets');
+        if (!storedColl || JSON.parse(storedColl).length === 0) {
+            alert('Your collection is empty! Add sets before exporting.');
+            return;
+        }
+        try {
+            const items = JSON.parse(storedColl);
+            let csvContent = 'data:text/csv;charset=utf-8,';
+            csvContent += 'Set Number,Condition,Quantity,Purchase Price,Added Date\n';
+            items.forEach((item: any) => {
+                csvContent += `"${item.setNum}","${item.condition}","${item.quantity ?? 1}","${item.purchasePrice || ''}","${item.addedAt || ''}"\n`;
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', `hellobrick_portfolio_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch(e){
+            alert('Failed to generate export file.');
+        }
+    };
+
+    const handleSharePortfolio = () => {
+        const shareText = `Check out my LEGO portfolio on HelloBrick! I track market valuations, retiring soon alerts, and collection statistics in real-time.`;
+        if (navigator.share) {
+            navigator.share({
+                title: 'HelloBrick Portfolio Tracker',
+                text: shareText,
+                url: window.location.origin
+            }).catch(() => {});
+        } else {
+            navigator.clipboard.writeText(window.location.origin);
+            alert('App link copied to clipboard! Share it with fellow collectors.');
         }
     };
 
@@ -69,21 +98,21 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
     const profileName = localStorage.getItem('hellobrick_profile_name') || 'Builder';
 
     return (
-        <div className="flex flex-col h-full bg-[#0D111A] font-sans text-white relative overflow-hidden select-none">
+        <div className="flex flex-col h-full bg-[#111111] font-sans text-white relative overflow-hidden select-none">
             <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-b from-[#C9A84C]/5 via-transparent to-transparent pointer-events-none z-0" />
 
             {/* Header */}
-            <div className="relative z-10 px-6 pt-[max(env(safe-area-inset-top),2rem)] pb-4 flex items-center justify-between border-b border-[#2A3144]/40 bg-[#0D111A]/90 backdrop-blur-md sticky top-0">
+            <div className="relative z-10 px-6 pt-[max(env(safe-area-inset-top),2.8rem)] pb-3 flex items-center justify-between border-b border-white/5 bg-[#111111]/90 backdrop-blur-md sticky top-0">
+                <Logo size="sm" light={true} />
                 <div className="flex items-center gap-3">
-                    <Logo size="sm" showText={false} className="w-8 h-8" />
-                    <span className="font-bold text-base text-white">Account Profile</span>
+                    <span className="text-[12px] font-black text-zinc-500 uppercase tracking-[0.2em] mr-1">Profile</span>
+                    <button
+                        onClick={() => onNavigate(Screen.PROFILE_SETTINGS)}
+                        className="w-10 h-10 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 hover:bg-white/10 transition-colors"
+                    >
+                        <Settings className="w-5 h-5 text-slate-300" />
+                    </button>
                 </div>
-                <button
-                    onClick={() => onNavigate(Screen.PROFILE_SETTINGS)}
-                    className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center border border-white/10 hover:bg-white/10 transition-colors"
-                >
-                    <Settings className="w-5 h-5 text-slate-300" />
-                </button>
             </div>
 
             <div className="relative z-10 flex-1 overflow-y-auto no-scrollbar overscroll-contain pb-[max(env(safe-area-inset-bottom),180px)]">
@@ -91,7 +120,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
                 {/* Profile Avatar & Metadata */}
                 <div className="px-6 pt-8 pb-6 flex flex-col items-center">
                     <div className="w-20 h-20 rounded-[28px] bg-gradient-to-br from-[#C9A84C] to-[#C9A84C]/60 p-0.5 shadow-2xl relative">
-                        <div className="w-full h-full bg-[#0D111A] rounded-[26px] flex items-center justify-center overflow-hidden border border-white/10">
+                        <div className="w-full h-full bg-[#111111] rounded-[26px] flex items-center justify-center overflow-hidden border border-white/10">
                             <span className="text-2xl font-black text-white">{profileName.charAt(0).toUpperCase()}</span>
                         </div>
                     </div>
@@ -130,7 +159,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
                             </div>
                             <button
                                 onClick={() => onNavigate(Screen.SUBSCRIPTION)}
-                                className="w-full bg-[#C9A84C] text-[#0D111A] py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider mt-5 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-[#C9A84C]/10"
+                                className="w-full bg-[#C9A84C] text-[#111111] py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider mt-5 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-[#C9A84C]/10"
                             >
                                 Upgrade Now ($4.99/mo)
                                 <ChevronRight className="w-4 h-4" />
@@ -142,11 +171,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
                 {/* Account Portfolio Stats */}
                 <div className="px-6 grid grid-cols-2 gap-4 mb-6">
                     <div className="p-5 bg-[#161A2B] border border-[#2A3144]/60 rounded-3xl text-center">
-                        <span className="text-2xl font-mono font-black text-white">{collectionsCount}</span>
+                        <span className="text-2xl font-bold text-white">{collectionsCount}</span>
                         <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mt-1.5 block">Assets Logged</span>
                     </div>
                     <div className="p-5 bg-[#161A2B] border border-[#2A3144]/60 rounded-3xl text-center">
-                        <span className="text-2xl font-mono font-black text-emerald-400">Pro</span>
+                        <span className="text-2xl font-bold text-emerald-400">Pro</span>
                         <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mt-1.5 block">Feature Access</span>
                     </div>
                 </div>
@@ -170,38 +199,47 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
                         <ChevronRight className="w-5 h-5 text-slate-600" />
                     </button>
 
-                    {/* Restart Onboarding */}
+                    {/* App Preferences */}
                     <button 
-                      onClick={() => {
-                          localStorage.removeItem('hellobrick_onboarding_finished');
-                          localStorage.removeItem('hellobrick_authenticated');
-                          localStorage.removeItem('hellobrick_userId');
-                          localStorage.removeItem('hellobrick_is_pro');
-                          window.location.reload();
-                      }}
+                      onClick={() => onNavigate(Screen.PROFILE_SETTINGS)}
                       className="w-full p-5 bg-[#161A2B] rounded-[24px] border border-[#2A3144]/60 flex items-center gap-4 active:scale-[0.98] transition-all hover:bg-[#1E233B]"
                     >
                         <div className="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center text-purple-400">
-                            <Sparkles className="w-5 h-5" />
+                            <Sliders className="w-5 h-5" />
                         </div>
                         <div className="text-left flex-1">
-                            <p className="text-xs font-black text-white uppercase tracking-wider">Restart Onboarding Flow</p>
-                            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">Experience the new 4-question profiling</p>
+                            <p className="text-xs font-black text-white uppercase tracking-wider">Preferences & Sounds</p>
+                            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">Manage local currencies & sound effects</p>
                         </div>
                         <ChevronRight className="w-5 h-5 text-slate-600" />
                     </button>
 
-                    {/* Reset Cache */}
+                    {/* Export CSV */}
                     <button 
-                      onClick={handleClearCache}
+                      onClick={handleExportCSV}
                       className="w-full p-5 bg-[#161A2B] rounded-[24px] border border-[#2A3144]/60 flex items-center gap-4 active:scale-[0.98] transition-all hover:bg-[#1E233B]"
                     >
                         <div className="w-10 h-10 bg-orange-500/10 rounded-xl flex items-center justify-center text-orange-400">
-                            <RefreshCw className="w-5 h-5" />
+                            <Download className="w-5 h-5" />
                         </div>
                         <div className="text-left flex-1">
-                            <p className="text-xs font-black text-white uppercase tracking-wider">Reset Local Vault</p>
-                            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">Purge collections & reload mocks</p>
+                            <p className="text-xs font-black text-white uppercase tracking-wider">Export Inventory (CSV)</p>
+                            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">Download a backup spreadsheet of logged assets</p>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-slate-600" />
+                    </button>
+
+                    {/* Share HelloBrick */}
+                    <button 
+                      onClick={handleSharePortfolio}
+                      className="w-full p-5 bg-[#161A2B] rounded-[24px] border border-[#2A3144]/60 flex items-center gap-4 active:scale-[0.98] transition-all hover:bg-[#1E233B]"
+                    >
+                        <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-400">
+                            <Share2 className="w-5 h-5" />
+                        </div>
+                        <div className="text-left flex-1">
+                            <p className="text-xs font-black text-white uppercase tracking-wider">Share HelloBrick</p>
+                            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">Invite fellow collectors to track portfolios</p>
                         </div>
                         <ChevronRight className="w-5 h-5 text-slate-600" />
                     </button>

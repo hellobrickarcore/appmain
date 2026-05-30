@@ -3,6 +3,7 @@ import { Search, X, Trash2, CheckCircle, Bell, ArrowLeft, MoreVertical, Shield, 
 import { Screen, WishlistItem } from '../types';
 import { mockWishlist, mockSets, mockValuations } from '../lib/mock-data';
 import confetti from 'canvas-confetti';
+import { Logo } from '../components/Logo';
 
 interface WishlistScreenProps {
   onNavigate: (screen: Screen, params?: any) => void;
@@ -74,32 +75,22 @@ export const WishlistScreen: React.FC<WishlistScreenProps> = ({ onNavigate }) =>
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#0D111A] font-sans text-white relative overflow-hidden select-none">
+    <div className="flex flex-col min-h-screen bg-[#111111] font-sans text-white relative overflow-hidden select-none">
       {/* Background radial highlight */}
-      <div className="absolute top-0 left-0 right-0 h-[450px] bg-gradient-to-b from-rose-600/[0.02] via-transparent to-transparent pointer-events-none" />
+      <div className="absolute top-0 left-0 right-0 h-[450px] bg-gradient-to-b from-[#C9A84C]/5 via-transparent to-transparent pointer-events-none" />
 
       {/* Header Sticky */}
-      <div className="relative z-50 px-6 pt-[max(env(safe-area-inset-top),3.5rem)] pb-4 flex items-center justify-between bg-[#0D111A]/85 backdrop-blur-xl border-b border-white/5 shrink-0">
-        <button
-          onClick={() => onNavigate(Screen.HOME)}
-          className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10 active:scale-90 transition-transform"
-        >
-          <ArrowLeft className="w-5 h-5 text-slate-300" />
-        </button>
-        <div className="text-center">
-          <h1 className="text-sm font-black text-white tracking-widest uppercase flex items-center gap-1.5 justify-center">
-            Wishlist
-          </h1>
-          <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest block mt-0.5">Monitored assets</span>
-        </div>
-        <div className="flex gap-2">
-          <button className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10 active:scale-90 transition-transform">
-            <Search className="w-4 h-4 text-slate-300" />
+      <div className="relative z-50 px-6 pt-[max(env(safe-area-inset-top),2.8rem)] pb-3 flex items-center justify-between bg-[#111111]/90 backdrop-blur-md border-b border-white/5 shrink-0">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => onNavigate(Screen.HOME)}
+            className="w-10 h-10 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 active:scale-90 transition-transform"
+          >
+            <ArrowLeft className="w-5 h-5 text-slate-300" />
           </button>
-          <button className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10 active:scale-90 transition-transform">
-            <MoreVertical className="w-4 h-4 text-slate-300" />
-          </button>
+          <Logo size="sm" light={true} />
         </div>
+        <span className="text-[12px] font-black text-zinc-500 uppercase tracking-[0.2em]">Wishlist</span>
       </div>
 
       {/* Main Viewport */}
@@ -144,7 +135,7 @@ export const WishlistScreen: React.FC<WishlistScreenProps> = ({ onNavigate }) =>
                     <span className="text-[8px] font-black text-slate-500 truncate block mt-0.5 max-w-[120px]">
                       {item.set.name}
                     </span>
-                    <span className="text-[7px] font-mono text-emerald-400 font-bold block mt-1 uppercase tracking-wider">
+                    <span className="text-[7px] text-emerald-400 font-bold block mt-1 uppercase tracking-wider">
                       7-Day Value
                     </span>
                   </div>
@@ -152,10 +143,10 @@ export const WishlistScreen: React.FC<WishlistScreenProps> = ({ onNavigate }) =>
 
                 {/* Right Side monospaced metrics */}
                 <div className="text-right shrink-0 group-hover:opacity-0 transition-opacity">
-                  <span className="font-mono text-base font-black text-white block leading-none">
+                  <span className="text-base font-black text-white block leading-none">
                     +{item.rawDelta}
                   </span>
-                  <span className="text-[7px] font-mono text-rose-500 font-bold block mt-1 uppercase tracking-wider">
+                  <span className="text-[7px] text-rose-500 font-bold block mt-1 uppercase tracking-wider">
                     -7-Day Value
                   </span>
                 </div>

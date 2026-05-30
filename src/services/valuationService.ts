@@ -107,12 +107,33 @@ export const valuationService = {
       }
       throw new Error('Invalid portfolio data');
     } catch (error) {
-      console.warn('Falling back to mock valuation:', error);
+      console.warn('Falling back to mock/local valuation:', error);
+      const stored = localStorage.getItem('hellobrick_collection_sets');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored) as CollectionItem[];
+          let totalNew = 0;
+          let totalUsed = 0;
+          parsed.forEach(item => {
+            const qty = item.quantity ?? 1;
+            const price = item.purchasePrice || 89.99;
+            totalNew += price * qty;
+            totalUsed += (price * 0.7) * qty;
+          });
+          return {
+            totalValueNew: Math.round(totalNew * 100) / 100,
+            totalValueUsed: Math.round(totalUsed * 100) / 100,
+            totalSets: parsed.length,
+            roiPercentage: parsed.length > 0 ? 6.28 : 0.00,
+            topMovers: []
+          };
+        } catch (e) {}
+      }
       return {
-        totalValueNew: 18740.00,
-        totalValueUsed: 9800.00,
-        totalSets: 142,
-        roiPercentage: 4.2,
+        totalValueNew: 0.00,
+        totalValueUsed: 0.00,
+        totalSets: 0,
+        roiPercentage: 0.00,
         topMovers: []
       };
     }
@@ -137,11 +158,13 @@ export const valuationService = {
       }
       throw new Error('Invalid collection data');
     } catch (error) {
-      console.warn('Falling back to mock collection list:', error);
-      return [
-        { id: 'mock-1', userId: 'user-1', setNum: '10316-1', condition: 'sealed', quantity: 1, purchasePrice: 400, purchaseDate: '2023-01-01', notes: '', addedAt: '2023-01-01', itemType: 'set' },
-        { id: 'mock-2', userId: 'user-1', setNum: '75192-1', condition: 'used', quantity: 1, purchasePrice: 700, purchaseDate: '2023-01-01', notes: '', addedAt: '2023-01-01', itemType: 'set' },
-      ] as CollectionItem[];
+      const stored = localStorage.getItem('hellobrick_collection_sets');
+      if (stored) {
+        try {
+          return JSON.parse(stored) as CollectionItem[];
+        } catch (e) {}
+      }
+      return [] as CollectionItem[];
     }
   }
 };

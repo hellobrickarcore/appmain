@@ -1,10 +1,27 @@
-
 const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
 
-const source = 'icon-source-1024.png';
 const targetDir = 'ios/App/App/Assets.xcassets/AppIcon.appiconset';
+
+// Mathematical Vector SVG of the Definitive HelloBrick logo
+// Zero dependency, zero compression artifacts, zero random white corners!
+const svgLogo = `
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Solid yellow background compliant with App Store Guidelines -->
+  <rect x="0" y="0" width="1024" height="1024" fill="#FFD600" />
+  
+  <!-- Orange inner brick body with perfectly rounded proportions -->
+  <rect x="128" y="128" width="768" height="768" rx="230" fill="#FF7A30" />
+  
+  <!-- Two black studs (circles) representing a classic 2x1 Lego brick -->
+  <circle cx="384" cy="512" r="70" fill="#000000" />
+  <circle cx="640" cy="512" r="70" fill="#000000" />
+  
+  <!-- Subtle gloss overlay on the top half for a premium 3D look -->
+  <path d="M 128,128 L 896,128 A 230,230 0 0,1 896,512 L 128,512 A 230,230 0 0,1 128,128 Z" fill="#FFFFFF" opacity="0.08" />
+</svg>
+`;
 
 const sizes = [
   { size: 20, scale: 2, name: 'icon-20-2x.png' },
@@ -28,10 +45,14 @@ async function generate() {
     fs.mkdirSync(targetDir, { recursive: true });
   }
 
+  // Create a buffer from the clean SVG source
+  const sourceBuffer = Buffer.from(svgLogo);
+
+  // Generate App Icons
   for (const item of sizes) {
     const pixelSize = Math.floor(item.size * item.scale);
     console.log(`Generating ${item.name} (${pixelSize}x${pixelSize})...`);
-    await sharp(source)
+    await sharp(sourceBuffer)
       .resize(pixelSize, pixelSize)
       .toFile(path.join(targetDir, item.name));
   }
@@ -46,16 +67,20 @@ async function generate() {
     })),
     info: { version: 1, author: 'xcode' }
   };
-  
-  // Refine for universal/iPad specificity if needed, but the above is a good start
+  fs.writeFileSync(path.join(targetDir, 'Contents.json'), JSON.stringify(contents, null, 2));
+
   // Generate Splash Screen
   const splashDir = 'ios/App/App/Assets.xcassets/Splash.imageset';
+  if (!fs.existsSync(splashDir)) {
+    fs.mkdirSync(splashDir, { recursive: true });
+  }
+
   const bgColor = '#FFD600';
   const splashSize = 2732;
-  const logoSize = 1024; // Size of logo in center
+  const logoSize = 640; // Resized for perfect visual balance on device screen
 
   console.log('Generating Splash Screen...');
-  const logoBuffer = await sharp(source)
+  const logoBuffer = await sharp(sourceBuffer)
     .resize(logoSize, logoSize)
     .toBuffer();
 
