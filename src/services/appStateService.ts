@@ -149,7 +149,7 @@ class AppStateService {
       Screen.EMAIL_LOGIN
     ];
 
-    if (!onboardingFinished && !onboardingScreens.includes(screen)) {
+    if (!onboardingFinished && !onboardingScreens.includes(screen) && !isAuthenticated) {
       console.log('[AppState] Onboarding lock active');
       this.transition('onboarding');
       return;
@@ -205,6 +205,7 @@ class AppStateService {
   public onAuthSuccess() {
     console.log('[AppState] Auth success → SUBSCRIPTION');
     localStorage.setItem('hellobrick_authenticated', 'true');
+    localStorage.setItem('hellobrick_onboarding_finished', 'true');
     
     // After auth, show paywall to maximize conversion
     this.navigate(Screen.SUBSCRIPTION);
