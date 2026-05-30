@@ -172,7 +172,8 @@
       // SAFE MODE: If nothing renders in 12 seconds, show emergency UI
       setTimeout(function() {
         const root = document.getElementById('root');
-        if (root && root.innerHTML.includes('loading')) {
+        const loader = document.querySelector('.loading');
+        if (root && loader) {
           console.error('🛑 REACT MOUNT TIMEOUT: App stuck on loader');
           root.innerHTML = `
             <div style="padding: 40px; text-align: center; background: #fff; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: sans-serif;">
