@@ -1,10 +1,10 @@
 # HelloBrick: App Store Listing Overhaul
 
 ## App Title (30 characters max)
-**HelloBrick: LEGO® Scanner Value** (29 characters)
+**HelloBrick: Set Value Tracker** (29 characters)
 
 ## App Subtitle (30 characters max)
-**Scan LEGO® sets & track value** (29 characters)
+**Scan bricks & track value** (25 characters)
 
 ## Keywords (100 characters max)
 **lego,bricks,minifigures,scanner,portfolio,value,tracker,catalog,rebrickable,brickit,invest,sets,moc** (98 characters)
