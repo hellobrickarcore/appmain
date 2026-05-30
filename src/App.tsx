@@ -294,7 +294,7 @@ const App: React.FC = () => {
   return (
     <div className="dark bg-slate-950 h-[100dvh] overflow-hidden text-slate-100 selection:bg-orange-500/30 flex flex-col">
       {isBooting && <BootingScreen />}
-      <div className="flex-1 relative min-h-0 overflow-hidden">
+      <div className="flex-1 relative min-h-0 overflow-hidden flex flex-col">
         {renderScreen()}
       </div>
       {/* Dev Mode Nav Hidden for Screenshots

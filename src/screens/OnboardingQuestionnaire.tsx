@@ -117,7 +117,7 @@ export const OnboardingQuestionnaire: React.FC<OnboardingProps> = ({ onNavigate 
 
   return (
     <div
-      className="flex-1 bg-[#111111] flex flex-col overflow-hidden relative select-none"
+      className="h-full w-full bg-[#111111] flex flex-col overflow-hidden relative select-none"
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
       style={{ userSelect: 'none' }}
