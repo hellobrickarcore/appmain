@@ -20,13 +20,13 @@ This file contains the final, 100% compliant, and highly optimized App Store Con
 
 ## 🔑 Keywords (100 Characters Max)
 
-*   `bricks,minifigures,scanner,portfolio,value,tracker,catalog,rebrickable,brickit,invest,sets,moc,price` *(100 Characters - No Spaces)*
+*   `lego,bricks,minifigures,scanner,portfolio,value,tracker,catalog,rebrickable,brickit,invest,sets,moc` *(98 Characters - No Spaces)*
 
 ---
 
 ## 📣 Promotional Text (170 Characters Max)
 
-`Track the value of your brick collection! Scan sets and minifigures instantly, toggle sealed/used market values, and watch your portfolio grow daily.` *(154 Characters)*
+`Track the value of your LEGO® collection! Scan sets and minifigures instantly, toggle sealed/used market values, and watch your portfolio grow daily.` *(154 Characters)*
 
 ---
 
