@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, Lock, Globe, Bell, Shield, FileText, Trash2, Camera, AlertTriangle, DollarSign, Volume2 } from 'lucide-react';
+import { ChevronLeft, Lock, Globe, Bell, Shield, FileText, Trash2, Camera, AlertTriangle, DollarSign, Volume2, Compass } from 'lucide-react';
 import { Screen } from '../types';
 import { notificationService } from '../services/notificationService';
 import { userSettingsService } from '../services/userSettingsService';
@@ -281,6 +281,25 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({ on
                     <span className="text-sm font-bold text-white">{currencies.find(c => c.code === currency)?.flag} {currency}</span>
                     <ChevronLeft className="w-4 h-4 text-slate-600 rotate-180" />
                   </div>
+                </button>
+
+                <button 
+                  onClick={() => {
+                    localStorage.removeItem('hellobrick_onboarding_finished');
+                    onNavigate(Screen.ONBOARDING_QUESTIONNAIRE);
+                  }}
+                  className="w-full h-16 px-4 flex items-center justify-between hover:bg-white/5 transition-colors rounded-2xl"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400">
+                      <Compass className="w-5 h-5" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-bold text-white">Re-run App Tour</p>
+                      <p className="text-[10px] text-slate-400 font-medium">Review the interactive onboarding screens</p>
+                    </div>
+                  </div>
+                  <ChevronLeft className="w-4 h-4 text-slate-600 rotate-180" />
                 </button>
 
                 {showCurrencyPicker && (

@@ -184,9 +184,60 @@ export const InsightsScreen: React.FC<InsightsScreenProps> = ({ onNavigate }) =>
               </div>
 
               {collection.length === 0 ? (
-                <div className="text-center py-4">
-                  <p className="text-zinc-500 text-xs font-semibold">Your portfolio is currently empty.</p>
-                  <p className="text-zinc-600 text-[10px] mt-1">Scan or log sets in your Collection to analyze market production coverage.</p>
+                <div className="space-y-6">
+                  {/* Warning & Call to Action text */}
+                  <div className="bg-[#2A2A2A]/40 border border-amber-500/20 rounded-2xl p-4 flex gap-3.5 items-start">
+                    <span className="text-lg shrink-0">🔒</span>
+                    <div>
+                      <h4 className="text-xs font-black text-amber-400 uppercase tracking-wider mb-0.5">Activation Required</h4>
+                      <p className="text-[11px] text-zinc-400 font-semibold leading-relaxed">
+                        Personalized market value scans, discontinued asset monitors, and custom ROI projections are <strong className="text-white">locked</strong> until you add items to your collection. Add at least 1 set or minifigure to automatically populate these insights.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Sleek Mockup Stack */}
+                  <div className="relative rounded-[22px] border border-white/5 bg-black/40 overflow-hidden p-6 min-h-[220px] flex flex-col justify-between">
+                    {/* Blurred contents behind overlay */}
+                    <div className="space-y-4 filter blur-[2px] opacity-25 select-none pointer-events-none">
+                      <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                        <span className="text-[10px] uppercase font-bold text-zinc-500">Theme Exposure</span>
+                        <span className="text-xs font-black text-emerald-400">High Growth</span>
+                      </div>
+                      <div className="h-4 bg-zinc-800 rounded-full overflow-hidden flex">
+                        <div className="bg-yellow-400 h-full" style={{ width: '45%' }} />
+                        <div className="bg-blue-500 h-full" style={{ width: '30%' }} />
+                        <div className="bg-purple-500 h-full" style={{ width: '25%' }} />
+                      </div>
+                      <div className="space-y-2 pt-2">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-zinc-400">Star Wars (45%)</span>
+                          <span className="text-white font-bold">$1,280.00</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-zinc-400">Classic Space (30%)</span>
+                          <span className="text-white font-bold">$850.00</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Premium Activation Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#1A1A1A] via-[#1A1A1A]/95 to-[#1A1A1A]/80 flex flex-col items-center justify-center text-center p-6 z-10">
+                      <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-3">
+                        <Box className="w-5 h-5 text-emerald-400" />
+                      </div>
+                      <h4 className="text-[15px] font-black text-white mb-1.5">Unlock Portfolio Analytics</h4>
+                      <p className="text-[11px] text-zinc-500 font-medium leading-relaxed max-w-[240px] mb-5">
+                        Add items to your vault to activate comprehensive market insights, collection health scans, and live ROI dynamic tracking.
+                      </p>
+                      <button
+                        onClick={() => onNavigate(Screen.SCANNER)}
+                        className="bg-emerald-500 text-black px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 active:scale-95 transition-transform"
+                      >
+                        Scan Your First Set
+                      </button>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-4">
