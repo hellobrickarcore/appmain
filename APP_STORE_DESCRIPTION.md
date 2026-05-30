@@ -6,15 +6,15 @@ This file contains the final, 100% compliant, and highly optimized App Store Con
 
 ## 🏷️ App Title (30 Characters Max)
 
-*   **Option 1 (Recommended):** `HelloBrick: Set Value Tracker` *(29 Characters)*
-*   **Option 2 (Alternative):** `HelloBrick: Scan & Track Value` *(30 Characters)*
+*   **Option 1 (Recommended - High Organic Volume):** `HelloBrick: Brick Scanner` *(26 Characters)*
+*   **Option 2 (Alternative - Investor Focus):** `HelloBrick: Set Value Tracker` *(29 Characters)*
 
 ---
 
 ## 📝 App Subtitle (30 Characters Max)
 
-*   **Option 1 (Recommended):** `Scan bricks & track value` *(25 Characters)*
-*   **Option 2 (Alternative):** `Value tracker & price guide` *(27 Characters)*
+*   **Option 1 (Recommended - Matches Resale Vibe):** `Set Value & Price Guide` *(23 Characters)*
+*   **Option 2 (Alternative - Clean & Direct):** `Scan bricks & track value` *(25 Characters)*
 
 ---
 
