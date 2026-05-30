@@ -55,6 +55,7 @@ export const OnboardingQuestionnaire: React.FC<OnboardingProps> = ({ onNavigate 
   const [mounted, setMounted] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
   const [direction, setDirection] = useState<'forward' | 'back'>('forward');
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
 
@@ -167,6 +168,33 @@ export const OnboardingQuestionnaire: React.FC<OnboardingProps> = ({ onNavigate 
           background-size: 200% auto;
           animation: ob-shimmer 2.2s linear infinite;
         }
+
+        /* 📱 RESPONSIVE HEIGHTS FOR SMALL VIEWPORTS */
+        @media (max-height: 740px) {
+          .ob-card-container {
+            height: 180px !important;
+            margin-top: 8px !important;
+          }
+          .ob-card-item {
+            width: calc(var(--card-size) * 0.8px) !important;
+          }
+          .ob-title-text {
+            font-size: 24px !important;
+            margin-bottom: 8px !important;
+          }
+          .ob-sub-text {
+            font-size: 13px !important;
+          }
+          .ob-cta-container {
+            padding-bottom: 12px !important;
+            margin-top: 12px !important;
+          }
+          .ob-cta-btn {
+            padding-top: 12px !important;
+            padding-bottom: 12px !important;
+            font-size: 14px !important;
+          }
+        }
       `}</style>
 
       {/* Radial glow behind everything — accent colour */}
@@ -192,27 +220,52 @@ export const OnboardingQuestionnaire: React.FC<OnboardingProps> = ({ onNavigate 
       </div>
 
       {/* ─── Floating Preview Cards ──────────────────── */}
-      <div className="relative z-10 h-[260px] w-full shrink-0 mt-4 overflow-visible">
-        {slide.cards.map((card, i) => (
-          <div
-            key={`${slide.id}-${i}`}
-            className={`absolute bg-[#1C1C1E] rounded-[22px] shadow-[0_20px_50px_rgba(0,0,0,0.7)] border border-white/8 overflow-hidden p-3 ${i === 0 ? 'ob-card-a' : 'ob-card-b'}`}
-            style={{
-              width: card.size,
-              left: card.x,
-              top: card.y,
-              '--ob-rot': `${card.rot}deg`,
-              transform: `rotate(${card.rot}deg)`,
-              animationDelay: card.delay,
-            } as React.CSSProperties}
-          >
-            <div className="w-full aspect-square bg-[#2C2C2E] rounded-[14px] mb-2.5 overflow-hidden flex items-center justify-center p-2">
-              <img src={card.img} alt={card.label} className="w-full h-full object-contain drop-shadow-xl" loading="lazy" />
+      <div className="relative z-10 h-[260px] w-full shrink-0 mt-4 overflow-visible ob-card-container">
+        {slide.cards.map((card, i) => {
+          const hasFailed = failedImages[`${slide.id}-${i}`];
+          let fallbackEmoji = '🧱';
+          if (card.label.includes('Falcon') || card.label.includes('AT-AT')) fallbackEmoji = '🚀';
+          else if (card.label.includes('Titanic')) fallbackEmoji = '🚢';
+          else if (card.label.includes('Future')) fallbackEmoji = '🚗';
+          else if (card.label.includes('Square') || card.label.includes('Bookshop')) fallbackEmoji = '🏢';
+          else if (card.label.includes('House')) fallbackEmoji = '🌳';
+          else if (card.label.includes('Castle')) fallbackEmoji = '🏰';
+
+          return (
+            <div
+              key={`${slide.id}-${i}`}
+              className={`absolute bg-[#1C1C1E] rounded-[22px] shadow-[0_20px_50px_rgba(0,0,0,0.7)] border border-white/8 overflow-hidden p-3 ob-card-item ${i === 0 ? 'ob-card-a' : 'ob-card-b'}`}
+              style={{
+                '--card-size': card.size,
+                width: 'calc(var(--card-size) * 1px)',
+                left: card.x,
+                top: card.y,
+                '--ob-rot': `${card.rot}deg`,
+                transform: `rotate(${card.rot}deg)`,
+                animationDelay: card.delay,
+              } as React.CSSProperties}
+            >
+              <div className="w-full aspect-square bg-[#2C2C2E] rounded-[14px] mb-2.5 overflow-hidden flex items-center justify-center p-2 relative">
+                {hasFailed ? (
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#2A2A2A] to-[#1A1A1A] flex flex-col items-center justify-center text-center p-1.5 animate-fade-in">
+                    <span className="text-3xl filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)] mb-1">{fallbackEmoji}</span>
+                    <span className="text-[7.5px] uppercase font-black tracking-widest" style={{ color: slide.accent }}>Vault Item</span>
+                  </div>
+                ) : (
+                  <img 
+                    src={card.img} 
+                    alt={card.label} 
+                    onError={() => setFailedImages(prev => ({ ...prev, [`${slide.id}-${i}`]: true }))}
+                    className="w-full h-full object-contain drop-shadow-xl" 
+                    loading="lazy" 
+                  />
+                )}
+              </div>
+              <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider text-center truncate">{card.label}</p>
+              <p className="text-center font-black text-base mt-0.5" style={{ color: slide.accent }}>{card.price}</p>
             </div>
-            <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider text-center truncate">{card.label}</p>
-            <p className="text-center font-black text-base mt-0.5" style={{ color: slide.accent }}>{card.price}</p>
-          </div>
-        ))}
+          );
+        })}
 
         {/* Pulsing accent dot behind cards */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
@@ -248,10 +301,10 @@ export const OnboardingQuestionnaire: React.FC<OnboardingProps> = ({ onNavigate 
             ))}
           </div>
 
-          <h1 className="text-[34px] font-black text-white leading-[1.1] tracking-tight mb-3 whitespace-pre-line">
+          <h1 className="text-[34px] font-black text-white leading-[1.1] tracking-tight mb-3 whitespace-pre-line ob-title-text">
             {slide.headline}
           </h1>
-          <p className="text-zinc-400 text-[16px] font-medium leading-relaxed">
+          <p className="text-zinc-400 text-[16px] font-medium leading-relaxed ob-sub-text">
             {slide.sub}
           </p>
         </div>
@@ -260,12 +313,12 @@ export const OnboardingQuestionnaire: React.FC<OnboardingProps> = ({ onNavigate 
         <div className="flex-1" />
 
         {/* ─── CTA Buttons ─── */}
-        <div className="pb-[max(env(safe-area-inset-bottom),2.5rem)] space-y-3">
+        <div className="pb-[max(env(safe-area-inset-bottom),2.5rem)] space-y-3 ob-cta-container">
           {/* Primary CTA */}
           <button
             onClick={handleNext}
             disabled={transitioning}
-            className="w-full py-5 rounded-[18px] font-black text-[17px] text-white active:scale-[0.97] transition-transform shadow-lg relative overflow-hidden"
+            className="w-full py-5 rounded-[18px] font-black text-[17px] text-white active:scale-[0.97] transition-transform shadow-lg relative overflow-hidden ob-cta-btn"
             style={{
               background: slide.accent,
               boxShadow: `0 8px 30px ${slide.accent}44`,
