@@ -30,6 +30,20 @@ This file contains the final, 100% compliant, and highly optimized App Store Con
 
 ---
 
+## 🚀 What's New in This Version (Version 1.8.0)
+
+Welcome to the ultimate brick portfolio tracking experience! Version 1.8.0 is our biggest update yet, adding professional-grade tools to value, scan, and manage your Lego sets and mini figs like a professional stock trader.
+
+*   **🕶️ Interactive AR Value Lens:** Experience real-time market data! Point your camera at your shelves to project beautiful 3D glassmorphic cards showing live values floating right over your Lego sets.
+*   **📈 Dynamic Price History Charts:** Every set and mini fig now includes historical pricing charts. Toggle between 1D, 1W, 1M, 3M, 6M, 1Y, and ALL timeframes to track market trends effortlessly.
+*   **💰 Global Multi-Currency Support:** Track your portfolio net worth in your local currency. Switch between USD, EUR, GBP, CAD, AUD, JPY, and more in Settings.
+*   **🧑 Rare Mini Fig Scanner:** We've upgraded our AI scanner to identify over 15,000+ unique mini figs! Easily track individual mini fig values and set origins.
+*   **🏆 Value Kings Leaderboard:** Join top collectors around the globe. Opt-in to the leaderboard and see how your Lego portfolio stacks up against the world's best.
+*   **💎 Sleek Bloomberg-Style Redesign:** Complete UI aesthetic upgrade. Muted charcoal grids, clean typography, smooth animations, and zero toy-like clutter.
+*   **⚡ Launch & Stability Patches:** Fixed native launch timeouts, optimized onboarding views for all iPhone sizes, and added offline placeholder support.
+
+---
+
 ## 📖 App Store Description (4000 Characters Max)
 
 Your Lego collection and custom MOC builds are secretly worth thousands. 
