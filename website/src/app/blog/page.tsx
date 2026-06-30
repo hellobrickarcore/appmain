@@ -1,16 +1,29 @@
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@supabase/supabase-js";
 import { BlogPost } from "@/types";
 import { Layers, ArrowRight } from "lucide-react";
 
 export const revalidate = 3600; // Revalidate every hour
 
+async function getPosts(): Promise<BlogPost[]> {
+  try {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || "";
+    if (!url || !key) return [];
+    const client = createClient(url, key);
+    const { data } = await client
+      .from("posts")
+      .select("*")
+      .eq("status", "published")
+      .order("created_at", { ascending: false });
+    return (data as BlogPost[]) || [];
+  } catch {
+    return [];
+  }
+}
+
 export default async function BlogIndex() {
-  const { data: posts } = await supabase
-    .from("posts")
-    .select("*")
-    .eq("status", "published")
-    .order("created_at", { ascending: false });
+  const posts = await getPosts();
 
   return (
     <div className="min-h-screen bg-[#F5F5F7] text-gray-900 font-sans">

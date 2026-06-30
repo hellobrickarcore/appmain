@@ -1,10 +1,16 @@
 import { Metadata, ResolvingMetadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@supabase/supabase-js";
 import { BlogPost } from "@/types";
 import { Layers, ArrowLeft } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+
+function getSupabaseClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || "";
+  return createClient(url, key);
+}
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -17,6 +23,7 @@ export async function generateMetadata(
   parent: ResolvingMetadata
 ): Promise<Metadata> {
   const params = await props.params;
+  const supabase = getSupabaseClient();
   const { data: post } = await supabase
     .from("posts")
     .select("*")
@@ -50,6 +57,7 @@ export async function generateMetadata(
 
 export default async function BlogPostPage(props: Props) {
   const params = await props.params;
+  const supabase = getSupabaseClient();
   const { data: post } = (await supabase
     .from("posts")
     .select("*")
