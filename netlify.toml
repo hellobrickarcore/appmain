@@ -4,6 +4,9 @@
   command = "npm run build"
   environment = { NODE_VERSION = "20" }
 
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
 [[redirects]]
   # API Proxying - Specific to General
   from = "/api/admin/*"
@@ -40,10 +43,3 @@
   to = "http://174.138.93.172:3003/api/:splat"
   status = 200
   force = true
-
-[[redirects]]
-  # Support Single Page Application (SPA) routing: 
-  # Redirect all non-file requests to index.html
-  from = "/*"
-  to = "/index.html"
-  status = 200
