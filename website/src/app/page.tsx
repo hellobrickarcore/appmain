@@ -11,9 +11,9 @@ const fadeInUp = {
   transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] as const },
 };
 
-function Section({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+function Section({ children, className = "", style }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) {
   return (
-    <section className={`py-20 md:py-32 px-6 ${className}`}>
+    <section className={`py-20 md:py-32 px-6 ${className}`} style={style}>
       <div className="max-w-[1100px] mx-auto">{children}</div>
     </section>
   );
