@@ -4,7 +4,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "HelloBrick | The LEGO Scanner & Collection App Built for Builders",
+    default: "HelloBrick - LEGO Collection Tracker",
     template: "%s | HelloBrick",
   },
   description:

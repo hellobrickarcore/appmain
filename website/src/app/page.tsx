@@ -1,10 +1,28 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Menu, Globe, Scan, Search, Check, ArrowRight, Calendar, User, X, Disc } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 // ─── Navbar ──────────────────────────────────────────────────────────────────
 function Navbar() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsLoggedIn(!!session);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(!!session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-6 py-4">
       <div className="flex items-center gap-3">
@@ -21,9 +39,19 @@ function Navbar() {
         <a href="#features" className="hover:text-[#FF7A30] transition-colors">Features</a>
         <a href="#how-it-works" className="hover:text-[#FF7A30] transition-colors">How it Works</a>
         <a href="#pro" className="hover:text-[#FF7A30] transition-colors">HelloBrick Pro</a>
+        <a href="/blog" className="hover:text-[#FF7A30] transition-colors">Blog</a>
       </div>
 
       <div className="flex items-center gap-4">
+        {isLoggedIn ? (
+          <a href="/dashboard" className="hidden md:block font-bold text-gray-700 hover:text-[#FF7A30] transition-colors">
+            Dashboard
+          </a>
+        ) : (
+          <a href="/login" className="hidden md:block font-bold text-gray-700 hover:text-[#FF7A30] transition-colors">
+            Sign In
+          </a>
+        )}
         <button className="hidden md:flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-full text-sm font-bold hover:bg-gray-50">
           <Globe className="w-4 h-4 text-[#FF7A30]" />
           <span>EN</span>
