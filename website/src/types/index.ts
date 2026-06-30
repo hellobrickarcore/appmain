@@ -74,3 +74,19 @@ export type TimeRange = '7d' | '30d' | '90d' | '1y' | 'all';
 export type ViewMode = 'grid' | 'list';
 export type SortBy = 'value' | 'name' | 'year' | 'gain' | 'added';
 export type Condition = 'sealed' | 'used' | 'partial';
+
+export interface BlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  category: string;
+  image_url: string;
+  seo_metadata: {
+    keywords: string[];
+    description: string;
+  };
+  status: 'draft' | 'published';
+  created_at: string;
+}

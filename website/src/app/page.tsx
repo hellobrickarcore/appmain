@@ -31,6 +31,9 @@ export default function LandingPage() {
             HelloBrick
           </div>
           <div className="flex items-center gap-4">
+            <Link href="/blog" className="text-sm font-medium hover:text-black transition-colors text-gray-600">
+              Blog
+            </Link>
             <Link href="/login" className="text-sm font-medium hover:text-black transition-colors text-gray-600">
               Sign In
             </Link>
