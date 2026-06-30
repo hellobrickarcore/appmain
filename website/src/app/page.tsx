@@ -2,289 +2,281 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { Check, ArrowRight, ScanLine, Search, LayoutGrid, Zap, Layers, ChevronDown } from "lucide-react";
-import { useState } from "react";
+import { Apple, Camera, Cpu, Layers, Star, Zap } from "lucide-react";
 
-const fadeUp = {
-  initial: { opacity: 0, y: 30 },
-  animate: { opacity: 1, y: 0 },
+const fadeInUp = {
+  initial: { opacity: 0, y: 20 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true },
+  transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] as const },
 };
 
-const stagger = {
-  animate: {
-    transition: { staggerChildren: 0.1, delayChildren: 0.1 },
-  },
-};
+function Section({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <section className={`py-20 md:py-32 px-6 ${className}`}>
+      <div className="max-w-[1100px] mx-auto">{children}</div>
+    </section>
+  );
+}
 
 export default function LandingPage() {
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
-
   return (
-    <div className="min-h-screen bg-[#F5F5F7] text-gray-900 font-sans selection:bg-[#C9A84C] selection:text-white">
-      {/* Navigation */}
-      <nav className="fixed top-0 inset-x-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200">
-        <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="font-bold text-xl tracking-tight text-black flex items-center gap-2">
-            <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
+    <div
+      className="min-h-screen bg-white font-sans overflow-x-hidden"
+      style={{ color: "#111111" }}
+    >
+      {/* NAV */}
+      <nav
+        className="fixed top-0 inset-x-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100"
+      >
+        <div className="max-w-[1100px] mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2 font-black text-xl tracking-tighter">
+            <div
+              className="w-8 h-8 rounded-xl flex items-center justify-center"
+              style={{ background: "#FF7A30" }}
+            >
               <Layers className="text-white w-5 h-5" />
             </div>
             HelloBrick
           </div>
-          <div className="flex items-center gap-4">
-            <Link href="/blog" className="text-sm font-medium hover:text-black transition-colors text-gray-600">
+          <div className="flex items-center gap-6">
+            <Link
+              href="/blog"
+              className="text-sm font-bold text-slate-500 hover:text-black transition-colors"
+            >
               Blog
             </Link>
-            <Link href="/login" className="text-sm font-medium hover:text-black transition-colors text-gray-600">
+            <Link
+              href="/login"
+              className="text-sm font-bold text-slate-500 hover:text-black transition-colors"
+            >
               Sign In
             </Link>
-            <Link
-              href="https://apps.apple.com"
-              className="bg-black text-white text-sm font-bold px-4 py-2 rounded-full hover:scale-105 transition-transform"
+            <a
+              href="https://apps.apple.com/app/hellobrick"
+              className="flex items-center gap-2 text-white text-sm font-black px-4 py-2 rounded-xl hover:scale-[1.03] active:scale-[0.98] transition-all"
+              style={{ background: "#111111" }}
             >
-              Get App
-            </Link>
+              <Apple className="w-4 h-4 fill-current" />
+              Download
+            </a>
           </div>
         </div>
       </nav>
 
-      <main className="pt-32 pb-24">
-        {/* HERO SECTION */}
-        <section className="max-w-4xl mx-auto px-6 text-center mb-32">
-          <motion.div variants={stagger} initial="initial" animate="animate" className="space-y-8">
-            <motion.h1 
-              variants={fadeUp}
-              className="text-5xl md:text-7xl font-extrabold tracking-tight text-black leading-[1.1]"
-            >
-              The LEGO Scanner & Collection App <span className="text-[#C9A84C]">Built for Builders.</span>
-            </motion.h1>
-            
-            <motion.p 
-              variants={fadeUp}
-              className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed"
-            >
-              Scan your LEGO collection, identify bricks, organise sets, discover new builds and manage everything in one place. The modern alternative for serious LEGO collectors.
-            </motion.p>
-            
-            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-              <Link
-                href="https://apps.apple.com"
-                className="w-full sm:w-auto bg-[#C9A84C] text-black px-8 py-4 rounded-2xl font-bold text-lg hover:scale-105 transition-transform flex items-center justify-center gap-2 shadow-xl shadow-[#C9A84C]/20"
+      {/* 1. HERO SECTION */}
+      <section className="pt-36 pb-20 md:pt-48 md:pb-32 px-6">
+        <div className="max-w-[1100px] mx-auto text-center">
+          <motion.div {...fadeInUp}>
+            <h1 className="text-[48px] md:text-[64px] font-black tracking-tight leading-[1.05] mb-6">
+              Turn your brick pile into <br className="hidden md:block" />
+              something you can actually build
+            </h1>
+            <p className="text-[18px] md:text-[20px] font-medium mb-10 max-w-[600px] mx-auto" style={{ color: "#64748B" }}>
+              Scan your bricks and get real build ideas — instantly
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
+              <a
+                href="https://apps.apple.com/app/hellobrick"
+                className="group flex items-center gap-3 text-white px-8 py-4 rounded-2xl font-black text-[17px] hover:scale-[1.03] active:scale-[0.98] transition-all shadow-xl"
+                style={{ background: "#111111", boxShadow: "0 20px 40px rgba(0,0,0,0.1)" }}
               >
-                Download on the App Store <ArrowRight className="w-5 h-5" />
-              </Link>
-              <Link
-                href="#how-it-works"
-                className="w-full sm:w-auto bg-white text-black border border-gray-200 px-8 py-4 rounded-2xl font-bold text-lg hover:bg-gray-50 transition-colors flex items-center justify-center"
-              >
-                See How It Works
-              </Link>
-            </motion.div>
-
-            <motion.div variants={fadeUp} className="pt-8 flex items-center justify-center gap-2 text-sm font-medium text-gray-500">
-              <div className="flex gap-1 text-[#C9A84C]">
-                {[...Array(5)].map((_, i) => <svg key={i} className="w-5 h-5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>)}
-              </div>
-              Trusted by LEGO builders worldwide
-            </motion.div>
+                <Apple className="w-6 h-6 fill-current" />
+                Download on the App Store
+              </a>
+            </div>
           </motion.div>
-        </section>
 
-        {/* IMMEDIATELY BELOW THE FOLD: Everything You Need */}
-        <section id="how-it-works" className="max-w-5xl mx-auto px-6 mb-32">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-bold text-black mb-4">Everything You Need to Manage Your LEGO Collection</h2>
-            <p className="text-gray-500 font-medium">Fast. Accurate. Built for collectors.</p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 bg-[#F5F5F7] rounded-2xl flex items-center justify-center mb-6">
-                <ScanLine className="w-6 h-6 text-black" />
-              </div>
-              <h3 className="text-xl font-bold text-black mb-2">Scan LEGO Bricks</h3>
-              <p className="text-gray-600">Instantly identify bricks and sets using your phone&apos;s camera.</p>
-            </div>
-
-            <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 bg-[#F5F5F7] rounded-2xl flex items-center justify-center mb-6">
-                <LayoutGrid className="w-6 h-6 text-black" />
-              </div>
-              <h3 className="text-xl font-bold text-black mb-2">Organise Your Collection</h3>
-              <p className="text-gray-600">Track every set, loose brick and minifigure in one place.</p>
-            </div>
-
-            <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 bg-[#F5F5F7] rounded-2xl flex items-center justify-center mb-6">
-                <Zap className="w-6 h-6 text-black" />
-              </div>
-              <h3 className="text-xl font-bold text-black mb-2">Build More</h3>
-              <p className="text-gray-600">Discover what you can build from the LEGO you already own.</p>
-            </div>
-
-            <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 bg-[#F5F5F7] rounded-2xl flex items-center justify-center mb-6">
-                <Search className="w-6 h-6 text-black" />
-              </div>
-              <h3 className="text-xl font-bold text-black mb-2">Never Lose Track</h3>
-              <p className="text-gray-600">Search, filter and organise thousands of pieces in seconds.</p>
-            </div>
-          </div>
-        </section>
-
-        {/* COMPARISON SECTION */}
-        <section className="max-w-4xl mx-auto px-6 mb-32">
-          <div className="bg-black text-white rounded-3xl p-8 md:p-12 shadow-2xl">
-            <h2 className="text-3xl md:text-4xl font-bold mb-10 text-center">Why Builders Choose HelloBrick</h2>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-gray-800">
-                    <th className="py-4 text-gray-400 font-medium">Feature</th>
-                    <th className="py-4 font-bold text-[#C9A84C] text-lg">HelloBrick</th>
-                    <th className="py-4 text-gray-500 font-medium whitespace-nowrap">Traditional LEGO Apps</th>
-                  </tr>
-                </thead>
-                <tbody className="text-lg">
-                  <tr className="border-b border-gray-800/50">
-                    <td className="py-5 font-medium">Fast brick scanning</td>
-                    <td className="py-5 text-[#34D399]"><Check className="w-6 h-6" /></td>
-                    <td className="py-5 text-gray-500 text-sm">✓ / varies</td>
-                  </tr>
-                  <tr className="border-b border-gray-800/50">
-                    <td className="py-5 font-medium">Collection management</td>
-                    <td className="py-5 text-[#34D399]"><Check className="w-6 h-6" /></td>
-                    <td className="py-5 text-gray-500 text-sm">—</td>
-                  </tr>
-                  <tr className="border-b border-gray-800/50">
-                    <td className="py-5 font-medium">Smart search</td>
-                    <td className="py-5 text-[#34D399]"><Check className="w-6 h-6" /></td>
-                    <td className="py-5 text-gray-500 text-sm">—</td>
-                  </tr>
-                  <tr className="border-b border-gray-800/50">
-                    <td className="py-5 font-medium">Modern interface</td>
-                    <td className="py-5 text-[#34D399]"><Check className="w-6 h-6" /></td>
-                    <td className="py-5 text-gray-500 text-sm">—</td>
-                  </tr>
-                  <tr>
-                    <td className="py-5 font-medium">Active development</td>
-                    <td className="py-5 text-[#34D399]"><Check className="w-6 h-6" /></td>
-                    <td className="py-5 text-gray-500 text-sm">—</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-
-        {/* SEARCH INTENT SECTION */}
-        <section className="max-w-3xl mx-auto px-6 mb-32">
-          <h2 className="text-3xl md:text-5xl font-bold text-black mb-12 text-center">Looking for...</h2>
-          
-          <div className="space-y-6">
-            <div className="bg-white p-6 rounded-2xl border border-gray-200">
-              <h3 className="text-xl font-bold text-black mb-2">Looking for a LEGO Scanner?</h3>
-              <p className="text-gray-600">HelloBrick scans and helps organise your LEGO collection from your phone.</p>
-            </div>
-            
-            <div className="bg-white p-6 rounded-2xl border border-gray-200">
-              <h3 className="text-xl font-bold text-black mb-2">Need a LEGO Inventory App?</h3>
-              <p className="text-gray-600">Keep track of every brick, set and minifigure in one searchable collection.</p>
-            </div>
-            
-            <div className="bg-white p-6 rounded-2xl border border-gray-200">
-              <h3 className="text-xl font-bold text-black mb-2">Want to Organise Your LEGO Collection?</h3>
-              <p className="text-gray-600">Whether you own 500 bricks or 50,000, HelloBrick keeps everything organised.</p>
-            </div>
-            
-            <div className="bg-white p-6 rounded-2xl border border-gray-200">
-              <h3 className="text-xl font-bold text-black mb-2">Wondering What You Can Build?</h3>
-              <p className="text-gray-600">Browse your collection and discover building inspiration based on what you already own.</p>
-            </div>
-          </div>
-        </section>
-
-        {/* FEATURES SUMMARY */}
-        <section className="max-w-5xl mx-auto px-6 mb-32">
-          <div className="bg-white border border-gray-200 rounded-3xl p-8 md:p-12">
-            <div className="grid md:grid-cols-5 gap-8 text-center md:text-left">
-              <div>
-                <h4 className="font-bold text-black mb-2">Scan</h4>
-                <p className="text-sm text-gray-600">Identify LEGO bricks quickly.</p>
-              </div>
-              <div>
-                <h4 className="font-bold text-black mb-2">Search</h4>
-                <p className="text-sm text-gray-600">Find any brick instantly.</p>
-              </div>
-              <div>
-                <h4 className="font-bold text-black mb-2">Inventory</h4>
-                <p className="text-sm text-gray-600">Track your collection.</p>
-              </div>
-              <div>
-                <h4 className="font-bold text-black mb-2">Collections</h4>
-                <p className="text-sm text-gray-600">Organise by sets, themes or custom categories.</p>
-              </div>
-              <div>
-                <h4 className="font-bold text-black mb-2">Build</h4>
-                <p className="text-sm text-gray-600">Explore new ideas from your existing collection.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* SEO BLOCK */}
-        <section className="max-w-3xl mx-auto px-6 mb-32 text-center">
-          <h2 className="text-2xl font-bold text-black mb-4">The Complete LEGO Collection App</h2>
-          <p className="text-gray-600 leading-relaxed">
-            HelloBrick helps LEGO fans scan bricks, organise collections, manage inventories and discover new ways to build. Whether you&apos;re cataloguing thousands of pieces or identifying a single brick, HelloBrick makes managing your collection simple.
-          </p>
-        </section>
-
-        {/* FAQ */}
-        <section className="max-w-3xl mx-auto px-6 mb-32">
-          <h2 className="text-3xl font-bold text-black mb-8 text-center">FAQ</h2>
-          <div className="space-y-4">
-            {[
-              { q: "What is the best LEGO scanner app?", a: "HelloBrick helps you scan, organise and manage your LEGO collection from your phone." },
-              { q: "Can I organise my LEGO collection?", a: "Yes. Keep track of sets, bricks and collections in one searchable library." },
-              { q: "Can I identify LEGO bricks?", a: "Use HelloBrick to quickly identify and organise your LEGO pieces." },
-              { q: "Is HelloBrick free?", a: "Download HelloBrick for free from the App Store." }
-            ].map((faq, i) => (
-              <div key={i} className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-                <button 
-                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  className="w-full px-6 py-4 flex items-center justify-between font-bold text-left text-black hover:bg-gray-50 transition-colors"
-                >
-                  {faq.q}
-                  <ChevronDown className={`w-5 h-5 transition-transform ${openFaq === i ? "rotate-180" : ""}`} />
-                </button>
-                {openFaq === i && (
-                  <div className="px-6 pb-4 text-gray-600">
-                    {faq.a}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* FINAL CTA */}
-        <section className="max-w-4xl mx-auto px-6 text-center">
-          <div className="bg-[#C9A84C] rounded-3xl p-12 md:p-20 shadow-2xl shadow-[#C9A84C]/20">
-            <h2 className="text-4xl md:text-5xl font-extrabold text-black mb-6">Ready to Organise Your LEGO Collection?</h2>
-            <p className="text-black/80 text-xl mb-10">Download HelloBrick today and start scanning.</p>
-            <Link
-              href="https://apps.apple.com"
-              className="inline-flex bg-black text-white px-10 py-5 rounded-2xl font-bold text-lg hover:scale-105 transition-transform items-center justify-center gap-2"
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1, delay: 0.2 }}
+            className="relative max-w-[800px] mx-auto"
+          >
+            <div
+              className="aspect-[16/10] rounded-[40px] overflow-hidden border border-slate-100 shadow-2xl relative"
+              style={{ background: "#F8FAFC" }}
             >
-              Download on the App Store <ArrowRight className="w-5 h-5" />
-            </Link>
-          </div>
-        </section>
-      </main>
+              <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
+                <div className="w-20 h-20 bg-white/20 backdrop-blur-xl rounded-full flex items-center justify-center border border-white/40 shadow-2xl animate-pulse">
+                  <Camera className="w-10 h-10 text-white" />
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
 
-      <footer className="border-t border-gray-200 bg-white py-12 text-center text-gray-500 text-sm">
-        <p>© {new Date().getFullYear()} HelloBrick. Not affiliated with the LEGO Group.</p>
+      {/* 2. VISUAL PROOF */}
+      <section className="overflow-hidden" style={{ background: "#111111", paddingTop: 0, paddingBottom: 0 }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
+          <div className="relative aspect-square md:aspect-auto min-h-[400px] flex items-center justify-center" style={{ background: "#1a1a1a" }}>
+            <div className="absolute top-8 left-8 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
+              <span className="text-white font-black text-sm uppercase tracking-widest">From this 👇</span>
+            </div>
+            <Camera className="w-20 h-20 text-white/20" />
+          </div>
+          <div className="relative aspect-square md:aspect-auto min-h-[400px] flex items-center justify-center" style={{ background: "#222" }}>
+            <div className="absolute top-8 right-8 px-4 py-2 rounded-full border border-white/20" style={{ background: "#FF7A30" }}>
+              <span className="text-white font-black text-sm uppercase tracking-widest">To this 👇</span>
+            </div>
+            <Zap className="w-20 h-20 text-white/20" />
+          </div>
+        </div>
+      </section>
+
+      {/* 3. PROBLEM → SOLUTION */}
+      <Section className="text-center">
+        <motion.div {...fadeInUp}>
+          <h2 className="text-[32px] md:text-[48px] font-black tracking-tight mb-6 max-w-[800px] mx-auto">
+            Most brick collections sit unused
+          </h2>
+          <p className="text-[18px] md:text-[22px] font-medium leading-relaxed max-w-[700px] mx-auto" style={{ color: "#64748B" }}>
+            HelloBrick shows you exactly what you can build — without sorting or guessing
+          </p>
+        </motion.div>
+      </Section>
+
+      {/* 4. HOW IT WORKS */}
+      <Section className="rounded-[48px] my-10" style={{ background: "#F8FAFC" }}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 text-center">
+          {[
+            { icon: Camera, title: "Scan your bricks", desc: "Just point your camera at your messy pile." },
+            { icon: Cpu, title: "Detect what you have", desc: "Identify every brick in seconds." },
+            { icon: Zap, title: "Get build ideas", desc: "Start building instantly with what&apos;s in front of you." },
+          ].map((step, i) => (
+            <motion.div key={i} {...fadeInUp} transition={{ delay: i * 0.1 }}>
+              <div className="w-16 h-16 bg-white rounded-2xl shadow-xl flex items-center justify-center mx-auto mb-6" style={{ boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
+                <step.icon className="w-8 h-8" style={{ color: "#FF7A30" }} />
+              </div>
+              <h3 className="text-[20px] font-black mb-2">{step.title}</h3>
+              <p className="font-medium" style={{ color: "#64748B" }}>{step.desc}</p>
+            </motion.div>
+          ))}
+        </div>
+      </Section>
+
+      {/* 5. DIFFERENTIATION */}
+      <Section>
+        <div className="flex flex-col md:flex-row items-center gap-16">
+          <div className="w-full md:w-1/2">
+            <h2 className="text-[32px] md:text-[48px] font-black tracking-tight mb-6">
+              Works with messy, <br /> mixed bricks
+            </h2>
+            <p className="text-[18px] md:text-[20px] font-medium leading-relaxed" style={{ color: "#64748B" }}>
+              No need to organise. No perfect sets required. Just throw them on the table and scan.
+            </p>
+          </div>
+          <div className="w-full md:w-1/2">
+            <div className="rounded-[32px] overflow-hidden border border-slate-100 shadow-2xl aspect-video flex items-center justify-center" style={{ background: "#F8FAFC" }}>
+              <Camera className="w-16 h-16 text-slate-300" />
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      {/* 6. USE CASES */}
+      <Section className="rounded-[48px] my-10 text-white" style={{ background: "#111111" }}>
+        <div className="text-center mb-16">
+          <h2 className="text-[32px] md:text-[48px] font-black tracking-tight">Perfect for:</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            { title: "Random Collections", desc: "Mixed bricks from years of building." },
+            { title: "Bored Kids", desc: "When they don't know what to build next." },
+            { title: "Anyone Else", desc: "Who wants to build something new today." },
+          ].map((use, i) => (
+            <div key={i} className="p-8 rounded-3xl text-center" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}>
+              <h3 className="text-[18px] font-black mb-2">{use.title}</h3>
+              <p className="font-medium" style={{ color: "rgba(255,255,255,0.6)" }}>{use.desc}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* 7. SOCIAL PROOF */}
+      <Section>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {[
+            { quote: "This saved me hours sorting", author: "Sarah, Parent of two" },
+            { quote: "My kids actually use their bricks again", author: "Mark, LEGO Fan" },
+            { quote: "So much easier than figuring it out myself", author: "James, Designer" },
+          ].map((test, i) => (
+            <motion.div
+              key={i}
+              {...fadeInUp}
+              className="p-10 rounded-[32px] border border-slate-100"
+              style={{ background: "#F8FAFC" }}
+            >
+              <div className="flex gap-1 mb-6">
+                {[...Array(5)].map((_, j) => (
+                  <Star key={j} className="w-5 h-5" style={{ fill: "#FF7A30", color: "#FF7A30" }} />
+                ))}
+              </div>
+              <p className="text-[18px] font-bold italic mb-6 leading-relaxed">&ldquo;{test.quote}&rdquo;</p>
+              <p className="font-black text-sm uppercase tracking-widest" style={{ color: "#64748B" }}>{test.author}</p>
+            </motion.div>
+          ))}
+        </div>
+      </Section>
+
+      {/* 8. PRODUCT UI SHOWCASE */}
+      <section className="py-20 md:py-32 overflow-hidden" style={{ background: "#F8FAFC" }}>
+        <div className="max-w-[1100px] mx-auto px-6 mb-16 text-center">
+          <h2 className="text-[32px] md:text-[48px] font-black tracking-tight mb-4">
+            Simple. Fast. Works instantly.
+          </h2>
+        </div>
+        <div className="flex gap-8 px-6 overflow-x-auto pb-10" style={{ msOverflowStyle: "none", scrollbarWidth: "none" }}>
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="flex-shrink-0 w-[280px] md:w-[320px] aspect-[9/19] rounded-[40px] overflow-hidden flex items-center justify-center"
+              style={{ background: "#111111", border: "8px solid #111111" }}
+            >
+              <Camera className="w-12 h-12 text-white/20" />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 9. FINAL CTA */}
+      <Section className="text-center" style={{ paddingTop: "10rem", paddingBottom: "10rem" }}>
+        <motion.div {...fadeInUp}>
+          <h2 className="text-[40px] md:text-[64px] font-black tracking-tight mb-6">
+            Find out what your <br /> bricks can build
+          </h2>
+          <p className="text-[18px] md:text-[20px] font-medium mb-12" style={{ color: "#64748B" }}>
+            Download HelloBrick and start building today
+          </p>
+          <a
+            href="https://apps.apple.com/app/hellobrick"
+            className="inline-flex items-center gap-3 text-white px-10 py-5 rounded-2xl font-black text-[20px] hover:scale-[1.03] active:scale-[0.98] transition-all shadow-2xl"
+            style={{ background: "#111111", boxShadow: "0 25px 50px rgba(0,0,0,0.2)" }}
+          >
+            <Apple className="w-7 h-7 fill-current" />
+            Download Now
+          </a>
+        </motion.div>
+      </Section>
+
+      {/* FOOTER */}
+      <footer className="py-12 px-6 border-t border-slate-100">
+        <div className="max-w-[1100px] mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#FF7A30" }}>
+              <Layers className="w-6 h-6 text-white" />
+            </div>
+            <span className="font-black text-xl tracking-tighter" style={{ color: "#111111" }}>HelloBrick</span>
+          </div>
+          <div className="flex gap-8 font-bold text-sm" style={{ color: "#64748B" }}>
+            <Link href="/blog" className="hover:text-black transition-colors">Blog</Link>
+            <Link href="/privacy" className="hover:text-black transition-colors">Privacy</Link>
+            <Link href="/terms" className="hover:text-black transition-colors">Terms</Link>
+            <Link href="/support" className="hover:text-black transition-colors">Support</Link>
+          </div>
+          <p className="text-sm font-medium" style={{ color: "#64748B" }}>© 2026 HelloBrick. All rights reserved.</p>
+        </div>
       </footer>
     </div>
   );
