@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Menu, Globe, Scan, Shield, Search, Check, ArrowRight, Calendar, User, Twitter, Disc } from "lucide-react";
+import { Menu, Globe, Scan, Search, Check, ArrowRight, Calendar, User, X, Disc } from "lucide-react";
 
 // ─── Navbar ──────────────────────────────────────────────────────────────────
 function Navbar() {
@@ -435,7 +435,7 @@ function Footer() {
           </div>
           <div className="flex gap-4">
             <a href="https://twitter.com/hellobrick" className="w-10 h-10 bg-white/10 text-white rounded-full flex items-center justify-center hover:bg-[#FF7A30] transition-all">
-              <Twitter className="w-5 h-5" fill="currentColor" />
+              <X className="w-5 h-5" />
             </a>
             <a href="https://discord.gg/hellobrick" className="w-10 h-10 bg-white/10 text-white rounded-full flex items-center justify-center hover:bg-[#FF7A30] transition-all">
               <Disc className="w-5 h-5" fill="currentColor" />
