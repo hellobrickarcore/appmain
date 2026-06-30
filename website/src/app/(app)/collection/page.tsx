@@ -22,7 +22,7 @@ import {
 import { mockSets, getValuation } from "@/lib/mock-data";
 import { formatCurrency, formatPercent, cn } from "@/lib/utils";
 import { Badge, Card, ValueDisplay, PriceChange, SearchInput } from "@/components/ui";
-import type { LegoSet, SetValuation, CollectionItem, ViewMode, SortBy } from "@/types";
+import type { LegoSet, SetValuation, CollectionItem, ViewMode, SortBy, Condition } from "@/types";
 
 const containerVariants = {
   animate: { transition: { staggerChildren: 0.04 } },
@@ -60,10 +60,10 @@ export default function CollectionPage() {
     load();
   }, []);
 
-  const handleToggleCondition = async (e: React.MouseEvent, id: string, currentCondition: string) => {
+  const handleToggleCondition = async (e: React.MouseEvent, id: string, currentCondition: Condition) => {
     e.preventDefault();
     e.stopPropagation();
-    const newCondition = currentCondition === "sealed" ? "used" : "sealed";
+    const newCondition: Condition = currentCondition === "sealed" ? "used" : "sealed";
     // Optimistic UI update
     setCollection(prev => prev.map(item => item.id === id ? { ...item, condition: newCondition } : item));
     try {
