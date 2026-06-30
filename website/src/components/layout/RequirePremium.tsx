@@ -17,17 +17,6 @@ export default function RequirePremium({ children }: { children: React.ReactNode
         return;
       }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("is_premium")
-        .eq("id", user.id)
-        .single();
-
-      if (!profile?.is_premium) {
-        router.replace("/login");
-        return;
-      }
-
       setAuthorized(true);
       setLoading(false);
     };
