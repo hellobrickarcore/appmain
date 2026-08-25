@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronLeft, Bell, Settings } from "lucide-react";
+import { ChevronLeft, Bell, Settings, LayoutDashboard, Grid, Heart, ScanLine } from "lucide-react";
 
 interface HeaderProps {
   title?: string;
@@ -20,6 +20,13 @@ export default function Header({
 }: HeaderProps) {
   const pathname = usePathname();
 
+  const links = [
+    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Collection", href: "/collection", icon: Grid },
+    { name: "Wishlist", href: "/wishlist", icon: Heart },
+    { name: "Scan", href: "/scan", icon: ScanLine },
+  ];
+
   return (
     <header
       className={`sticky top-0 z-40 ${
@@ -30,7 +37,7 @@ export default function Header({
     >
       <div className="flex items-center justify-between px-6 py-4 max-w-7xl mx-auto">
         {/* Left */}
-        <div className="flex items-center gap-3 min-w-[80px]">
+        <div className="flex items-center gap-3 min-w-[200px]">
           {showBack ? (
             <button
               onClick={() => window.history.back()}
@@ -51,19 +58,30 @@ export default function Header({
           )}
         </div>
 
-        {/* Center */}
-        {title && (
-          <motion.h1
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="font-display font-bold text-[17px] text-[#050A18] absolute left-1/2 -translate-x-1/2"
-          >
-            {title}
-          </motion.h1>
-        )}
+        {/* Center - Navigation */}
+        <nav className="hidden md:flex items-center gap-1">
+          {links.map((link) => {
+            const isActive = pathname === link.href;
+            const Icon = link.icon;
+            return (
+              <Link
+                key={link.name}
+                href={link.href}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                  isActive 
+                    ? "bg-gray-100 text-[#050A18]" 
+                    : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                }`}
+              >
+                <Icon size={16} className={isActive ? "text-[#FF7A30]" : ""} />
+                {link.name}
+              </Link>
+            );
+          })}
+        </nav>
 
         {/* Right */}
-        <div className="flex items-center gap-2 min-w-[80px] justify-end">
+        <div className="flex items-center gap-2 min-w-[200px] justify-end">
           {showActions && (
             <>
               <button className="p-2 rounded-xl hover:bg-gray-100 transition-colors relative">

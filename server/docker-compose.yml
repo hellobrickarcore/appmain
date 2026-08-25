@@ -1,10 +1,14 @@
 services:
   yolo-backend:
-    build: .
+    image: hellobrick-backend:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: hellobrick-yolo
     restart: always
     ports:
       - "3003:3003"
+    command: ["gunicorn", "--bind", "0.0.0.0:3003", "--workers", "1", "--timeout", "120", "--threads", "4", "yolo_detection_server:app"]
     environment:
       - PYTHONUNBUFFERED=1
       - SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRsY3FpaXhscG1wZ3VpeHpiYnhqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjQ0ODk3MCwiZXhwIjoyMDg4MDI0OTcwfQ.OK9uiI8sl-sRk7BlpsLkFxs-gxFzDj3RpJsivpgCvTg
@@ -17,7 +21,7 @@ services:
           memory: 512M
 
   auth-backend:
-    build: .
+    image: hellobrick-backend:latest
     container_name: hellobrick-auth
     restart: always
     ports:
@@ -27,9 +31,11 @@ services:
       - PYTHONUNBUFFERED=1
       - SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRsY3FpaXhscG1wZ3VpeHpiYnhqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjQ0ODk3MCwiZXhwIjoyMDg4MDI0OTcwfQ.OK9uiI8sl-sRk7BlpsLkFxs-gxFzDj3RpJsivpgCvTg
       - VITE_SUPABASE_URL=https://tlcqiixlpmpguixzbbxj.supabase.co
+    depends_on:
+      - yolo-backend
 
   xp-backend:
-    build: .
+    image: hellobrick-backend:latest
     container_name: hellobrick-xp
     restart: always
     ports:
@@ -37,9 +43,13 @@ services:
     command: ["python3", "xp-service.py"]
     environment:
       - PYTHONUNBUFFERED=1
+      - SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRsY3FpaXhscG1wZ3VpeHpiYnhqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjQ0ODk3MCwiZXhwIjoyMDg4MDI0OTcwfQ.OK9uiI8sl-sRk7BlpsLkFxs-gxFzDj3RpJsivpgCvTg
+      - VITE_SUPABASE_URL=https://tlcqiixlpmpguixzbbxj.supabase.co
+    depends_on:
+      - yolo-backend
 
   feed-backend:
-    build: .
+    image: hellobrick-backend:latest
     container_name: hellobrick-feed
     restart: always
     ports:
@@ -47,9 +57,13 @@ services:
     command: ["python3", "feed-service.py"]
     environment:
       - PYTHONUNBUFFERED=1
+      - SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRsY3FpaXhscG1wZ3VpeHpiYnhqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjQ0ODk3MCwiZXhwIjoyMDg4MDI0OTcwfQ.OK9uiI8sl-sRk7BlpsLkFxs-gxFzDj3RpJsivpgCvTg
+      - VITE_SUPABASE_URL=https://tlcqiixlpmpguixzbbxj.supabase.co
+    depends_on:
+      - yolo-backend
 
   admin-backend:
-    build: .
+    image: hellobrick-backend:latest
     container_name: hellobrick-admin
     restart: always
     ports:
@@ -59,3 +73,5 @@ services:
       - PYTHONUNBUFFERED=1
       - SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRsY3FpaXhscG1wZ3VpeHpiYnhqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjQ0ODk3MCwiZXhwIjoyMDg4MDI0OTcwfQ.OK9uiI8sl-sRk7BlpsLkFxs-gxFzDj3RpJsivpgCvTg
       - VITE_SUPABASE_URL=https://tlcqiixlpmpguixzbbxj.supabase.co
+    depends_on:
+      - yolo-backend

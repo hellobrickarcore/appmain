@@ -11,7 +11,7 @@ import { Capacitor } from '@capacitor/core';
  */
 
 const PROD_API_BASE = 'https://hellobrick.app';
-const DO_IP = '174.138.93.172';
+const DO_IP = '67.205.172.107';
 
 /**
  * Resolves a central API URL based on platform and service.

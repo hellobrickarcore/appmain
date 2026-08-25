@@ -15,12 +15,11 @@ import {
   Lightbulb,
   BookOpen,
   ShoppingCart,
-  ExternalLink
+  ExternalLink,
+  Flame
 } from "lucide-react";
 import {
   mockSets,
-  mockCollection,
-  mockPortfolioHistory,
   getValuation,
 } from "@/lib/mock-data";
 import type { LegoSet, SetValuation } from "@/types";
@@ -84,12 +83,11 @@ export default function DashboardPage() {
         if (data && data.length > 0) {
            setCollection(data);
         } else {
-           // Fallback to mock data for demonstration if empty
-           setCollection(mockCollection);
+           setCollection([]);
         }
       } catch (err) {
         console.error(err);
-        setCollection(mockCollection);
+        setCollection([]);
       }
       setLoading(false);
     }
@@ -132,6 +130,15 @@ export default function DashboardPage() {
       (b.item.condition === "sealed" ? b.val.sealedValue : b.val.usedValue) -
       (a.item.condition === "sealed" ? a.val.sealedValue : a.val.usedValue)
   );
+
+  // For users with no sets, show the most trending/valuable sets from the mock database
+  const hottestBuys = useMemo(() => {
+    return [...mockSets]
+      .map(set => ({ set, val: getValuation(set.setNum) }))
+      .filter(s => s.val)
+      .sort((a, b) => (b.val?.sealedChange7d || 0) - (a.val?.sealedChange7d || 0))
+      .slice(0, 6) as { set: LegoSet; val: SetValuation }[];
+  }, []);
 
   if (loading) return null;
 
@@ -179,13 +186,15 @@ export default function DashboardPage() {
                       {formatCurrency(portfolioValue.total)}
                     </h2>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <PriceChangeInline value={gainPercent} />
-                    <span className="text-gray-400 font-medium text-sm">
-                      {portfolioValue.gain >= 0 ? "+" : ""}
-                      {formatCurrency(portfolioValue.gain)} All time gain
-                    </span>
-                  </div>
+                  {collection.length > 0 && (
+                    <div className="flex items-center gap-3">
+                      <PriceChangeInline value={gainPercent} />
+                      <span className="text-gray-400 font-medium text-sm">
+                        {portfolioValue.gain >= 0 ? "+" : ""}
+                        {formatCurrency(portfolioValue.gain)} All time gain
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-6 items-center border-t md:border-t-0 md:border-l border-gray-100 pt-6 md:pt-0 md:pl-8">
@@ -203,44 +212,93 @@ export default function DashboardPage() {
              </div>
           </motion.div>
 
-          {/* Your Top Sets */}
-          <motion.div variants={fadeUp} className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm">
-            <div className="flex items-center justify-between mb-8">
-              <h3 className="font-display font-bold text-2xl text-[#050A18]">Your Top Sets</h3>
-              <Link href="/collection" className="text-[#FF7A30] font-bold flex items-center gap-1 hover:text-[#E66620] transition-colors">
-                View Full Collection <ChevronRight size={18} />
-              </Link>
-            </div>
+          {collection.length > 0 ? (
+            /* Your Top Sets */
+            <motion.div variants={fadeUp} className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="font-display font-bold text-2xl text-[#050A18]">Your Top Sets</h3>
+                <Link href="/collection" className="text-[#FF7A30] font-bold flex items-center gap-1 hover:text-[#E66620] transition-colors">
+                  View Full Collection <ChevronRight size={18} />
+                </Link>
+              </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {topSets.slice(0, 6).map(({ item, set, val }, i) => {
-                const currentValue = item.condition === "sealed" ? val.sealedValue : val.usedValue;
-                const change = item.condition === "sealed" ? val.sealedChange7d : val.usedChange7d;
-                
-                return (
-                  <Link
-                    key={item.id}
-                    href={`/set/${set.setNum}`}
-                    className="group flex flex-col p-5 rounded-2xl border border-gray-100 bg-gray-50/50 hover:bg-white hover:border-[#FFCE4A] hover:shadow-md transition-all cursor-pointer"
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                       <div className="w-14 h-14 rounded-xl bg-white border border-gray-200 flex items-center justify-center font-mono text-[10px] text-gray-400 font-bold shadow-sm group-hover:scale-105 transition-transform">
-                          {set.setNum}
-                       </div>
-                       <PriceChangeInline value={change} />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-[#050A18] mb-1 line-clamp-1 group-hover:text-[#FF7A30] transition-colors">{set.name}</h4>
-                      <div className="flex items-center justify-between mt-3">
-                         <span className="text-xs font-bold text-gray-400 bg-gray-200 px-2 py-1 rounded-md">{set.theme}</span>
-                         <span className="font-display font-bold text-xl text-[#050A18]">{formatCurrency(currentValue)}</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {topSets.slice(0, 6).map(({ item, set, val }) => {
+                  const currentValue = item.condition === "sealed" ? val.sealedValue : val.usedValue;
+                  const change = item.condition === "sealed" ? val.sealedChange7d : val.usedChange7d;
+                  
+                  return (
+                    <Link
+                      key={item.id}
+                      href={`/set/${set.setNum}`}
+                      className="group flex flex-col p-5 rounded-2xl border border-gray-100 bg-gray-50/50 hover:bg-white hover:border-[#FFCE4A] hover:shadow-md transition-all cursor-pointer"
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                         <div className="w-14 h-14 rounded-xl bg-white border border-gray-200 flex items-center justify-center font-mono text-[10px] text-gray-400 font-bold shadow-sm group-hover:scale-105 transition-transform">
+                            {set.setNum}
+                         </div>
+                         <PriceChangeInline value={change} />
                       </div>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </motion.div>
+                      <div>
+                        <h4 className="font-bold text-[#050A18] mb-1 line-clamp-1 group-hover:text-[#FF7A30] transition-colors">{set.name}</h4>
+                        <div className="flex items-center justify-between mt-3">
+                           <span className="text-xs font-bold text-gray-400 bg-gray-200 px-2 py-1 rounded-md">{set.theme}</span>
+                           <span className="font-display font-bold text-xl text-[#050A18]">{formatCurrency(currentValue)}</span>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </motion.div>
+          ) : (
+            /* Empty State & Hottest Buys */
+            <motion.div variants={fadeUp} className="space-y-8">
+              
+              <div className="bg-white rounded-3xl p-10 border border-gray-100 shadow-sm text-center">
+                <Search size={48} className="mx-auto text-gray-300 mb-4" />
+                <h3 className="font-display font-bold text-2xl text-[#050A18] mb-2">Your collection is empty</h3>
+                <p className="text-gray-500 max-w-md mx-auto mb-6">Start tracking your LEGO portfolio by scanning boxes or searching for sets manually.</p>
+                <div className="flex justify-center gap-3">
+                   <Link href="/scan" className="flex items-center gap-2 px-6 py-3 bg-[#050A18] text-white rounded-xl font-bold hover:bg-gray-800 shadow-sm transition-all">
+                     <ScanLine size={18} className="text-[#FFCE4A]" />
+                     Scan a Box
+                   </Link>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm">
+                <div className="flex items-center gap-2 mb-8">
+                  <Flame className="text-[#FF7A30]" size={28} />
+                  <h3 className="font-display font-bold text-2xl text-[#050A18]">Hottest Buys (Last 3 Months)</h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {hottestBuys.map(({ set, val }) => (
+                    <Link
+                      key={set.setNum}
+                      href={`/set/${set.setNum}`}
+                      className="group flex flex-col p-5 rounded-2xl border border-gray-100 bg-gray-50/50 hover:bg-white hover:border-[#FFCE4A] hover:shadow-md transition-all cursor-pointer"
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                         <div className="w-14 h-14 rounded-xl bg-white border border-gray-200 flex items-center justify-center font-mono text-[10px] text-gray-400 font-bold shadow-sm group-hover:scale-105 transition-transform overflow-hidden p-1">
+                            <img src={set.imageUrl} alt={set.name} className="w-full h-full object-contain" />
+                         </div>
+                         <PriceChangeInline value={val.sealedChange7d} />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-[#050A18] mb-1 line-clamp-1 group-hover:text-[#FF7A30] transition-colors">{set.name}</h4>
+                        <div className="flex items-center justify-between mt-3">
+                           <span className="text-xs font-bold text-gray-400 bg-gray-200 px-2 py-1 rounded-md">{set.theme}</span>
+                           <span className="font-display font-bold text-xl text-[#050A18]">{formatCurrency(val.sealedValue)}</span>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
 
         </div>
 

@@ -14,18 +14,18 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentScreen, onNavigate 
   const getIconClass = (screen: Screen) =>
     `w-[22px] h-[22px] transition-all duration-300 ${
       isActive(screen) 
-        ? 'text-blue-400 stroke-[2.5px] drop-shadow-[0_0_8px_rgba(96,165,250,0.8)]' 
-        : 'text-zinc-500 stroke-[2px] group-hover:text-zinc-300'
+        ? 'text-emerald-500 stroke-[2.5px] drop-shadow-[0_0_8px_rgba(16,185,129,0.3)]' 
+        : 'text-gray-400 stroke-[2px] group-hover:text-gray-700'
     }`;
 
   const getLabelClass = (screen: Screen) =>
     `text-[10px] font-medium mt-1 transition-all duration-300 ${
-      isActive(screen) ? 'text-blue-400' : 'text-zinc-500 group-hover:text-zinc-300'
+      isActive(screen) ? 'text-emerald-500' : 'text-gray-400 group-hover:text-gray-700'
     }`;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-[99999] px-4 pb-[max(env(safe-area-inset-bottom),1rem)]">
-      <div className="bg-[#1A1C23]/90 backdrop-blur-2xl border-t border-white/5 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] rounded-full px-2 py-2 flex items-center justify-between w-full max-w-[400px] mx-auto relative">
+      <div className="bg-white/90 backdrop-blur-2xl border-t border-gray-200 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] rounded-full px-2 py-2 flex items-center justify-between w-full max-w-[400px] mx-auto relative">
         
         {/* Home */}
         <button onClick={() => onNavigate(Screen.HOME)} className="flex flex-col items-center justify-center w-16 group active:scale-95 transition-transform">
@@ -43,7 +43,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentScreen, onNavigate 
         <div className="relative -top-5 flex justify-center w-16">
           <button 
             onClick={() => onNavigate(Screen.SCANNER)} 
-            className="w-14 h-14 bg-emerald-500 rounded-full flex items-center justify-center shadow-[0_8px_24px_rgba(16,185,129,0.4)] active:scale-95 transition-transform border-4 border-[#111111]"
+            className="w-14 h-14 bg-emerald-500 rounded-full flex items-center justify-center shadow-[0_8px_24px_rgba(16,185,129,0.4)] active:scale-95 transition-transform border-4 border-white"
           >
             <Scan className="w-6 h-6 text-white stroke-[2.5px]" />
           </button>

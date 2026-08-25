@@ -140,7 +140,7 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
   ];
 
   return (
-    <div className="flex flex-col h-full bg-[#111111] font-sans text-white overflow-hidden select-none">
+    <div className="flex flex-col h-full bg-[#F5F5F7] font-sans text-gray-900 overflow-hidden select-none">
       <style>{`
         @keyframes col-in {
           from { opacity: 0; transform: translateY(18px); }
@@ -166,7 +166,7 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
             onClick={() => setShowAddModal(true)}
             className="w-10 h-10 bg-[#FF7A30] rounded-full flex items-center justify-center shadow-[0_4px_15px_rgba(255,122,48,0.35)] active:scale-90 transition-transform"
           >
-            <Plus className="w-5 h-5 text-white" />
+            <Plus className="w-5 h-5 text-gray-900" />
           </button>
         </div>
       )}
@@ -178,10 +178,10 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
           <div className="col-r1 px-6 mb-5">
             <p className="text-[10px] font-black text-[#FF7A30] uppercase tracking-[0.2em] mb-1">PORTFOLIO DASHBOARD</p>
             <div className="flex items-end gap-3 mb-1">
-              <div className="text-[46px] font-black text-white tracking-tight leading-none">
+              <div className="text-[46px] font-black text-gray-900 tracking-tight leading-none">
                 {hideValue ? '••••••' : fmt(isEmpty ? 0 : totalValue)}
               </div>
-              <button onClick={() => setHideValue(!hideValue)} className="mb-2 text-zinc-600 active:opacity-50">
+              <button onClick={() => setHideValue(!hideValue)} className="mb-2 text-gray-400 active:opacity-50">
                 {hideValue ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
               </button>
             </div>
@@ -190,7 +190,7 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                 <ArrowUpRight className="w-3 h-3" />
                 {returnPct >= 0 ? '+' : ''}{returnPct.toFixed(1)}%
               </div>
-              <span className="text-zinc-500 text-[12px] font-medium">
+              <span className="text-gray-400 text-[12px] font-medium">
                 {totalReturn >= 0 ? '+' : ''}{fmt(isEmpty ? 0 : totalReturn)} total return
               </span>
             </div>
@@ -202,10 +202,10 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
           <div className="col-r2 px-6 mb-5">
             <div className="grid grid-cols-4 gap-2">
               {statsRow.map((s, i) => (
-                <div key={i} className="bg-[#1A1A1A] rounded-2xl px-2 py-3 border border-white/6 flex flex-col items-center gap-1">
+                <div key={i} className="bg-white shadow-sm rounded-2xl px-2 py-3 border border-gray-100 flex flex-col items-center gap-1">
                   <span className="text-base">{s.icon}</span>
-                  <p className="text-[13px] font-black text-white">{s.value}</p>
-                  <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider text-center">{s.label}</p>
+                  <p className="text-[13px] font-black text-gray-900">{s.value}</p>
+                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider text-center">{s.label}</p>
                 </div>
               ))}
             </div>
@@ -215,9 +215,9 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
         {/* ─── Value Distribution mini bar ─── */}
         {mounted && !isEmpty && (
           <div className="col-r3 px-6 mb-5">
-            <div className="bg-[#1A1A1A] rounded-[20px] border border-white/6 p-4">
+            <div className="bg-white shadow-sm rounded-[20px] border border-gray-100 p-4">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.15em]">BY THEME</p>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">BY THEME</p>
                 <BarChart2 className="w-4 h-4 text-zinc-700" />
               </div>
               {/* Bar */}
@@ -231,7 +231,7 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                 {themeDistribution.map((d, i) => (
                   <div key={i} className="flex items-center gap-1.5">
                     <div className="w-2 h-2 rounded-full" style={{ background: d.color }} />
-                    <span className="text-[10px] font-semibold text-zinc-500">{d.label} {d.pct}%</span>
+                    <span className="text-[10px] font-semibold text-gray-400">{d.label} {d.pct}%</span>
                   </div>
                 ))}
               </div>
@@ -245,19 +245,19 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
             <div className="flex gap-3">
               <button
                 onClick={() => onNavigate(Screen.SCANNER)}
-                className="flex-1 flex items-center justify-center gap-2 bg-[#FF7A30] text-white rounded-2xl py-3 font-black text-[12px] active:scale-95 transition-transform shadow-[0_4px_15px_rgba(255,122,48,0.25)]"
+                className="flex-1 flex items-center justify-center gap-2 bg-[#FF7A30] text-gray-900 rounded-2xl py-3 font-black text-[12px] active:scale-95 transition-transform shadow-[0_4px_15px_rgba(255,122,48,0.25)]"
               >
                 <Plus className="w-4 h-4" /> Add Set
               </button>
               <button
                 onClick={() => onNavigate(Screen.WISHLIST)}
-                className="flex-1 flex items-center justify-center gap-2 bg-[#1A1A1A] border border-white/10 text-white rounded-2xl py-3 font-black text-[12px] active:scale-95 transition-transform"
+                className="flex-1 flex items-center justify-center gap-2 bg-white shadow-sm border border-gray-200 text-gray-900 rounded-2xl py-3 font-black text-[12px] active:scale-95 transition-transform"
               >
                 Wishlist
               </button>
               <button
                 onClick={() => onNavigate(Screen.INSIGHTS)}
-                className="flex-1 flex items-center justify-center gap-2 bg-[#1A1A1A] border border-white/10 text-white rounded-2xl py-3 font-black text-[12px] active:scale-95 transition-transform"
+                className="flex-1 flex items-center justify-center gap-2 bg-white shadow-sm border border-gray-200 text-gray-900 rounded-2xl py-3 font-black text-[12px] active:scale-95 transition-transform"
               >
                 Insights
               </button>
@@ -269,20 +269,20 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
         {mounted && !isEmpty && (
           <div className="col-r4 px-6 mb-4 flex items-center gap-3">
             <div className="flex-1 relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search sets..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="w-full bg-[#1A1A1A] border border-white/8 rounded-2xl h-11 pl-10 pr-4 text-white text-[13px] font-medium placeholder:text-zinc-600 outline-none focus:border-[#FF7A30]/50 transition-all"
+                className="w-full bg-white shadow-sm border border-white/8 rounded-2xl h-11 pl-10 pr-4 text-gray-900 text-[13px] font-medium placeholder:text-gray-400 outline-none focus:border-[#FF7A30]/50 transition-all"
               />
             </div>
             <button
               onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-              className="w-11 h-11 bg-[#1A1A1A] border border-white/8 rounded-2xl flex items-center justify-center active:scale-90 transition-transform"
+              className="w-11 h-11 bg-white shadow-sm border border-white/8 rounded-2xl flex items-center justify-center active:scale-90 transition-transform"
             >
-              <Filter className="w-4 h-4 text-zinc-500" />
+              <Filter className="w-4 h-4 text-gray-400" />
             </button>
           </div>
         )}
@@ -292,17 +292,17 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
           <div className="col-r5 px-6 mb-4">
             {isEmpty ? (
               // Empty state
-              <div className="bg-[#1A1A1A] rounded-[24px] border border-dashed border-white/10 p-10 flex flex-col items-center text-center">
+              <div className="bg-white shadow-sm rounded-[24px] border border-dashed border-gray-200 p-10 flex flex-col items-center text-center">
                 <div className="w-16 h-16 rounded-full bg-[#FF7A30]/10 border border-[#FF7A30]/20 flex items-center justify-center mb-4">
                   <Package className="w-8 h-8 text-[#FF7A30]" />
                 </div>
-                <h3 className="text-[18px] font-black text-white mb-2">No Sets Logged</h3>
-                <p className="text-zinc-500 text-[13px] font-medium mb-6 leading-relaxed max-w-[240px]">
+                <h3 className="text-[18px] font-black text-gray-900 mb-2">No Sets Logged</h3>
+                <p className="text-gray-400 text-[13px] font-medium mb-6 leading-relaxed max-w-[240px]">
                   Your portfolio is empty. Scan a set to instantly reveal its market value and add it here.
                 </p>
                 <button
                   onClick={() => onNavigate(Screen.SCANNER)}
-                  className="bg-[#FF7A30] text-white px-7 py-3.5 rounded-2xl font-black text-[14px] flex items-center gap-2 shadow-[0_8px_25px_rgba(255,122,48,0.3)] active:scale-95 transition-transform"
+                  className="bg-[#FF7A30] text-gray-900 px-7 py-3.5 rounded-2xl font-black text-[14px] flex items-center gap-2 shadow-[0_8px_25px_rgba(255,122,48,0.3)] active:scale-95 transition-transform"
                 >
                   <Plus className="w-5 h-5" />
                   Scan First Set
@@ -315,7 +315,7 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                   <div
                     key={item.id}
                     onClick={() => onNavigate(Screen.SET_DETAIL, { setNum: item.set.setNum })}
-                    className="bg-[#1A1A1A] border border-white/8 rounded-[22px] p-3 cursor-pointer active:scale-[0.97] transition-all relative group overflow-hidden"
+                    className="bg-white shadow-sm border border-white/8 rounded-[22px] p-3 cursor-pointer active:scale-[0.97] transition-all relative group overflow-hidden"
                   >
                     {/* Delete btn */}
                     <button
@@ -326,7 +326,7 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                     </button>
 
                     {/* Image */}
-                    <div className="w-full h-[90px] bg-[#111] rounded-[14px] flex items-center justify-center overflow-hidden mb-3">
+                    <div className="w-full h-[90px] bg-[#F5F5F7] rounded-[14px] flex items-center justify-center overflow-hidden mb-3">
                       <img
                         src={`https://cdn.rebrickable.com/media/sets/${item.set.setNum}.jpg`}
                         alt={item.set.name}
@@ -340,14 +340,14 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                     </div>
 
                     {/* Name */}
-                    <p className="text-zinc-400 text-[10px] font-medium truncate mb-1 leading-tight">
+                    <p className="text-gray-500 text-[10px] font-medium truncate mb-1 leading-tight">
                       #{item.set.setNum?.split('-')[0]} · {item.condition}
                     </p>
-                    <p className="text-white text-[12px] font-bold truncate mb-2">{item.set.name || `Set ${idx + 1}`}</p>
+                    <p className="text-gray-900 text-[12px] font-bold truncate mb-2">{item.set.name || `Set ${idx + 1}`}</p>
 
                     {/* Value + trend */}
                     <div className="flex items-center justify-between">
-                      <span className="text-white font-black text-[15px]">
+                      <span className="text-gray-900 font-black text-[15px]">
                         ${item.currentValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                       </span>
                       <div className={`flex items-center gap-0.5 text-[10px] font-black ${item.returnPct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
@@ -377,9 +377,9 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                   <div
                     key={item.id}
                     onClick={() => onNavigate(Screen.SET_DETAIL, { setNum: item.set.setNum })}
-                    className="bg-[#1A1A1A] border border-white/8 rounded-2xl px-4 py-3.5 flex items-center gap-4 cursor-pointer active:bg-white/5 transition-colors"
+                    className="bg-white shadow-sm border border-white/8 rounded-2xl px-4 py-3.5 flex items-center gap-4 cursor-pointer active:bg-gray-50 transition-colors"
                   >
-                    <div className="w-12 h-12 bg-[#111] rounded-xl overflow-hidden shrink-0 p-1">
+                    <div className="w-12 h-12 bg-[#F5F5F7] rounded-xl overflow-hidden shrink-0 p-1">
                       <img
                         src={`https://cdn.rebrickable.com/media/sets/${item.set.setNum}-1.jpg`}
                         alt={item.set.name}
@@ -387,11 +387,11 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                       />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-bold text-white truncate">{item.set.name || `Set ${idx + 1}`}</p>
-                      <p className="text-[10px] text-zinc-500 font-medium">#{item.set.setNum?.split('-')[0]} · {item.condition}</p>
+                      <p className="text-[13px] font-bold text-gray-900 truncate">{item.set.name || `Set ${idx + 1}`}</p>
+                      <p className="text-[10px] text-gray-400 font-medium">#{item.set.setNum?.split('-')[0]} · {item.condition}</p>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-[14px] font-black text-white">${item.currentValue.toFixed(0)}</p>
+                      <p className="text-[14px] font-black text-gray-900">${item.currentValue.toFixed(0)}</p>
                       <p className={`text-[10px] font-bold ${item.returnPct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                         {item.returnPct >= 0 ? '+' : ''}{item.returnPct.toFixed(1)}%
                       </p>
@@ -410,45 +410,45 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
       {/* ─── Manual Add Modal ─── */}
       {showAddModal && (
         <div className="fixed inset-0 z-[99999] flex items-end justify-center px-4 pb-8">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowAddModal(false)} />
-          <div className="bg-[#1A1A1A] border border-white/10 w-full max-w-sm rounded-[28px] p-7 relative z-10 shadow-2xl text-left">
+          <div className="absolute inset-0 bg-white/80 backdrop-blur-md" onClick={() => setShowAddModal(false)} />
+          <div className="bg-white shadow-sm border border-gray-200 w-full max-w-sm rounded-[28px] p-7 relative z-10 shadow-2xl text-left">
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-[16px] font-black text-white">Add Set</h3>
-              <button onClick={() => setShowAddModal(false)} className="w-8 h-8 bg-white/6 rounded-full flex items-center justify-center text-zinc-400 border border-white/10">
+              <h3 className="text-[16px] font-black text-gray-900">Add Set</h3>
+              <button onClick={() => setShowAddModal(false)} className="w-8 h-8 bg-white/6 rounded-full flex items-center justify-center text-gray-500 border border-gray-200">
                 <X className="w-4 h-4" />
               </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 block">Set Number</label>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Set Number</label>
                 <input
                   type="text"
                   placeholder="e.g. 10270-1"
                   value={manualSetNum}
                   onChange={e => setManualSetNum(e.target.value)}
-                  className="w-full bg-[#111] border border-white/10 rounded-2xl px-4 py-4 text-white font-semibold text-[13px] outline-none focus:border-[#FF7A30]/50 transition-all placeholder:text-zinc-700"
+                  className="w-full bg-[#F5F5F7] border border-gray-200 rounded-2xl px-4 py-4 text-gray-900 font-semibold text-[13px] outline-none focus:border-[#FF7A30]/50 transition-all placeholder:text-zinc-700"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 block">Condition</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Condition</label>
                   <select
                     value={manualCondition}
                     onChange={e => setManualCondition(e.target.value as any)}
-                    className="w-full bg-[#111] border border-white/10 rounded-2xl px-4 py-4 text-white font-semibold text-[13px] outline-none"
+                    className="w-full bg-[#F5F5F7] border border-gray-200 rounded-2xl px-4 py-4 text-gray-900 font-semibold text-[13px] outline-none"
                   >
                     <option value="sealed">Sealed</option>
                     <option value="used">Used</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 block">Price ($)</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Price ($)</label>
                   <input
                     type="number"
                     placeholder="e.g. 199.99"
                     value={manualPrice}
                     onChange={e => setManualPrice(e.target.value)}
-                    className="w-full bg-[#111] border border-white/10 rounded-2xl px-4 py-4 text-white font-semibold text-[13px] outline-none focus:border-[#FF7A30]/50 transition-all placeholder:text-zinc-700"
+                    className="w-full bg-[#F5F5F7] border border-gray-200 rounded-2xl px-4 py-4 text-gray-900 font-semibold text-[13px] outline-none focus:border-[#FF7A30]/50 transition-all placeholder:text-zinc-700"
                   />
                 </div>
               </div>
@@ -476,7 +476,7 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                   setManualPrice('');
                   confetti({ particleCount: 120, spread: 70, origin: { y: 0.8 }, colors: ['#FF7A30', '#FFD600', '#FFFFFF'] });
                 }}
-                className="w-full bg-[#FF7A30] text-white font-black py-4 rounded-2xl text-[14px] active:scale-95 transition-all shadow-[0_8px_25px_rgba(255,122,48,0.3)] mt-1"
+                className="w-full bg-[#FF7A30] text-gray-900 font-black py-4 rounded-2xl text-[14px] active:scale-95 transition-all shadow-[0_8px_25px_rgba(255,122,48,0.3)] mt-1"
               >
                 Add to Portfolio
               </button>

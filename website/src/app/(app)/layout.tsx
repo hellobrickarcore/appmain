@@ -1,4 +1,3 @@
-import MobileNav from "@/components/layout/MobileNav";
 import Header from "@/components/layout/Header";
 import RequirePremium from "@/components/layout/RequirePremium";
 
@@ -9,10 +8,9 @@ export default function AppLayout({
 }) {
   return (
     <RequirePremium>
-      <div className="page-container">
+      <div className="min-h-screen bg-[#F5F5F7] font-sans">
         <Header />
-        <main className="content-area pb-20">{children}</main>
-        <MobileNav />
+        <main className="pb-20">{children}</main>
       </div>
     </RequirePremium>
   );

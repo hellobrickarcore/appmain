@@ -17,6 +17,13 @@ import { SetDetailScreen } from './screens/SetDetailScreen';
 import { InsightsScreen } from './screens/InsightsScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { ProfileSettingsScreen } from './screens/ProfileSettingsScreen';
+import { BrowseScreen } from './screens/BrowseScreen';
+import { IdeasScreen } from './screens/IdeasScreen';
+import { QuestsScreen } from './screens/QuestsScreen';
+import { LeaderboardScreen } from './screens/LeaderboardScreen';
+import { FeedScreen } from './screens/FeedScreen';
+import { CreatePostScreen } from './screens/CreatePostScreen';
+import { AlertsScreen } from './screens/AlertsScreen';
 import { BottomNav } from './components/BottomNav';
 import { BootingScreen } from './components/BootingScreen';
 import { appStateService } from './services/appStateService';
@@ -209,7 +216,7 @@ const App: React.FC = () => {
     const recordHeartbeat = async () => {
       try {
         const userId = localStorage.getItem('hellobrick_userId') || 'anonymous_mobile';
-        const DO_IP = '174.138.93.172';
+        const DO_IP = '67.205.172.107';
         const heartbeatUrl = `http://${DO_IP}:3003/api/sessions/heartbeat`;
         
         await fetch(heartbeatUrl, {
@@ -286,13 +293,27 @@ const App: React.FC = () => {
         return <ProfileSettingsScreen onNavigate={handleNavigate} />;
       case Screen.SET_DETAIL:
         return <SetDetailScreen setNum={screenParams?.setNum} onNavigate={handleNavigate} />;
+      case Screen.BROWSE:
+        return <BrowseScreen onNavigate={handleNavigate} />;
+      case Screen.IDEAS:
+        return <IdeasScreen onNavigate={handleNavigate} />;
+      case Screen.QUESTS:
+        return <QuestsScreen onNavigate={handleNavigate} />;
+      case Screen.LEADERBOARD:
+        return <LeaderboardScreen onNavigate={handleNavigate} />;
+      case Screen.FEED:
+        return <FeedScreen onNavigate={handleNavigate} />;
+      case Screen.CREATE_POST:
+        return <CreatePostScreen onNavigate={handleNavigate} />;
+      case Screen.ALERTS:
+        return <AlertsScreen onNavigate={handleNavigate} />;
       default:
         return <HomeScreen onNavigate={handleNavigate} />;
     }
   };
 
   return (
-    <div className="dark bg-slate-950 h-[100dvh] overflow-hidden text-slate-100 selection:bg-orange-500/30 flex flex-col">
+    <div className="bg-[#F5F5F7] h-[100dvh] overflow-hidden text-gray-900 selection:bg-orange-500/30 flex flex-col">
       {isBooting && <BootingScreen />}
       <div className="flex-1 relative min-h-0 overflow-hidden flex flex-col">
         {renderScreen()}
@@ -308,14 +329,14 @@ const App: React.FC = () => {
                 localStorage.removeItem('hellobrick_authenticated');
                 window.location.reload();
               }}
-              className="px-3 py-1 bg-red-500/80 backdrop-blur-md text-[10px] font-bold rounded-full text-white border border-red-400/50"
+              className="px-3 py-1 bg-red-500/80 backdrop-blur-md text-[10px] font-bold rounded-full text-gray-900 border border-red-400/50"
             >
               EXIT DEV
             </button>
             <select 
               value={currentScreen}
               onChange={(e) => handleNavigate(e.target.value as Screen)}
-              className="bg-slate-800/90 backdrop-blur-md text-[10px] font-bold p-1 rounded-md border border-white/20 text-white"
+              className="bg-gray-50/90 backdrop-blur-md text-[10px] font-bold p-1 rounded-md border border-gray-300 text-gray-900"
             >
               {Object.values(Screen).map(s => <option key={s} value={s}>{s}</option>)}
             </select>

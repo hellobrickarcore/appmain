@@ -75,22 +75,22 @@ export const WishlistScreen: React.FC<WishlistScreenProps> = ({ onNavigate }) =>
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#111111] font-sans text-white relative overflow-hidden select-none">
+    <div className="flex flex-col min-h-screen bg-[#F5F5F7] font-sans text-gray-900 relative overflow-hidden select-none">
       {/* Background radial highlight */}
       <div className="absolute top-0 left-0 right-0 h-[450px] bg-gradient-to-b from-[#C9A84C]/5 via-transparent to-transparent pointer-events-none" />
 
       {/* Header Sticky */}
-      <div className="relative z-50 px-6 pt-[max(env(safe-area-inset-top),2.8rem)] pb-3 flex items-center justify-between bg-[#111111]/90 backdrop-blur-md border-b border-white/5 shrink-0">
+      <div className="relative z-50 px-6 pt-[max(env(safe-area-inset-top),2.8rem)] pb-3 flex items-center justify-between bg-[#F5F5F7]/90 backdrop-blur-md border-b border-gray-200 shrink-0">
         <div className="flex items-center gap-3">
           <button
             onClick={() => onNavigate(Screen.HOME)}
-            className="w-10 h-10 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 active:scale-90 transition-transform"
+            className="w-10 h-10 bg-gray-50 rounded-2xl flex items-center justify-center border border-gray-200 active:scale-90 transition-transform"
           >
-            <ArrowLeft className="w-5 h-5 text-slate-300" />
+            <ArrowLeft className="w-5 h-5 text-gray-700" />
           </button>
           <Logo size="sm" light={true} />
         </div>
-        <span className="text-[12px] font-black text-zinc-500 uppercase tracking-[0.2em]">Wishlist</span>
+        <span className="text-[12px] font-black text-gray-400 uppercase tracking-[0.2em]">Wishlist</span>
       </div>
 
       {/* Main Viewport */}
@@ -103,19 +103,19 @@ export const WishlistScreen: React.FC<WishlistScreenProps> = ({ onNavigate }) =>
               <div
                 key={item.id}
                 onClick={() => onNavigate(Screen.SET_DETAIL, { setNum: item.set.setNum })}
-                className="bg-[#161B26] border border-white/5 rounded-3xl p-4 flex items-center justify-between shadow-xl cursor-pointer active:scale-[0.99] transition-all relative group overflow-hidden"
+                className="bg-[#161B26] border border-gray-200 rounded-3xl p-4 flex items-center justify-between shadow-xl cursor-pointer active:scale-[0.99] transition-all relative group overflow-hidden"
               >
                 {/* Delete button (displays on hover/active) */}
                 <button
                   onClick={(e) => handleDelete(item.id, e)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/35 p-3 rounded-2xl transition-all z-20"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-gray-900 border border-red-500/35 p-3 rounded-2xl transition-all z-20"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
 
                 <div className="flex items-center gap-4 min-w-0 group-hover:mr-12 transition-all">
                   {/* Set Box Thumbnail */}
-                  <div className="w-12 h-12 bg-slate-900 border border-white/10 rounded-2xl flex items-center justify-center overflow-hidden shrink-0">
+                  <div className="w-12 h-12 bg-white border border-gray-200 rounded-2xl flex items-center justify-center overflow-hidden shrink-0">
                     <img 
                       src={`https://cdn.rebrickable.com/media/sets/${item.set.setNum}.jpg`}
                       alt={item.set.name}
@@ -129,10 +129,10 @@ export const WishlistScreen: React.FC<WishlistScreenProps> = ({ onNavigate }) =>
 
                   {/* Left Side labels */}
                   <div className="text-left min-w-0">
-                    <h3 className="font-sans font-black text-sm text-white truncate leading-tight">
+                    <h3 className="font-sans font-black text-sm text-gray-900 truncate leading-tight">
                       {item.codeName}
                     </h3>
-                    <span className="text-[8px] font-black text-slate-500 truncate block mt-0.5 max-w-[120px]">
+                    <span className="text-[8px] font-black text-gray-400 truncate block mt-0.5 max-w-[120px]">
                       {item.set.name}
                     </span>
                     <span className="text-[7px] text-emerald-400 font-bold block mt-1 uppercase tracking-wider">
@@ -143,7 +143,7 @@ export const WishlistScreen: React.FC<WishlistScreenProps> = ({ onNavigate }) =>
 
                 {/* Right Side monospaced metrics */}
                 <div className="text-right shrink-0 group-hover:opacity-0 transition-opacity">
-                  <span className="text-base font-black text-white block leading-none">
+                  <span className="text-base font-black text-gray-900 block leading-none">
                     +{item.rawDelta}
                   </span>
                   <span className="text-[7px] text-rose-500 font-bold block mt-1 uppercase tracking-wider">
@@ -162,16 +162,16 @@ export const WishlistScreen: React.FC<WishlistScreenProps> = ({ onNavigate }) =>
                     onClick={() => onNavigate(Screen.INSIGHTS)}
                     className="bg-[#FF6B6B] rounded-3xl p-5 flex items-center justify-between shadow-xl cursor-pointer active:scale-[0.99] transition-all relative overflow-hidden text-left"
                   >
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full blur-lg pointer-events-none" />
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-gray-50 rounded-full blur-lg pointer-events-none" />
                     <div>
-                      <h2 className="text-lg font-black text-white leading-tight uppercase tracking-wide">
+                      <h2 className="text-lg font-black text-gray-900 leading-tight uppercase tracking-wide">
                         Value
                       </h2>
-                      <span className="text-base font-black text-white block mt-0.5">
+                      <span className="text-base font-black text-gray-900 block mt-0.5">
                         +18% this week
                       </span>
                     </div>
-                    <ChevronRight className="w-6 h-6 text-white" strokeWidth={2.5} />
+                    <ChevronRight className="w-6 h-6 text-gray-900" strokeWidth={2.5} />
                   </div>
                   {cardElement}
                 </React.Fragment>
@@ -182,9 +182,9 @@ export const WishlistScreen: React.FC<WishlistScreenProps> = ({ onNavigate }) =>
           })}
 
           {filteredItems.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-20 px-8 text-center bg-[#161B26]/40 rounded-[32px] border border-dashed border-white/10">
+            <div className="flex flex-col items-center justify-center py-20 px-8 text-center bg-[#161B26]/40 rounded-[32px] border border-dashed border-gray-200">
               <Bell className="w-12 h-12 text-slate-700 mb-4" strokeWidth={1.5} />
-              <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest">No Wishlisted Bricks</h3>
+              <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest">No Wishlisted Bricks</h3>
               <p className="text-xs text-slate-600 mt-2 font-bold leading-normal">
                 Set a buying target alert on retired LEGO sets. We will push a warning when market prices drop below it!
               </p>

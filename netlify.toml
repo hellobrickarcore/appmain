@@ -10,36 +10,36 @@
 [[redirects]]
   # API Proxying - Specific to General
   from = "/api/admin/*"
-  to = "http://174.138.93.172:3008/api/admin/:splat"
+  to = "http://67.205.172.107:3008/api/admin/:splat"
   status = 200
   force = true
 
 [[redirects]]
   from = "/api/auth/*"
-  to = "http://174.138.93.172:3007/api/auth/:splat"
+  to = "http://67.205.172.107:3007/api/auth/:splat"
   status = 200
   force = true
 
 [[redirects]]
   from = "/api/user/*"
-  to = "http://174.138.93.172:3007/api/user/:splat"
+  to = "http://67.205.172.107:3007/api/user/:splat"
   status = 200
   force = true
 
 [[redirects]]
   from = "/api/detect"
-  to = "http://174.138.93.172:3003/api/detect"
+  to = "http://67.205.172.107:3003/api/detect"
   status = 200
   force = true
 
 [[redirects]]
   from = "/api/health"
-  to = "http://174.138.93.172:3003/api/health"
+  to = "http://67.205.172.107:3003/api/health"
   status = 200
   force = true
 
 [[redirects]]
   from = "/api/*"
-  to = "http://174.138.93.172:3003/api/:splat"
+  to = "http://67.205.172.107:3003/api/:splat"
   status = 200
   force = true

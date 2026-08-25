@@ -98,19 +98,19 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
     const profileName = localStorage.getItem('hellobrick_profile_name') || 'Builder';
 
     return (
-        <div className="flex flex-col h-full bg-[#111111] font-sans text-white relative overflow-hidden select-none">
+        <div className="flex flex-col h-full bg-[#F5F5F7] font-sans text-gray-900 relative overflow-hidden select-none">
             <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-b from-[#C9A84C]/5 via-transparent to-transparent pointer-events-none z-0" />
 
             {/* Header */}
-            <div className="relative z-10 px-6 pt-[max(env(safe-area-inset-top),2.8rem)] pb-3 flex items-center justify-between border-b border-white/5 bg-[#111111]/90 backdrop-blur-md sticky top-0">
+            <div className="relative z-10 px-6 pt-[max(env(safe-area-inset-top),2.8rem)] pb-3 flex items-center justify-between border-b border-gray-200 bg-[#F5F5F7]/90 backdrop-blur-md sticky top-0">
                 <Logo size="sm" light={true} />
                 <div className="flex items-center gap-3">
-                    <span className="text-[12px] font-black text-zinc-500 uppercase tracking-[0.2em] mr-1">Profile</span>
+                    <span className="text-[12px] font-black text-gray-400 uppercase tracking-[0.2em] mr-1">Profile</span>
                     <button
                         onClick={() => onNavigate(Screen.PROFILE_SETTINGS)}
-                        className="w-10 h-10 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 hover:bg-white/10 transition-colors"
+                        className="w-10 h-10 bg-gray-50 rounded-2xl flex items-center justify-center border border-gray-200 hover:bg-gray-100 transition-colors"
                     >
-                        <Settings className="w-5 h-5 text-slate-300" />
+                        <Settings className="w-5 h-5 text-gray-700" />
                     </button>
                 </div>
             </div>
@@ -120,13 +120,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
                 {/* Profile Avatar & Metadata */}
                 <div className="px-6 pt-8 pb-6 flex flex-col items-center">
                     <div className="w-20 h-20 rounded-[28px] bg-gradient-to-br from-[#C9A84C] to-[#C9A84C]/60 p-0.5 shadow-2xl relative">
-                        <div className="w-full h-full bg-[#111111] rounded-[26px] flex items-center justify-center overflow-hidden border border-white/10">
-                            <span className="text-2xl font-black text-white">{profileName.charAt(0).toUpperCase()}</span>
+                        <div className="w-full h-full bg-[#F5F5F7] rounded-[26px] flex items-center justify-center overflow-hidden border border-gray-200">
+                            <span className="text-2xl font-black text-gray-900">{profileName.charAt(0).toUpperCase()}</span>
                         </div>
                     </div>
 
-                    <h2 className="mt-4 text-xl font-black text-white">{profileName}</h2>
-                    <p className="text-[12px] font-bold text-slate-400 mt-1">{email}</p>
+                    <h2 className="mt-4 text-xl font-black text-gray-900">{profileName}</h2>
+                    <p className="text-[12px] font-bold text-gray-500 mt-1">{email}</p>
                 </div>
 
                 {/* PRO MEMBERSHIP STATUS CARD */}
@@ -139,8 +139,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
                                     <span className="text-[9px] font-black text-[#C9A84C] border border-[#C9A84C]/50 bg-[#C9A84C]/5 px-2.5 py-1 rounded-full uppercase tracking-wider">
                                         PRO MEMBER
                                     </span>
-                                    <h3 className="text-lg font-black text-white mt-3.5">HelloBrick Pro Plan</h3>
-                                    <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-wider">Active with premium scans unlocked</p>
+                                    <h3 className="text-lg font-black text-gray-900 mt-3.5">HelloBrick Pro Plan</h3>
+                                    <p className="text-[10px] text-gray-500 font-bold mt-1 uppercase tracking-wider">Active with premium scans unlocked</p>
                                 </div>
                                 <ShieldCheck className="w-8 h-8 text-[#C9A84C]" />
                             </div>
@@ -149,11 +149,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
                         <div className="p-6 bg-[#161A2B] border border-[#2A3144] rounded-[28px] shadow-xl relative overflow-hidden">
                             <div className="flex items-start justify-between">
                                 <div>
-                                    <span className="text-[9px] font-black text-slate-400 border border-slate-700 bg-white/5 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                                    <span className="text-[9px] font-black text-gray-500 border border-gray-300 bg-gray-50 px-2.5 py-1 rounded-full uppercase tracking-wider">
                                         BASIC MEMBER
                                     </span>
-                                    <h3 className="text-lg font-black text-white mt-3.5">Unlock HelloBrick Pro</h3>
-                                    <p className="text-[10px] text-slate-500 font-bold mt-1 uppercase tracking-wider">Track unlimited minifigs & real prices</p>
+                                    <h3 className="text-lg font-black text-gray-900 mt-3.5">Unlock HelloBrick Pro</h3>
+                                    <p className="text-[10px] text-gray-400 font-bold mt-1 uppercase tracking-wider">Track unlimited minifigs & real prices</p>
                                 </div>
                                 <Zap className="w-8 h-8 text-slate-600" />
                             </div>
@@ -171,30 +171,30 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
                 {/* Account Portfolio Stats */}
                 <div className="px-6 grid grid-cols-2 gap-4 mb-6">
                     <div className="p-5 bg-[#161A2B] border border-[#2A3144]/60 rounded-3xl text-center">
-                        <span className="text-2xl font-bold text-white">{collectionsCount}</span>
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mt-1.5 block">Assets Logged</span>
+                        <span className="text-2xl font-bold text-gray-900">{collectionsCount}</span>
+                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1.5 block">Assets Logged</span>
                     </div>
                     <div className="p-5 bg-[#161A2B] border border-[#2A3144]/60 rounded-3xl text-center">
                         <span className="text-2xl font-bold text-emerald-400">Pro</span>
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mt-1.5 block">Feature Access</span>
+                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1.5 block">Feature Access</span>
                     </div>
                 </div>
 
                 {/* UTILITIES MENU */}
                 <div className="px-6 space-y-3">
-                    <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2 mb-1 block">Account Settings</div>
+                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2 mb-1 block">Account Settings</div>
                     
                     {/* Price Monitors Wishlist link */}
                     <button 
                       onClick={() => onNavigate(Screen.WISHLIST)}
                       className="w-full p-5 bg-[#161A2B] rounded-[24px] border border-[#2A3144]/60 flex items-center gap-4 active:scale-[0.98] transition-all hover:bg-[#1E233B]"
                     >
-                        <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-400">
+                        <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-500">
                             <Bell className="w-5 h-5" />
                         </div>
                         <div className="text-left flex-1">
-                            <p className="text-xs font-black text-white uppercase tracking-wider">Active Price Monitors</p>
-                            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">Track buy targets for retired sets</p>
+                            <p className="text-xs font-black text-gray-900 uppercase tracking-wider">Active Price Monitors</p>
+                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">Track buy targets for retired sets</p>
                         </div>
                         <ChevronRight className="w-5 h-5 text-slate-600" />
                     </button>
@@ -208,8 +208,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
                             <Sliders className="w-5 h-5" />
                         </div>
                         <div className="text-left flex-1">
-                            <p className="text-xs font-black text-white uppercase tracking-wider">Preferences & Sounds</p>
-                            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">Manage local currencies & sound effects</p>
+                            <p className="text-xs font-black text-gray-900 uppercase tracking-wider">Preferences & Sounds</p>
+                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">Manage local currencies & sound effects</p>
                         </div>
                         <ChevronRight className="w-5 h-5 text-slate-600" />
                     </button>
@@ -223,8 +223,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
                             <Download className="w-5 h-5" />
                         </div>
                         <div className="text-left flex-1">
-                            <p className="text-xs font-black text-white uppercase tracking-wider">Export Inventory (CSV)</p>
-                            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">Download a backup spreadsheet of logged assets</p>
+                            <p className="text-xs font-black text-gray-900 uppercase tracking-wider">Export Inventory (CSV)</p>
+                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">Download a backup spreadsheet of logged assets</p>
                         </div>
                         <ChevronRight className="w-5 h-5 text-slate-600" />
                     </button>
@@ -238,8 +238,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
                             <Share2 className="w-5 h-5" />
                         </div>
                         <div className="text-left flex-1">
-                            <p className="text-xs font-black text-white uppercase tracking-wider">Share HelloBrick</p>
-                            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">Invite fellow collectors to track portfolios</p>
+                            <p className="text-xs font-black text-gray-900 uppercase tracking-wider">Share HelloBrick</p>
+                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">Invite fellow collectors to track portfolios</p>
                         </div>
                         <ChevronRight className="w-5 h-5 text-slate-600" />
                     </button>
@@ -254,7 +254,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ onNavigate }) => {
                         </div>
                         <div className="text-left flex-1">
                             <p className="text-xs font-black text-rose-400 uppercase tracking-wider">Sign Out Profile</p>
-                            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">Reset auth state to onboarding</p>
+                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">Reset auth state to onboarding</p>
                         </div>
                         <ChevronRight className="w-5 h-5 text-slate-600" />
                     </button>

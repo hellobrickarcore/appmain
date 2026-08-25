@@ -55,19 +55,19 @@ export const SetDetailScreen: React.FC<SetDetailScreenProps> = ({ onNavigate, se
   const activeChartPoints = chartDataByTimeframe[timeframe];
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#111111] font-sans text-white overflow-y-auto pb-32">
+    <div className="flex flex-col min-h-screen bg-[#F5F5F7] font-sans text-gray-900 overflow-y-auto pb-32">
       
       {/* Header */}
-      <div className="px-6 pt-[max(env(safe-area-inset-top),3rem)] pb-4 flex items-center justify-between z-10 sticky top-0 bg-[#111111]/90 backdrop-blur-md">
+      <div className="px-6 pt-[max(env(safe-area-inset-top),3rem)] pb-4 flex items-center justify-between z-10 sticky top-0 bg-[#F5F5F7]/90 backdrop-blur-md">
         <button
           onClick={() => onNavigate(Screen.HOME)}
           className="w-10 h-10 flex items-center justify-center -ml-2 active:scale-95 transition-transform"
         >
-          <ChevronLeft className="w-7 h-7 text-white" />
+          <ChevronLeft className="w-7 h-7 text-gray-900" />
         </button>
         <Logo size="sm" light={true} />
-        <button className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-full -mr-2 active:scale-95 transition-transform">
-          <Search className="w-5 h-5 text-white" />
+        <button className="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full -mr-2 active:scale-95 transition-transform">
+          <Search className="w-5 h-5 text-gray-900" />
         </button>
       </div>
 
@@ -75,7 +75,7 @@ export const SetDetailScreen: React.FC<SetDetailScreenProps> = ({ onNavigate, se
         <h1 className="text-3xl font-bold mb-6 tracking-tight">Set Detail</h1>
 
         {/* Hero Image Card */}
-        <div className="bg-[#1A1A1A] rounded-[32px] p-6 flex flex-col items-center relative border border-white/5 shadow-2xl mb-6">
+        <div className="bg-white shadow-sm rounded-[32px] p-6 flex flex-col items-center relative border border-gray-200 shadow-2xl mb-6">
            <img 
               src={set.imageUrl} 
               alt={set.name}
@@ -93,7 +93,7 @@ export const SetDetailScreen: React.FC<SetDetailScreenProps> = ({ onNavigate, se
         {/* Value Cards (Sealed, Used, Resale) */}
         <div className="grid grid-cols-3 gap-3 mb-8">
           <div className="bg-white rounded-[24px] p-4 flex flex-col items-center justify-center shadow-lg">
-             <span className="text-zinc-500 font-semibold text-sm mb-1">Sealed</span>
+             <span className="text-gray-400 font-semibold text-sm mb-1">Sealed</span>
              <span className="text-black font-bold text-xl">${((set.retailPrice ?? 99) * 1.8).toFixed(0)}</span>
           </div>
           <div className="bg-[#FFB067] rounded-[24px] p-4 flex flex-col items-center justify-center shadow-[0_8px_24px_rgba(255,176,103,0.3)]">
@@ -101,7 +101,7 @@ export const SetDetailScreen: React.FC<SetDetailScreenProps> = ({ onNavigate, se
              <span className="text-black font-bold text-xl">${((set.retailPrice ?? 99) * 1.2).toFixed(0)}</span>
           </div>
           <div className="bg-white rounded-[24px] p-4 flex flex-col items-center justify-center shadow-lg">
-             <span className="text-zinc-500 font-semibold text-sm mb-1">Resale</span>
+             <span className="text-gray-400 font-semibold text-sm mb-1">Resale</span>
              <span className="text-black font-bold text-xl">${((set.retailPrice ?? 99) * 1.5).toFixed(0)}</span>
           </div>
         </div>
@@ -110,7 +110,7 @@ export const SetDetailScreen: React.FC<SetDetailScreenProps> = ({ onNavigate, se
         <div className="bg-white rounded-[32px] p-6 text-black shadow-xl mb-6 relative overflow-hidden">
            <div className="flex justify-between items-center mb-6 relative z-10">
               <h3 className="font-bold text-lg">Price History</h3>
-              <span className="text-zinc-400 font-semibold text-sm">Drop</span>
+              <span className="text-gray-500 font-semibold text-sm">Drop</span>
            </div>
 
            <div className="flex gap-2 mb-4">
@@ -120,8 +120,8 @@ export const SetDetailScreen: React.FC<SetDetailScreenProps> = ({ onNavigate, se
                  onClick={() => setTimeframe(tf)}
                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
                    timeframe === tf
-                     ? 'bg-[#FF7A30] text-white shadow-md'
-                     : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200'
+                     ? 'bg-[#FF7A30] text-gray-900 shadow-md'
+                     : 'bg-zinc-100 text-gray-400 hover:bg-zinc-200'
                  }`}
                >
                  {tf}
@@ -133,10 +133,10 @@ export const SetDetailScreen: React.FC<SetDetailScreenProps> = ({ onNavigate, se
            <div className="h-[140px] w-full relative mb-6">
               {/* Grid Lines */}
               <div className="absolute inset-0 flex flex-col justify-between">
-                <div className="border-t border-zinc-100 w-full flex items-start"><span className="text-xs text-zinc-400 -mt-2 ml-1">$5k</span></div>
-                <div className="border-t border-zinc-100 w-full flex items-start"><span className="text-xs text-zinc-400 -mt-2 ml-1">$2k</span></div>
-                <div className="border-t border-zinc-100 w-full flex items-start"><span className="text-xs text-zinc-400 -mt-2 ml-1">$1k</span></div>
-                <div className="border-t border-zinc-100 w-full flex items-start"><span className="text-xs text-zinc-400 -mt-2 ml-1">$50</span></div>
+                <div className="border-t border-zinc-100 w-full flex items-start"><span className="text-xs text-gray-500 -mt-2 ml-1">$5k</span></div>
+                <div className="border-t border-zinc-100 w-full flex items-start"><span className="text-xs text-gray-500 -mt-2 ml-1">$2k</span></div>
+                <div className="border-t border-zinc-100 w-full flex items-start"><span className="text-xs text-gray-500 -mt-2 ml-1">$1k</span></div>
+                <div className="border-t border-zinc-100 w-full flex items-start"><span className="text-xs text-gray-500 -mt-2 ml-1">$50</span></div>
               </div>
               
               {/* SVG Line */}
@@ -166,7 +166,7 @@ export const SetDetailScreen: React.FC<SetDetailScreenProps> = ({ onNavigate, se
            </div>
 
            {/* X-Axis labels */}
-           <div className="flex justify-between px-8 text-zinc-400 font-semibold text-xs relative z-10">
+           <div className="flex justify-between px-8 text-gray-500 font-semibold text-xs relative z-10">
               <span>40</span>
               <span>31</span>
               <span>44</span>
@@ -180,14 +180,14 @@ export const SetDetailScreen: React.FC<SetDetailScreenProps> = ({ onNavigate, se
         <div className="bg-white rounded-[24px] p-5 flex items-center justify-between text-black shadow-lg">
            <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-[#FF7A30] rounded-xl flex items-center justify-center shadow-[0_4px_12px_rgba(255,122,48,0.3)]">
-                <Info className="w-6 h-6 text-white" />
+                <Info className="w-6 h-6 text-gray-900" />
               </div>
               <div className="flex items-center gap-2">
                  <span className="text-2xl font-black">9.5</span>
-                 <span className="text-zinc-500 font-semibold text-sm pt-1">Rarity Score</span>
+                 <span className="text-gray-400 font-semibold text-sm pt-1">Rarity Score</span>
               </div>
            </div>
-           <ChevronLeft className="w-6 h-6 text-zinc-400 transform rotate-180" />
+           <ChevronLeft className="w-6 h-6 text-gray-500 transform rotate-180" />
         </div>
 
       </div>

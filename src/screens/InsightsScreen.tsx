@@ -128,32 +128,32 @@ export const InsightsScreen: React.FC<InsightsScreenProps> = ({ onNavigate }) =>
   , [dbSearch]);
 
   return (
-    <div className="flex flex-col h-full bg-[#111111] font-sans text-white overflow-hidden">
+    <div className="flex flex-col h-full bg-[#F5F5F7] font-sans text-gray-900 overflow-hidden">
       {/* ─── Header ─── */}
-      <div className="px-6 pt-[max(env(safe-area-inset-top),2.8rem)] pb-3 flex items-center justify-between shrink-0 z-10 border-b border-white/5 bg-[#111111]/90 backdrop-blur-md">
+      <div className="px-6 pt-[max(env(safe-area-inset-top),2.8rem)] pb-3 flex items-center justify-between shrink-0 z-10 border-b border-gray-200 bg-[#F5F5F7]/90 backdrop-blur-md">
         <Logo size="sm" light={true} />
-        <span className="text-[12px] font-black text-zinc-500 uppercase tracking-[0.2em]">Data</span>
+        <span className="text-[12px] font-black text-gray-400 uppercase tracking-[0.2em]">Data</span>
       </div>
 
       <div className="flex-1 overflow-y-auto no-scrollbar pb-28 px-6 pt-6">
 
         {/* Custom Tabs */}
-        <div className="bg-[#1A1A1A] rounded-full p-1 flex mb-8 border border-white/5">
+        <div className="bg-white shadow-sm rounded-full p-1 flex mb-8 border border-gray-200">
           <button 
             onClick={() => setActiveTab('insights')}
-            className={`flex-1 py-3 rounded-full text-xs font-bold transition-all ${activeTab === 'insights' ? 'bg-[#2A2A2A] text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}
+            className={`flex-1 py-3 rounded-full text-xs font-bold transition-all ${activeTab === 'insights' ? 'bg-gray-100 text-gray-900 shadow-md' : 'text-gray-400 hover:text-gray-700'}`}
           >
             Insights
           </button>
           <button 
             onClick={() => setActiveTab('database')}
-            className={`flex-1 py-3 rounded-full text-xs font-bold transition-all ${activeTab === 'database' ? 'bg-[#2A2A2A] text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}
+            className={`flex-1 py-3 rounded-full text-xs font-bold transition-all ${activeTab === 'database' ? 'bg-gray-100 text-gray-900 shadow-md' : 'text-gray-400 hover:text-gray-700'}`}
           >
             Database
           </button>
           <button 
             onClick={() => setActiveTab('leaderboard')}
-            className={`flex-1 py-3 rounded-full text-xs font-bold transition-all ${activeTab === 'leaderboard' ? 'bg-[#2A2A2A] text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}
+            className={`flex-1 py-3 rounded-full text-xs font-bold transition-all ${activeTab === 'leaderboard' ? 'bg-gray-100 text-gray-900 shadow-md' : 'text-gray-400 hover:text-gray-700'}`}
           >
             Leaderboard
           </button>
@@ -162,11 +162,11 @@ export const InsightsScreen: React.FC<InsightsScreenProps> = ({ onNavigate }) =>
         {activeTab === 'insights' && (
           <div className="space-y-6 animate-fade-in">
             {/* Primary explanatory header card */}
-            <div className="bg-[#1A1A1A] p-6 rounded-[28px] border border-white/5 relative overflow-hidden">
+            <div className="bg-white shadow-sm p-6 rounded-[28px] border border-gray-200 relative overflow-hidden">
               <div className="absolute top-0 right-0 -mr-8 -mt-8 w-24 h-24 bg-emerald-500/5 blur-2xl rounded-full" />
               <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-2">Market Dynamics</p>
-              <h2 className="text-lg font-black text-white mb-3">Scan the Market for LEGO</h2>
-              <p className="text-sm text-zinc-400 leading-relaxed">
+              <h2 className="text-lg font-black text-gray-900 mb-3">Scan the Market for LEGO</h2>
+              <p className="text-sm text-gray-500 leading-relaxed">
                 LEGO sets eventually leave active retail production (commonly referred to as 'retiring'). 
                 Once a set leaves active retail production, primary market supply permanently stops. 
                 Transaction velocity shifts to secondary collector markets, where limited supply and active demand typically appreciate individual asset valuations. 
@@ -175,48 +175,48 @@ export const InsightsScreen: React.FC<InsightsScreenProps> = ({ onNavigate }) =>
             </div>
 
             {/* Collection Health Scanner Card */}
-            <div className="bg-[#1A1A1A] p-6 rounded-[28px] border border-white/5">
+            <div className="bg-white shadow-sm p-6 rounded-[28px] border border-gray-200">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
                   <TrendingUp className="w-5 h-5" />
                 </div>
-                <h3 className="text-sm font-black text-white uppercase tracking-wider">Asset Discontinuation Scan</h3>
+                <h3 className="text-sm font-black text-gray-900 uppercase tracking-wider">Asset Discontinuation Scan</h3>
               </div>
 
               {collection.length === 0 ? (
                 <div className="space-y-6">
                   {/* Warning & Call to Action text */}
-                  <div className="bg-[#2A2A2A]/40 border border-amber-500/20 rounded-2xl p-4 flex gap-3.5 items-start">
+                  <div className="bg-gray-100/40 border border-amber-500/20 rounded-2xl p-4 flex gap-3.5 items-start">
                     <span className="text-lg shrink-0">🔒</span>
                     <div>
                       <h4 className="text-xs font-black text-amber-400 uppercase tracking-wider mb-0.5">Activation Required</h4>
-                      <p className="text-[11px] text-zinc-400 font-semibold leading-relaxed">
-                        Personalized market value scans, discontinued asset monitors, and custom ROI projections are <strong className="text-white">locked</strong> until you add items to your collection. Add at least 1 set or minifigure to automatically populate these insights.
+                      <p className="text-[11px] text-gray-500 font-semibold leading-relaxed">
+                        Personalized market value scans, discontinued asset monitors, and custom ROI projections are <strong className="text-gray-900">locked</strong> until you add items to your collection. Add at least 1 set or minifigure to automatically populate these insights.
                       </p>
                     </div>
                   </div>
 
                   {/* Sleek Mockup Stack */}
-                  <div className="relative rounded-[22px] border border-white/5 bg-black/40 overflow-hidden p-6 min-h-[220px] flex flex-col justify-between">
+                  <div className="relative rounded-[22px] border border-gray-200 bg-white/40 overflow-hidden p-6 min-h-[220px] flex flex-col justify-between">
                     {/* Blurred contents behind overlay */}
                     <div className="space-y-4 filter blur-[2px] opacity-25 select-none pointer-events-none">
-                      <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                        <span className="text-[10px] uppercase font-bold text-zinc-500">Theme Exposure</span>
+                      <div className="flex justify-between items-center border-b border-gray-200 pb-2">
+                        <span className="text-[10px] uppercase font-bold text-gray-400">Theme Exposure</span>
                         <span className="text-xs font-black text-emerald-400">High Growth</span>
                       </div>
-                      <div className="h-4 bg-zinc-800 rounded-full overflow-hidden flex">
+                      <div className="h-4 bg-gray-100 rounded-full overflow-hidden flex">
                         <div className="bg-yellow-400 h-full" style={{ width: '45%' }} />
-                        <div className="bg-blue-500 h-full" style={{ width: '30%' }} />
+                        <div className="bg-emerald-500 h-full" style={{ width: '30%' }} />
                         <div className="bg-purple-500 h-full" style={{ width: '25%' }} />
                       </div>
                       <div className="space-y-2 pt-2">
                         <div className="flex justify-between text-xs">
-                          <span className="text-zinc-400">Star Wars (45%)</span>
-                          <span className="text-white font-bold">$1,280.00</span>
+                          <span className="text-gray-500">Star Wars (45%)</span>
+                          <span className="text-gray-900 font-bold">$1,280.00</span>
                         </div>
                         <div className="flex justify-between text-xs">
-                          <span className="text-zinc-400">Classic Space (30%)</span>
-                          <span className="text-white font-bold">$850.00</span>
+                          <span className="text-gray-500">Classic Space (30%)</span>
+                          <span className="text-gray-900 font-bold">$850.00</span>
                         </div>
                       </div>
                     </div>
@@ -226,8 +226,8 @@ export const InsightsScreen: React.FC<InsightsScreenProps> = ({ onNavigate }) =>
                       <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-3">
                         <Box className="w-5 h-5 text-emerald-400" />
                       </div>
-                      <h4 className="text-[15px] font-black text-white mb-1.5">Unlock Portfolio Analytics</h4>
-                      <p className="text-[11px] text-zinc-500 font-medium leading-relaxed max-w-[240px] mb-5">
+                      <h4 className="text-[15px] font-black text-gray-900 mb-1.5">Unlock Portfolio Analytics</h4>
+                      <p className="text-[11px] text-gray-400 font-medium leading-relaxed max-w-[240px] mb-5">
                         Add items to your vault to activate comprehensive market insights, collection health scans, and live ROI dynamic tracking.
                       </p>
                       <button
@@ -242,16 +242,16 @@ export const InsightsScreen: React.FC<InsightsScreenProps> = ({ onNavigate }) =>
               ) : (
                 <div className="space-y-4">
                   <div className="flex justify-between items-center py-1">
-                    <span className="text-xs text-zinc-500 font-bold uppercase tracking-wider">Discontinued Assets</span>
-                    <span className="text-sm font-mono font-black text-white">{retiredStats.count} Sets</span>
+                    <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Discontinued Assets</span>
+                    <span className="text-sm font-mono font-black text-gray-900">{retiredStats.count} Sets</span>
                   </div>
                   <div className="flex justify-between items-center py-1">
-                    <span className="text-xs text-zinc-500 font-bold uppercase tracking-wider">Portfolio Coverage</span>
+                    <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Portfolio Coverage</span>
                     <span className="text-sm font-mono font-black text-emerald-400">{retiredStats.pct}% of Vault</span>
                   </div>
-                  <div className="flex justify-between items-center py-1 border-t border-white/5 pt-3">
-                    <span className="text-xs text-zinc-500 font-bold uppercase tracking-wider">Discontinued Valuation</span>
-                    <span className="text-sm font-mono font-black text-white">
+                  <div className="flex justify-between items-center py-1 border-t border-gray-200 pt-3">
+                    <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Discontinued Valuation</span>
+                    <span className="text-sm font-mono font-black text-gray-900">
                       ${retiredStats.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
@@ -260,14 +260,14 @@ export const InsightsScreen: React.FC<InsightsScreenProps> = ({ onNavigate }) =>
             </div>
 
             {/* Informational banner about real-time market data */}
-            <div className="bg-gradient-to-br from-[#1C1C1E] to-[#111111] p-6 rounded-[28px] border border-white/5 flex gap-4 items-start">
-              <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0 text-blue-400">
+            <div className="bg-gradient-to-br from-[#1C1C1E] to-[#111111] p-6 rounded-[28px] border border-gray-200 flex gap-4 items-start">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0 text-emerald-500">
                 <Info className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-xs font-black text-white uppercase tracking-wider mb-1">Interactive Indexing</h4>
-                <p className="text-[11px] text-zinc-500 font-semibold leading-relaxed">
-                  We are indexing retail availability catalogs globally. Tap into the <strong className="text-white">Database</strong> tab to browse themes and inspect detailed structural logs.
+                <h4 className="text-xs font-black text-gray-900 uppercase tracking-wider mb-1">Interactive Indexing</h4>
+                <p className="text-[11px] text-gray-400 font-semibold leading-relaxed">
+                  We are indexing retail availability catalogs globally. Tap into the <strong className="text-gray-900">Database</strong> tab to browse themes and inspect detailed structural logs.
                 </p>
               </div>
             </div>
@@ -279,7 +279,7 @@ export const InsightsScreen: React.FC<InsightsScreenProps> = ({ onNavigate }) =>
             {/* Catalog Subheader matching the Brickify Screenshot! */}
             <div>
               <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-1">CATALOG</p>
-              <h2 className="text-3xl font-black text-white tracking-tight">Database</h2>
+              <h2 className="text-3xl font-black text-gray-900 tracking-tight">Database</h2>
             </div>
 
             {/* Search and Filter Row matching screenshot styling */}
@@ -290,9 +290,9 @@ export const InsightsScreen: React.FC<InsightsScreenProps> = ({ onNavigate }) =>
                   value={dbSearch}
                   onChange={(e) => setDbSearch(e.target.value)}
                   placeholder="Search any set or mi..."
-                  className="w-full bg-[#1A1A1A] border border-white/10 rounded-full pl-12 pr-4 py-3.5 text-white placeholder-zinc-500 text-sm focus:border-emerald-500/30 focus:outline-none transition-colors"
+                  className="w-full bg-white shadow-sm border border-gray-200 rounded-full pl-12 pr-4 py-3.5 text-gray-900 placeholder-zinc-500 text-sm focus:border-emerald-500/30 focus:outline-none transition-colors"
                 />
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               </div>
               <button className="bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 px-5 rounded-full text-xs font-black uppercase tracking-wider hover:bg-emerald-500/25 active:scale-95 transition-all flex items-center gap-1.5 shrink-0">
                 <Sliders className="w-3.5 h-3.5" />
@@ -303,7 +303,7 @@ export const InsightsScreen: React.FC<InsightsScreenProps> = ({ onNavigate }) =>
             {/* Theme list header */}
             <div className="flex items-center gap-2 mt-4 px-1">
               <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
-              <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Browse by Theme</h3>
+              <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Browse by Theme</h3>
             </div>
 
             {/* Theme Rows exactly matching the Brickify Screenshot values */}
@@ -311,25 +311,25 @@ export const InsightsScreen: React.FC<InsightsScreenProps> = ({ onNavigate }) =>
               {filteredDbThemes.map((theme, i) => (
                 <button
                   key={i}
-                  className="w-full flex items-center justify-between p-4 bg-[#1A1A1A] rounded-[24px] border border-white/5 hover:bg-white/5 transition-all active:scale-[0.99] text-left"
+                  className="w-full flex items-center justify-between p-4 bg-white shadow-sm rounded-[24px] border border-gray-200 hover:bg-gray-50 transition-all active:scale-[0.99] text-left"
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-11 h-11 rounded-full border border-emerald-500/20 bg-emerald-500/5 flex items-center justify-center text-emerald-400 shrink-0">
                       <theme.icon className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className="font-black text-[15px] text-white tracking-tight">{theme.name}</p>
-                      <p className="text-[11px] text-zinc-500 font-semibold mt-0.5">
+                      <p className="font-black text-[15px] text-gray-900 tracking-tight">{theme.name}</p>
+                      <p className="text-[11px] text-gray-400 font-semibold mt-0.5">
                         This theme has {theme.minifigs.toLocaleString()} minifigs and {theme.sets.toLocaleString()} sets
                       </p>
                     </div>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-zinc-600 shrink-0" />
+                  <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />
                 </button>
               ))}
 
               {filteredDbThemes.length === 0 && (
-                <p className="text-zinc-600 text-xs text-center py-6 font-semibold">No themes matching search query found.</p>
+                <p className="text-gray-400 text-xs text-center py-6 font-semibold">No themes matching search query found.</p>
               )}
             </div>
           </div>
@@ -343,14 +343,14 @@ export const InsightsScreen: React.FC<InsightsScreenProps> = ({ onNavigate }) =>
             </div>
 
             {leaderboard.map((user, idx) => (
-              <div key={idx} className={`flex items-center justify-between p-4 rounded-2xl border ${user.name === 'You' ? 'bg-[#2A2A2A] border-emerald-500/30' : 'bg-[#1A1A1A] border-white/5'}`}>
+              <div key={idx} className={`flex items-center justify-between p-4 rounded-2xl border ${user.name === 'You' ? 'bg-gray-100 border-emerald-500/30' : 'bg-white shadow-sm border-gray-200'}`}>
                 <div className="flex items-center gap-4">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${idx < 3 ? 'bg-[#C9A84C]/20 text-[#C9A84C]' : 'bg-white/5 text-zinc-400'}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${idx < 3 ? 'bg-[#C9A84C]/20 text-[#C9A84C]' : 'bg-gray-50 text-gray-500'}`}>
                     {idx === 0 ? <Crown className="w-4 h-4" /> : user.rank}
                   </div>
                   <div>
-                    <p className="font-semibold text-white">{user.name}</p>
-                    <p className="text-xs text-zinc-400">${user.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                    <p className="font-semibold text-gray-900">{user.name}</p>
+                    <p className="text-xs text-gray-500">${user.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 bg-emerald-500/10 px-2 py-1 rounded-lg">

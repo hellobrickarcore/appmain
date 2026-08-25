@@ -10,7 +10,7 @@ interface SubscriptionScreenProps {
 }
 
 export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNavigate }) => {
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual' | 'lifetime'>('annual');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
   const [loading, setLoading] = useState(false);
   const [showSheet, setShowSheet] = useState(false);
   const [showClosingOffer, setShowClosingOffer] = useState(false);
@@ -107,9 +107,8 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
   };
 
   const plans = [
-    { id: 'monthly' as const, label: 'Monthly', price: '$5.99', period: '/month', badge: null },
-    { id: 'annual' as const, label: 'Annual', price: '$34.99', period: '/year', badge: 'BEST VALUE' },
-    { id: 'lifetime' as const, label: 'Lifetime', price: '$99.99', period: 'one-time', badge: null },
+    { id: 'monthly' as const, label: 'Monthly', price: '$6.99', period: '/month', badge: null },
+    { id: 'annual' as const, label: 'Annual', price: '$49.99', period: '/year', badge: 'SAVE 40%' },
   ];
 
   const features = [
@@ -169,9 +168,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
               Unlock <span className="text-[#FFD600]">HelloBrick</span> Pro
             </h1>
             <p className="text-zinc-400 text-[13px] font-semibold text-center mt-1">
-              {billingCycle === 'lifetime'
-                ? 'One-time payment · Access forever'
-                : 'First 14 days free — cancel anytime'}
+              First 14 days free — cancel anytime
             </p>
           </div>
         )}
@@ -304,8 +301,8 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
             </p>
             <div className="bg-[#111111] rounded-2xl p-4 mb-6 border border-white/8">
               <div className="flex justify-between items-center mb-1">
-                <span className="text-zinc-500 font-bold line-through text-sm">$34.99</span>
-                <span className="text-white font-black text-2xl">$30.99<span className="text-sm text-zinc-400">/yr</span></span>
+                <span className="text-zinc-500 font-bold line-through text-sm">$49.99</span>
+                <span className="text-white font-black text-2xl">$44.99<span className="text-sm text-zinc-400">/yr</span></span>
               </div>
               <p className="text-left text-xs text-zinc-500 font-medium">Billed annually. Cancel anytime.</p>
             </div>
@@ -344,7 +341,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
               <div className="text-right">
                 <p className="font-black text-[17px] text-white">$0.00</p>
                 <p className="text-zinc-500 text-[11px] font-bold uppercase tracking-tight">
-                  {billingCycle === 'lifetime' ? 'One Time' : 'First 14 Days'}
+                  First 14 Days
                 </p>
               </div>
             </div>

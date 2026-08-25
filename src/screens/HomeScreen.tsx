@@ -106,7 +106,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
   ];
 
   return (
-    <div className="flex flex-col h-full bg-[#111111] font-sans text-white relative overflow-hidden select-none">
+    <div className="flex flex-col h-full bg-[#F5F5F7] font-sans text-gray-900 relative overflow-hidden select-none">
       <style>{`
         @keyframes home-in {
           from { opacity: 0; transform: translateY(20px); }
@@ -140,12 +140,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => onNavigate(Screen.PROFILE)}
-            className="w-10 h-10 rounded-full bg-[#1C1C1E] border border-white/10 flex items-center justify-center active:scale-90 transition-transform"
+            className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center active:scale-90 transition-transform"
           >
             {profileName ? (
-              <span className="text-sm font-black text-white">{profileName.charAt(0).toUpperCase()}</span>
+              <span className="text-sm font-black text-gray-900">{profileName.charAt(0).toUpperCase()}</span>
             ) : (
-              <User className="w-5 h-5 text-zinc-400" />
+              <User className="w-5 h-5 text-gray-500" />
             )}
           </button>
         </div>
@@ -153,15 +153,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
 
       {/* ─── Retiring Soon Ticker ─── */}
       {!isEmpty && (
-        <div className="home-r0 overflow-hidden border-y border-white/5 bg-[#1A1A1A]/80 py-2 shrink-0">
+        <div className="home-r0 overflow-hidden border-y border-gray-200 bg-white shadow-sm/80 py-2 shrink-0">
           <div className="ticker-inner flex gap-8 whitespace-nowrap" style={{ width: 'max-content' }}>
             {[...RETIRING_SOON, ...RETIRING_SOON].map((r, i) => (
-              <span key={i} className="text-[11px] font-bold text-zinc-400 flex items-center gap-2">
+              <span key={i} className="text-[11px] font-bold text-gray-500 flex items-center gap-2">
                 <span className="text-amber-400">⚠️</span>
-                <span className="text-white">{r.name} #{r.num}</span>
+                <span className="text-gray-900">{r.name} #{r.num}</span>
                 retiring in {r.months}mo
                 <span className="text-emerald-400">{r.gain}</span>
-                <span className="text-zinc-600 mx-2">·</span>
+                <span className="text-gray-400 mx-2">·</span>
               </span>
             ))}
           </div>
@@ -179,7 +179,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
               <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-1">VALUE TRACKER</p>
 
               <div className="flex items-end gap-3 mb-1">
-                <div className="text-[52px] font-black text-white tracking-tight leading-none">
+                <div className="text-[52px] font-black text-gray-900 tracking-tight leading-none">
                   {hideValue ? '••••••' : (
                     isEmpty
                       ? '$0.00'
@@ -188,7 +188,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
                 </div>
                 <button
                   onClick={() => setHideValue(!hideValue)}
-                  className="mb-2 text-zinc-600 active:opacity-50 transition-opacity"
+                  className="mb-2 text-gray-400 active:opacity-50 transition-opacity"
                 >
                   {hideValue ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                 </button>
@@ -200,7 +200,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
                   {isPositive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
                   {isPositive ? '+' : ''}{changePercent}%
                 </div>
-                <span className="text-zinc-500 text-[12px] font-medium">
+                <span className="text-gray-400 text-[12px] font-medium">
                   {timeFilter === '1D' ? 'today' : timeFilter === '1W' ? 'this week' : timeFilter === '1M' ? 'this month' : `past ${timeFilter}`}
                 </span>
               </div>
@@ -209,13 +209,13 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
 
           {/* ─── Chart ─── */}
           {mounted && (
-            <div className="home-r2 bg-[#1A1A1A] rounded-[24px] border border-white/6 p-4 mb-4 overflow-hidden relative">
+            <div className="home-r2 bg-white shadow-sm rounded-[24px] border border-gray-100 p-4 mb-4 overflow-hidden relative">
               <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/4 to-transparent pointer-events-none" />
 
               {isEmpty ? (
                 <div className="h-24 flex flex-col items-center justify-center gap-2">
                   <TrendingUp className="w-8 h-8 text-zinc-700" />
-                  <p className="text-zinc-600 text-xs font-semibold">Add items to track value</p>
+                  <p className="text-gray-400 text-xs font-semibold">Add items to track value</p>
                 </div>
               ) : (
                 <div className="h-[100px] w-full">
@@ -258,8 +258,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
                   onClick={() => setTimeFilter(f)}
                   className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-[11px] font-black transition-all active:scale-90 ${
                     timeFilter === f
-                      ? 'bg-emerald-500 text-white shadow-[0_4px_15px_rgba(16,185,129,0.4)]'
-                      : 'bg-[#1C1C1E] text-zinc-500 border border-white/6'
+                      ? 'bg-emerald-500 text-gray-900 shadow-[0_4px_15px_rgba(16,185,129,0.4)]'
+                      : 'bg-white text-gray-400 border border-gray-100'
                   }`}
                 >
                   {f}
@@ -274,10 +274,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
           <div className="home-r3 px-6 mb-6">
             <div className="grid grid-cols-4 gap-2">
               {stats.map((s, i) => (
-                <div key={i} className="bg-[#1A1A1A] rounded-2xl p-3 border border-white/6 flex flex-col items-center gap-1">
+                <div key={i} className="bg-white shadow-sm rounded-2xl p-3 border border-gray-100 flex flex-col items-center gap-1">
                   <span className="text-base">{s.icon}</span>
-                  <p className="text-[14px] font-black text-white">{s.value}</p>
-                  <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">{s.label}</p>
+                  <p className="text-[14px] font-black text-gray-900">{s.value}</p>
+                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">{s.label}</p>
                 </div>
               ))}
             </div>
@@ -289,21 +289,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
           <div className="home-r4 px-6 mb-6">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <h2 className="text-[11px] font-black text-zinc-400 uppercase tracking-[0.18em]">TOOLS</h2>
+              <h2 className="text-[11px] font-black text-gray-500 uppercase tracking-[0.18em]">TOOLS</h2>
             </div>
-            <div className="bg-[#1A1A1A] rounded-[22px] border border-white/6 overflow-hidden divide-y divide-white/5">
+            <div className="bg-white shadow-sm rounded-[22px] border border-gray-100 overflow-hidden divide-y divide-white/5">
               {TOOLS.map((tool) => (
                 <button
                   key={tool.id}
                   onClick={() => onNavigate(Screen.SCANNER)}
-                  className="w-full flex items-center gap-4 px-5 py-4 active:bg-white/5 transition-colors text-left"
+                  className="w-full flex items-center gap-4 px-5 py-4 active:bg-gray-50 transition-colors text-left"
                 >
                   <div className={`w-10 h-10 rounded-2xl ${tool.bg} border ${tool.border} flex items-center justify-center shrink-0 text-lg`}>
                     {tool.emoji}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-bold text-white">{tool.label}</p>
-                    <p className="text-[11px] text-zinc-500 font-medium">{tool.sub}</p>
+                    <p className="text-[14px] font-bold text-gray-900">{tool.label}</p>
+                    <p className="text-[11px] text-gray-400 font-medium">{tool.sub}</p>
                   </div>
                   <ChevronRight className="w-4 h-4 text-zinc-700 shrink-0" />
                 </button>
@@ -317,19 +317,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
           <div className="home-r5 px-6 mb-6">
             <button
               onClick={() => onNavigate(Screen.COLLECTION)}
-              className="w-full bg-[#1A1A1A] rounded-[22px] border border-white/6 px-5 py-4 flex items-center gap-4 active:bg-white/5 transition-colors"
+              className="w-full bg-white shadow-sm rounded-[22px] border border-gray-100 px-5 py-4 flex items-center gap-4 active:bg-gray-50 transition-colors"
             >
               <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
                 <Package className="w-5 h-5 text-emerald-400" />
               </div>
               <div className="flex-1 text-left">
-                <p className="text-[14px] font-bold text-white">My Collection</p>
-                <p className="text-[11px] text-zinc-500 font-medium">
+                <p className="text-[14px] font-bold text-gray-900">My Collection</p>
+                <p className="text-[11px] text-gray-400 font-medium">
                   {collection.length} sets · {isEmpty ? '0 minifigures' : `${totalValue > 0 ? '$' + totalValue.toFixed(0) : 'calculating'} value`}
                 </p>
               </div>
-              <div className="w-8 h-8 bg-[#2A2A2A] rounded-xl flex items-center justify-center">
-                <ArrowUpRight className="w-4 h-4 text-zinc-400" />
+              <div className="w-8 h-8 bg-gray-100 rounded-xl flex items-center justify-center">
+                <ArrowUpRight className="w-4 h-4 text-gray-500" />
               </div>
             </button>
           </div>
@@ -341,7 +341,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <h2 className="text-[11px] font-black text-zinc-400 uppercase tracking-[0.18em]">TOP GAINING SETS</h2>
+                <h2 className="text-[11px] font-black text-gray-500 uppercase tracking-[0.18em]">TOP GAINING SETS</h2>
               </div>
               <button onClick={() => onNavigate(Screen.COLLECTION)} className="text-[11px] font-black text-emerald-500 active:opacity-70">
                 See All →
@@ -352,14 +352,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
                 <button
                   key={i}
                   onClick={() => onNavigate(Screen.SET_DETAIL, { setNum: set.setNum })}
-                  className="w-full bg-[#1A1A1A] rounded-2xl border border-white/6 px-4 py-3 flex items-center gap-4 active:bg-white/5 transition-colors"
+                  className="w-full bg-white shadow-sm rounded-2xl border border-gray-100 px-4 py-3 flex items-center gap-4 active:bg-gray-50 transition-colors"
                 >
-                  <div className="w-12 h-12 bg-[#111] rounded-xl overflow-hidden p-1 shrink-0">
+                  <div className="w-12 h-12 bg-[#F5F5F7] rounded-xl overflow-hidden p-1 shrink-0">
                     <img src={set.imageUrl} alt={set.name} className="w-full h-full object-contain" />
                   </div>
                   <div className="flex-1 min-w-0 text-left">
-                    <p className="text-[13px] font-bold text-white truncate">{set.name}</p>
-                    <p className="text-[10px] text-zinc-500 font-medium">#{set.setNum?.split('-')[0]}</p>
+                    <p className="text-[13px] font-bold text-gray-900 truncate">{set.name}</p>
+                    <p className="text-[10px] text-gray-400 font-medium">#{set.setNum?.split('-')[0]}</p>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-[13px] font-black text-emerald-400">${set.retailPrice || 149}</p>
@@ -377,12 +377,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
         {/* ─── Empty State ─── */}
         {mounted && isEmpty && (
           <div className="home-r5 px-6 mb-6">
-            <div className="bg-[#1A1A1A] rounded-[24px] border border-dashed border-white/10 p-8 flex flex-col items-center text-center">
+            <div className="bg-white shadow-sm rounded-[24px] border border-dashed border-gray-200 p-8 flex flex-col items-center text-center">
               <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-4">
                 <Camera className="w-8 h-8 text-emerald-400" />
               </div>
-              <h3 className="text-[18px] font-black text-white mb-2">Start Your Collection</h3>
-              <p className="text-zinc-500 text-[13px] font-medium mb-6 leading-relaxed">
+              <h3 className="text-[18px] font-black text-gray-900 mb-2">Start Your Collection</h3>
+              <p className="text-gray-400 text-[13px] font-medium mb-6 leading-relaxed">
                 Scan your first LEGO set to instantly see its market value and start tracking your portfolio.
               </p>
               <button
@@ -401,14 +401,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
           <div className="home-r5 px-6 mb-6">
             <button
               onClick={() => onNavigate(Screen.WISHLIST)}
-              className="w-full flex items-center gap-4 px-5 py-4 bg-[#1A1A1A] rounded-[22px] border border-white/6 active:bg-white/5 transition-colors"
+              className="w-full flex items-center gap-4 px-5 py-4 bg-white shadow-sm rounded-[22px] border border-gray-100 active:bg-gray-50 transition-colors"
             >
               <div className="w-10 h-10 rounded-2xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center shrink-0">
                 <Heart className="w-5 h-5 text-pink-400" fill="#F472B6" />
               </div>
               <div className="flex-1 text-left">
-                <p className="text-[14px] font-bold text-white">Wishlist</p>
-                <p className="text-[11px] text-zinc-500 font-medium">Sets you want to track &amp; buy next</p>
+                <p className="text-[14px] font-bold text-gray-900">Wishlist</p>
+                <p className="text-[11px] text-gray-400 font-medium">Sets you want to track &amp; buy next</p>
               </div>
               <ChevronRight className="w-4 h-4 text-zinc-700" />
             </button>

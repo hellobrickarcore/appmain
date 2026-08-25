@@ -22,20 +22,28 @@ import {
   ArrowDownRight,
   Sparkles,
   ShoppingBag,
+  X
 } from "lucide-react";
 import { mockSets, getValuation } from "@/lib/mock-data";
-import { formatCurrency, formatPercent, cn } from "@/lib/utils";
-import { Badge, Card } from "@/components/ui";
 import type { LegoSet, SetValuation, WishlistItem, CollectionItem } from "@/types";
 
 const containerVariants = {
-  animate: { transition: { staggerChildren: 0.04 } },
+  animate: { transition: { staggerChildren: 0.05 } },
 };
 
 const itemVariants = {
-  initial: { opacity: 0, y: 12 },
+  initial: { opacity: 0, y: 15 },
   animate: { opacity: 1, y: 0 },
 };
+
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
+}
 
 export default function WishlistPage() {
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
@@ -85,7 +93,6 @@ export default function WishlistPage() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // Hydrate wishlist with set metadata & current sealed pricing
   const hydratedWishlist = useMemo(() => {
     return wishlist
       .map((item) => {
@@ -98,15 +105,7 @@ export default function WishlistPage() {
         const priceDiff = currentVal - target;
         const targetReached = currentVal <= target;
 
-        return {
-          item,
-          set,
-          val,
-          currentVal,
-          target,
-          priceDiff,
-          targetReached,
-        };
+        return { item, set, val, currentVal, target, priceDiff, targetReached };
       })
       .filter(Boolean) as {
       item: WishlistItem;
@@ -119,12 +118,10 @@ export default function WishlistPage() {
     }[];
   }, [wishlist]);
 
-  // Count target-met buying opportunities
   const targetMetCount = useMemo(() => {
     return hydratedWishlist.filter((w) => w.targetReached).length;
   }, [hydratedWishlist]);
 
-  // Remove from Wishlist
   const handleRemove = (setNum: string) => {
     const updated = wishlist.filter((w) => w.setNum !== setNum);
     setWishlist(updated);
@@ -132,19 +129,16 @@ export default function WishlistPage() {
     showToast("Removed from price monitor.", "info");
   };
 
-  // Trigger migration flow
   const startMigration = (set: LegoSet) => {
     const val = getValuation(set.setNum);
     setPurchasePrice(val ? val.sealedValue.toString() : (set.retailPrice?.toString() || ""));
     setActiveSetToMigrate(set);
   };
 
-  // Finalize migration from Wishlist into Collection
   const handleMigrateToCollection = (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeSetToMigrate) return;
 
-    // 1. Create collection item
     const newItem: CollectionItem = {
       id: `col_${Date.now()}`,
       userId: "user_mvp",
@@ -156,7 +150,6 @@ export default function WishlistPage() {
       notes: "Moved automatically from Price Monitor.",
     };
 
-    // 2. Remove from Wishlist
     const updatedWish = wishlist.filter((w) => w.setNum !== activeSetToMigrate.setNum);
     const updatedCol = [newItem, ...collection];
 
@@ -171,16 +164,17 @@ export default function WishlistPage() {
   };
 
   return (
-    <div className="px-4 py-5 max-w-2xl mx-auto space-y-5">
+    <div className="pt-8 pb-20 px-6 max-w-7xl mx-auto space-y-8 font-sans">
       {/* Header title */}
-      <div>
-        <h1 className="font-outfit font-bold text-xl text-hb-primary flex items-center gap-2">
-          <Eye size={20} className="text-hb-gold" />
-          Price Monitor
-        </h1>
-        <p className="text-hb-secondary text-xs">
-          Alert parameters and buy triggers for targets.
-        </p>
+      <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-4">
+        <div>
+          <h1 className="font-display font-bold text-4xl text-[#050A18] mb-2 flex items-center gap-3">
+            Price Monitor
+          </h1>
+          <p className="text-gray-500 font-medium text-lg">
+            Track asset prices and receive buy alerts.
+          </p>
+        </div>
       </div>
 
       {/* Aggregate Buy Alert Header */}
@@ -188,30 +182,34 @@ export default function WishlistPage() {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className={cn(
-            "rounded-2xl border p-4 flex items-center gap-3.5 relative overflow-hidden transition-all",
+          className={`rounded-3xl border p-6 flex items-center gap-5 relative overflow-hidden transition-all shadow-sm ${
             targetMetCount > 0
-              ? "bg-hb-positive-bg border-[#34D399]/30"
-              : "bg-hb-surface border-hb-border"
-          )}
+              ? "bg-green-50 border-green-200"
+              : "bg-white border-gray-100"
+          }`}
         >
-          <div className="absolute top-0 right-0 w-24 h-24 bg-hb-gold/5 rounded-full blur-xl pointer-events-none" />
-          <div className="w-10 h-10 rounded-xl bg-hb-bg/50 flex items-center justify-center flex-shrink-0 relative">
+          {targetMetCount > 0 && (
+            <div className="absolute top-0 right-0 w-48 h-48 bg-green-200 rounded-full blur-[60px] opacity-30 pointer-events-none" />
+          )}
+          
+          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 relative ${
+            targetMetCount > 0 ? "bg-green-100" : "bg-gray-100"
+          }`}>
             <Bell
-              size={18}
-              className={cn(targetMetCount > 0 ? "text-hb-positive animate-bounce" : "text-hb-secondary")}
+              size={24}
+              className={targetMetCount > 0 ? "text-green-600 animate-bounce" : "text-gray-400"}
             />
             {targetMetCount > 0 && (
-              <div className="absolute top-[-3px] right-[-3px] w-2.5 h-2.5 bg-hb-positive border-2 border-hb-bg rounded-full" />
+              <div className="absolute top-[-4px] right-[-4px] w-4 h-4 bg-green-500 border-2 border-white rounded-full" />
             )}
           </div>
-          <div className="space-y-0.5">
-            <h4 className="text-[13px] font-bold text-hb-primary">
+          <div className="space-y-1 z-10">
+            <h4 className="text-lg font-bold text-[#050A18]">
               {targetMetCount > 0
                 ? `${targetMetCount} Buy Opportunity Found!`
                 : "Active Price Tracking"}
             </h4>
-            <p className="text-hb-secondary text-[11px] leading-tight max-w-xs">
+            <p className="text-gray-500 font-medium text-sm max-w-lg">
               {targetMetCount > 0
                 ? "Market values for some sets have dropped below your alert buy targets."
                 : "Continuous scan active for retail fluctuations and price changes."}
@@ -223,25 +221,25 @@ export default function WishlistPage() {
       {/* Main content list */}
       {loading ? (
         <div className="h-48 flex items-center justify-center">
-          <div className="w-6 h-6 border-2 border-hb-gold border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#FFCE4A] border-t-transparent rounded-full animate-spin" />
         </div>
       ) : wishlist.length === 0 ? (
         /* Empty State */
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-center py-16 border border-dashed border-hb-border rounded-2xl bg-hb-surface/20"
+          className="text-center py-24 border-2 border-dashed border-gray-200 rounded-3xl bg-white"
         >
-          <Bookmark size={40} className="text-hb-tertiary mx-auto mb-3.5" />
-          <h3 className="font-outfit font-bold text-sm text-hb-primary">
+          <Bookmark size={48} className="text-gray-300 mx-auto mb-4" />
+          <h3 className="font-display font-bold text-2xl text-[#050A18] mb-2">
             No Monitored Sets
           </h3>
-          <p className="text-hb-secondary text-xs max-w-xs mx-auto mt-1 mb-5 leading-relaxed">
+          <p className="text-gray-500 font-medium max-w-md mx-auto mb-8">
             Configure custom limit pricing targets to get instant indicators on buying opportunities.
           </p>
           <Link
             href="/scan"
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl gradient-gold text-[#0C0F14] text-xs font-bold hover:brightness-110 active:scale-98 transition-all shadow-md shadow-hb-gold/5"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#FF7A30] text-white font-bold hover:bg-[#E66620] shadow-sm shadow-[#FF7A30]/20 transition-all"
           >
             Find a set to monitor
           </Link>
@@ -252,7 +250,7 @@ export default function WishlistPage() {
           variants={containerVariants}
           initial="initial"
           animate="animate"
-          className="space-y-2.5"
+          className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6"
         >
           <AnimatePresence mode="popLayout">
             {hydratedWishlist.map(({ item, set, val, currentVal, target, priceDiff, targetReached }) => {
@@ -262,92 +260,90 @@ export default function WishlistPage() {
                   layout
                   variants={itemVariants}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className={cn(
-                    "rounded-2xl border bg-hb-surface p-4 hover:border-hb-border-hover transition-all flex flex-col gap-3 group relative overflow-hidden",
-                    targetReached ? "border-[#34D399]/20" : "border-hb-border"
-                  )}
+                  className={`rounded-3xl border bg-white p-5 md:p-6 hover:shadow-md transition-all flex flex-col group relative overflow-hidden ${
+                    targetReached ? "border-green-200" : "border-gray-100 hover:border-[#FFCE4A]"
+                  }`}
                 >
                   {/* Glowing backdrops for target-reached cards */}
                   {targetReached && (
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-hb-positive/5 rounded-full blur-2xl pointer-events-none" />
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-green-100/50 rounded-full blur-2xl pointer-events-none" />
                   )}
 
                   {/* Top Half: metadata info */}
-                  <div className="flex gap-3">
-                    {/* Thumbnail */}
-                    <div className="w-12 h-12 rounded-lg bg-hb-bg border border-hb-border flex items-center justify-center flex-shrink-0 font-mono text-[7px] text-hb-tertiary">
-                      {set.setNum.split("-")[0]}
+                  <div className="flex gap-4 mb-6">
+                    <div className="w-16 h-16 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center flex-shrink-0 font-mono text-[9px] font-bold text-gray-400 p-2">
+                      <img src={set.imageUrl} alt={set.name} className="h-full object-contain" onError={(e) => (e.currentTarget.style.display = 'none')} />
                     </div>
-                    {/* Identity block */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
+                    
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                      <div className="flex items-center gap-2 mb-1">
                         <Link
                           href={`/set/${set.setNum}`}
-                          className="text-xs font-bold text-hb-primary truncate hover:text-hb-gold leading-tight"
+                          className="text-lg font-bold text-[#050A18] truncate group-hover:text-[#FF7A30] transition-colors leading-tight"
                         >
                           {set.name}
                         </Link>
                         {set.isRetired && (
-                          <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-[#C46D4E]/10 text-[#C46D4E] uppercase">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-red-100 text-red-700 uppercase tracking-wider">
                             RET
                           </span>
                         )}
                       </div>
-                      <p className="text-[10px] text-hb-secondary mt-0.5 truncate capitalize">
-                        {set.theme} Release · {set.year}
-                      </p>
+                      <div className="flex items-center gap-2 text-sm text-gray-500 font-medium">
+                        <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">{set.setNum}</span>
+                        <span>{set.theme}</span>
+                      </div>
                     </div>
 
-                    {/* Delete icon */}
                     <button
                       onClick={() => handleRemove(set.setNum)}
-                      className="p-1 rounded-md bg-hb-elevated/40 border border-hb-border text-hb-secondary hover:text-[#F87171] hover:border-[#F87171]/20 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0 self-start"
+                      className="w-8 h-8 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all flex-shrink-0 self-start"
                       title="Stop Monitoring"
                     >
-                      <Trash2 size={13} />
+                      <Trash2 size={16} />
                     </button>
                   </div>
 
                   {/* Mid Half: limit values and alarms */}
-                  <div className="flex items-center justify-between border-t border-hb-border/40 pt-2.5">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-0.5">
-                        <span className="text-[8px] text-hb-tertiary uppercase tracking-wider block font-semibold">
-                          Current Sealed
+                  <div className="flex items-center justify-between border-t border-gray-100 pt-5 mt-auto">
+                    <div className="flex gap-6">
+                      <div className="space-y-1">
+                        <span className="text-[10px] text-gray-400 uppercase tracking-wider block font-bold">
+                          Current Value
                         </span>
-                        <span className="font-mono text-xs font-bold text-hb-primary leading-none">
+                        <span className="font-display text-xl font-bold text-[#050A18] leading-none block">
                           {formatCurrency(currentVal)}
                         </span>
                       </div>
-                      <div className="space-y-0.5">
-                        <span className="text-[8px] text-hb-tertiary uppercase tracking-wider block font-semibold">
+                      <div className="space-y-1">
+                        <span className="text-[10px] text-gray-400 uppercase tracking-wider block font-bold">
                           Target Buy Limit
                         </span>
-                        <span className="font-mono text-xs font-bold text-hb-gold leading-none">
+                        <span className="font-display text-xl font-bold text-[#FF7A30] leading-none block">
                           {formatCurrency(target)}
                         </span>
                       </div>
                     </div>
 
                     {/* Quick Move / Buy Alert */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       {targetReached ? (
-                        <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-[#34D399]/10 text-[#34D399] text-[10px] font-bold border border-[#34D399]/20 tracking-wider">
-                          <Sparkles size={9} className="animate-pulse" />
+                        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-100 text-green-700 text-xs font-bold border border-green-200 tracking-wider">
+                          <Sparkles size={12} className="animate-pulse" />
                           BUY TRIGGER
                         </div>
                       ) : (
-                        <div className="text-[9px] font-mono text-hb-tertiary">
+                        <div className="hidden sm:block text-xs font-mono font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-lg">
                           Diff {formatCurrency(priceDiff)}
                         </div>
                       )}
 
                       <button
                         onClick={() => startMigration(set)}
-                        className="flex items-center justify-center p-2 rounded-xl bg-hb-gold text-[#0C0F14] hover:brightness-110 shadow-sm transition-all"
+                        className="flex items-center justify-center w-10 h-10 rounded-xl bg-[#050A18] text-white hover:bg-[#FF7A30] shadow-sm transition-all"
                         title="Acquired? Move to Collection"
                       >
-                        <ShoppingBag size={13} />
+                        <ShoppingBag size={18} />
                       </button>
                     </div>
                   </div>
@@ -365,15 +361,15 @@ export default function WishlistPage() {
             initial={{ opacity: 0, y: 50, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-20 left-4 right-4 z-50 flex justify-center pointer-events-none"
+            className="fixed bottom-10 right-10 z-50 flex justify-end pointer-events-none"
           >
-            <div className="glass-elevated border border-hb-border rounded-2xl px-4 py-3 shadow-2xl flex items-center gap-2.5 pointer-events-auto">
+            <div className="bg-white border border-gray-100 rounded-2xl px-5 py-4 shadow-xl flex items-center gap-3 pointer-events-auto">
               {toast.type === "success" ? (
-                <CheckCircle size={18} className="text-hb-positive flex-shrink-0" />
+                <CheckCircle size={20} className="text-green-500 flex-shrink-0" />
               ) : (
-                <Sparkles size={18} className="text-hb-gold flex-shrink-0" />
+                <Sparkles size={20} className="text-[#FF7A30] flex-shrink-0" />
               )}
-              <span className="text-[13px] font-medium text-hb-primary">
+              <span className="text-sm font-bold text-[#050A18]">
                 {toast.message}
               </span>
             </div>
@@ -386,64 +382,59 @@ export default function WishlistPage() {
           ========================================================================= */}
       <AnimatePresence>
         {activeSetToMigrate && (
-          <div className="fixed inset-0 z-50 flex items-end justify-center">
-            {/* Backdrop */}
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setActiveSetToMigrate(null)}
-              className="absolute inset-0 bg-hb-bg/85 backdrop-blur-sm"
+              className="absolute inset-0 bg-[#050A18]/40 backdrop-blur-sm"
             />
-            {/* Drawer sheet */}
+            
             <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 220 }}
-              className="relative w-full max-w-lg bg-hb-surface border-t border-hb-border rounded-t-3xl p-6 space-y-4 z-10"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-lg bg-white rounded-3xl p-8 shadow-2xl z-10"
             >
-              <div className="w-12 h-1 bg-hb-border rounded-full mx-auto -mt-2 mb-4" />
-
-              <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between mb-6">
                 <div>
-                  <h3 className="font-outfit font-bold text-lg text-hb-primary">
-                    Confirm Asset Acquisition
+                  <h3 className="font-display font-bold text-2xl text-[#050A18]">
+                    Confirm Acquisition
                   </h3>
-                  <p className="text-hb-secondary text-xs mt-0.5">
+                  <p className="text-gray-500 font-medium mt-1">
                     Save purchase records and shift asset to your main portfolio.
                   </p>
                 </div>
                 <button
                   onClick={() => setActiveSetToMigrate(null)}
-                  className="w-7 h-7 rounded-full bg-hb-elevated flex items-center justify-center text-hb-secondary hover:text-hb-primary"
+                  className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:text-gray-900 hover:bg-gray-200 transition-colors"
                 >
-                  &times;
+                  <X size={20} />
                 </button>
               </div>
 
-              <form onSubmit={handleMigrateToCollection} className="space-y-4 text-left">
+              <form onSubmit={handleMigrateToCollection} className="space-y-6 text-left">
                 {/* Condition selection */}
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-semibold text-hb-secondary uppercase tracking-wider block">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">
                     Acquired Condition
                   </label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-3">
                     {[
                       { value: "sealed", label: "Sealed (New)" },
-                      { value: "used", label: "Used (Complete)" },
+                      { value: "used", label: "Used" },
                       { value: "partial", label: "Partial" },
                     ].map((opt) => (
                       <button
                         key={opt.value}
                         type="button"
                         onClick={() => setCondition(opt.value as any)}
-                        className={cn(
-                          "py-2.5 rounded-xl border text-center transition-all text-xs font-bold",
+                        className={`py-3 rounded-xl border text-center transition-all text-sm font-bold ${
                           condition === opt.value
-                            ? "bg-hb-gold/10 border-hb-gold text-hb-primary"
-                            : "bg-hb-bg/50 border-hb-border text-hb-secondary"
-                        )}
+                            ? "bg-[#FFCE4A]/20 border-[#FFCE4A] text-[#050A18]"
+                            : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
+                        }`}
                       >
                         {opt.label}
                       </button>
@@ -452,8 +443,8 @@ export default function WishlistPage() {
                 </div>
 
                 {/* Purchase Price */}
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-semibold text-hb-secondary uppercase tracking-wider block">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">
                     Actual Purchase Price (USD)
                   </label>
                   <input
@@ -462,27 +453,27 @@ export default function WishlistPage() {
                     value={purchasePrice}
                     onChange={(e) => setPurchasePrice(e.target.value)}
                     placeholder="0.00"
-                    className="w-full bg-hb-bg border border-hb-border rounded-xl px-4 py-2.5 text-hb-primary text-sm focus:outline-none focus:border-hb-gold/40 focus:ring-1 focus:ring-hb-gold/20 font-mono"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-5 py-4 text-[#050A18] text-lg font-bold focus:outline-none focus:ring-2 focus:ring-[#FF7A30] focus:bg-white transition-all font-mono"
                   />
                 </div>
 
                 {/* Purchase Date */}
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-semibold text-hb-secondary uppercase tracking-wider block">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">
                     Acquisition Date
                   </label>
                   <input
                     type="date"
                     value={purchaseDate}
                     onChange={(e) => setPurchaseDate(e.target.value)}
-                    className="w-full bg-hb-bg border border-hb-border rounded-xl px-4 py-2.5 text-hb-primary text-sm focus:outline-none focus:border-hb-gold/40 focus:ring-1 focus:ring-hb-gold/20"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-5 py-4 text-[#050A18] font-bold focus:outline-none focus:ring-2 focus:ring-[#FF7A30] focus:bg-white transition-all"
                   />
                 </div>
 
                 {/* Submit button */}
                 <button
                   type="submit"
-                  className="w-full flex items-center justify-center py-3 rounded-2xl gradient-gold text-[#0C0F14] text-[13px] font-bold hover:brightness-110 active:scale-98 transition-all shadow-md shadow-hb-gold/10 mt-2"
+                  className="w-full flex items-center justify-center py-4 rounded-xl bg-[#FF7A30] text-white text-lg font-bold hover:bg-[#E66620] shadow-sm shadow-[#FF7A30]/20 transition-all mt-4"
                 >
                   Migrate to Portfolio
                 </button>

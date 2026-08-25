@@ -63,6 +63,9 @@ model = None
 MODEL_LOADED = False
 MODEL_PATHS = [
     STABILITY_CONFIG["model_path"],
+    "models/yolo11_lego.pt",
+    "models/yolo8_lego.pt",
+    "models/yolov8n-seg.pt",
     "server/models/yolo11_lego.pt",
     "server/models/yolo8_lego.pt",
     "yolov8n-seg.pt"

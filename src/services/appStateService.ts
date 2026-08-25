@@ -203,12 +203,12 @@ class AppStateService {
 
   // ── AUTH COMPLETE ─────────────────────────────────
   public onAuthSuccess() {
-    console.log('[AppState] Auth success → SUBSCRIPTION');
+    console.log('[AppState] Auth success → HOME');
     localStorage.setItem('hellobrick_authenticated', 'true');
     localStorage.setItem('hellobrick_onboarding_finished', 'true');
     
-    // After auth, show paywall to maximize conversion
-    this.navigate(Screen.SUBSCRIPTION);
+    // Contextual Paywall: Let users experience value first before hitting the gate
+    this.navigate(Screen.HOME);
     
     // Initialize subscriptions after auth
     const userId = localStorage.getItem('hellobrick_userId');

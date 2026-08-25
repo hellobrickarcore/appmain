@@ -13,14 +13,14 @@ This file contains the final, 100% compliant, and highly optimized App Store Con
 
 ## 📝 App Subtitle (30 Characters Max)
 
-*   **Option 1 (Recommended - Matches Resale Vibe):** `Set Value & Price Guide` *(23 Characters)*
+*   **Option 1 (Recommended - Outcome Focus):** `Track Your LEGO Portfolio Value` *(30 Characters)*
 *   **Option 2 (Alternative - Clean & Direct):** `Scan bricks & track value` *(25 Characters)*
 
 ---
 
 ## 🔑 Keywords (100 Characters Max)
 
-*   `lego,bricks,minifigures,scanner,portfolio,value,tracker,catalog,rebrickable,brickit,invest,sets,moc` *(98 Characters - No Spaces)*
+*   `lego,bricks,scanner,portfolio,value,tracker,brickit,brickify,invest,sets,minifigures,moc,collection` *(99 Characters - No Spaces)*
 
 ---
 

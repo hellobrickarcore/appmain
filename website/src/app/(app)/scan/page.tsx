@@ -43,7 +43,6 @@ export default function ScanPage() {
   const [results, setResults] = useState<LegoSet[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Debounced search logic combining instant local mockup data + live API call
   useEffect(() => {
     if (!query.trim()) {
       setResults([]);
@@ -54,7 +53,6 @@ export default function ScanPage() {
     setIsSearching(true);
     const q = query.toLowerCase().trim();
 
-    // 1. Instant local search (WOW factor: ultra-responsive UX)
     const localFiltered = mockSets.filter(
       (set) =>
         set.name.toLowerCase().includes(q) ||
@@ -63,7 +61,6 @@ export default function ScanPage() {
     );
     setResults(localFiltered.slice(0, 8));
 
-    // 2. Debounced live Rebrickable fetch
     const delayDebounce = setTimeout(async () => {
       try {
         const liveSets = await searchRebrickableSets(q);
@@ -101,269 +98,236 @@ export default function ScanPage() {
     setQuery(setNum);
   };
 
-  // Popular / suggested sets
   const popularSets = mockSets.filter((s) => s.isRetired).slice(0, 6);
 
-
   return (
-    <div className="px-4 py-5 max-w-2xl mx-auto">
-      {/* Search Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-6"
-      >
-        <h1 className="font-outfit font-bold text-xl text-[#F0F2F5] mb-1">
-          Find a Set
-        </h1>
-        <p className="text-[#555B6E] text-[13px]">
-          Search by name, set number, or theme
-        </p>
-      </motion.div>
+    <div className="pt-8 pb-20 px-6 max-w-4xl mx-auto space-y-8 font-sans">
+      
+      {/* Header */}
+      <div className="text-center md:text-left mb-8">
+        <h1 className="font-display font-bold text-4xl text-[#050A18] mb-2">Find a Set</h1>
+        <p className="text-gray-500 font-medium text-lg">Search the global database to add sets to your collection or wishlist.</p>
+      </div>
 
-      {/* Search Input */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-        className="relative mb-5"
-      >
-        <div className="relative">
+      {/* Main Search Area */}
+      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 md:p-8">
+        
+        {/* Search Input */}
+        <div className="relative mb-6">
           <Search
-            size={18}
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-[#555B6E]"
+            size={22}
+            className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400"
           />
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => handleSearch(e.target.value)}
-            placeholder="Enter set number or name..."
-            className="w-full pl-11 pr-20 py-3.5 rounded-2xl bg-[#161A22] border border-[#2A2F3C] text-[#F0F2F5] text-[15px] placeholder:text-[#555B6E] focus:outline-none focus:border-[#C9A84C]/40 focus:ring-1 focus:ring-[#C9A84C]/20 transition-all font-inter"
+            placeholder="Enter set number (e.g. 75192) or name..."
+            className="w-full pl-14 pr-16 py-4 rounded-2xl bg-gray-50 border border-gray-200 text-[#050A18] text-lg font-medium placeholder:text-gray-400 focus:outline-none focus:border-[#FF7A30]/50 focus:ring-4 focus:ring-[#FF7A30]/10 focus:bg-white transition-all font-sans shadow-inner shadow-gray-100/50"
             autoFocus
           />
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
             {query && (
               <button
                 onClick={handleClear}
-                className="p-1 rounded-lg hover:bg-[#2A2F3C] transition-colors"
+                className="p-1.5 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-500 transition-colors"
               >
-                <X size={16} className="text-[#555B6E]" />
+                <X size={16} />
               </button>
             )}
             {isSearching && (
-              <Loader2 size={16} className="text-[#C9A84C] animate-spin" />
+              <Loader2 size={20} className="text-[#FF7A30] animate-spin" />
             )}
           </div>
         </div>
-      </motion.div>
 
-      {/* Camera Fallback CTA */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="mb-6"
-      >
-        <button className="w-full flex items-center justify-center gap-2.5 py-3 rounded-2xl border border-dashed border-[#2A2F3C] bg-[#161A22]/50 text-[#555B6E] hover:border-[#3A4050] hover:text-[#8B92A5] transition-all">
-          <Camera size={17} />
-          <span className="text-[13px] font-medium">
-            Or scan with camera
-          </span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-[#C9A84C]/10 text-[#C9A84C] font-medium">
-            BETA
-          </span>
-        </button>
-      </motion.div>
+        {/* Camera Fallback CTA */}
+        <div className="mb-8">
+          <button className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 hover:bg-gray-100 hover:border-gray-300 transition-all text-gray-500 font-bold group">
+            <ScanLine size={20} className="group-hover:scale-110 transition-transform" />
+            <span>Have the box? Scan barcode instead</span>
+            <span className="text-[10px] px-2 py-0.5 rounded-lg bg-[#FFCE4A]/20 text-yellow-700 font-bold ml-2">
+              BETA
+            </span>
+          </button>
+        </div>
 
-      {/* Search Results */}
-      <AnimatePresence mode="wait">
-        {query.trim() && results.length > 0 && (
-          <motion.div
-            key="results"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            className="mb-6"
-          >
-            <p className="text-[#555B6E] text-[11px] font-medium uppercase tracking-wider mb-2.5 px-1">
-              {results.length} result{results.length !== 1 ? "s" : ""}
-            </p>
-            <div className="space-y-1.5">
-              {results.map((set, i) => {
-                let val = getValuation(set.setNum);
-                if (!val) {
-                  val = generateSyntheticValuation(set.setNum, set.year, set.numParts).valuation;
-                }
-                return (
-
-                  <motion.div
-                    key={set.setNum}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.04 }}
-                  >
-                    <Link
-                      href={`/set/${set.setNum}`}
-                      className="flex items-center gap-3 p-3 rounded-xl border border-[#2A2F3C] bg-[#161A22] hover:bg-[#1E2330] hover:border-[#3A4050] transition-all"
-                    >
-                      {/* Thumbnail placeholder */}
-                      <div className="w-14 h-14 rounded-lg bg-[#1E2330] border border-[#2A2F3C] flex items-center justify-center flex-shrink-0">
-                        <span className="text-[#555B6E] text-[8px] font-mono leading-tight text-center">
-                          {set.setNum}
-                        </span>
-                      </div>
-
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[14px] font-medium text-[#F0F2F5] truncate">
-                          {set.name}
-                        </p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[11px] text-[#555B6E] font-mono">
-                            #{set.setNum}
-                          </span>
-                          <span className="text-[11px] text-[#555B6E]">
-                            · {set.theme}
-                          </span>
-                          <span className="text-[11px] text-[#555B6E]">
-                            · {set.year}
-                          </span>
-                        </div>
-                        {set.isRetired && (
-                          <span className="inline-block mt-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-md bg-[#C46D4E]/15 text-[#C46D4E]">
-                            RETIRED
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Value */}
-                      <div className="text-right flex-shrink-0">
-                        {val && (
-                          <>
-                            <p className="font-mono text-[14px] font-semibold text-[#F0F2F5]">
-                              {formatCurrency(val.sealedValue)}
-                            </p>
-                            <span
-                              className={`inline-flex items-center gap-0.5 text-[11px] font-mono ${
-                                val.sealedChange7d >= 0
-                                  ? "text-[#34D399]"
-                                  : "text-[#F87171]"
-                              }`}
-                            >
-                              {val.sealedChange7d >= 0 ? (
-                                <ArrowUpRight size={11} />
-                              ) : (
-                                <ArrowDownRight size={11} />
-                              )}
-                              {formatPercent(val.sealedChange7d)}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </Link>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </motion.div>
-        )}
-
-        {query.trim() && results.length === 0 && !isSearching && (
-          <motion.div
-            key="no-results"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="text-center py-12"
-          >
-            <Search size={36} className="text-[#2A2F3C] mx-auto mb-3" />
-            <p className="text-[#555B6E] text-[14px]">
-              No sets found for &ldquo;{query}&rdquo;
-            </p>
-            <p className="text-[#555B6E] text-[12px] mt-1">
-              Try a set number (e.g., 10270) or name
-            </p>
-          </motion.div>
-        )}
-
-        {!query.trim() && (
-          <motion.div
-            key="suggestions"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            {/* Recent Searches */}
-            {recentSearches.length > 0 && (
-              <div className="mb-6">
-                <p className="text-[#555B6E] text-[11px] font-medium uppercase tracking-wider mb-2.5 px-1">
-                  Recent Searches
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {recentSearches.map((search) => (
-                    <button
-                      key={search}
-                      onClick={() => handleSelectRecent(search)}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#2A2F3C] bg-[#161A22] text-[13px] text-[#8B92A5] hover:bg-[#1E2330] hover:border-[#3A4050] transition-all"
-                    >
-                      <Clock size={13} className="text-[#555B6E]" />
-                      {search}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Popular Sets */}
-            <div>
-              <div className="flex items-center gap-1.5 mb-2.5 px-1">
-                <Sparkles size={13} className="text-[#C9A84C]" />
-                <p className="text-[#555B6E] text-[11px] font-medium uppercase tracking-wider">
-                  Popular Sets
-                </p>
-              </div>
-              <div className="space-y-1.5">
-                {popularSets.map((set, i) => {
-                  const val = getValuation(set.setNum);
+        {/* Search Results Area */}
+        <AnimatePresence mode="wait">
+          {query.trim() && results.length > 0 && (
+            <motion.div
+              key="results"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 px-2">
+                {results.length} result{results.length !== 1 ? "s" : ""}
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {results.map((set, i) => {
+                  let val = getValuation(set.setNum);
+                  if (!val) {
+                    val = generateSyntheticValuation(set.setNum, set.year, set.numParts).valuation;
+                  }
                   return (
                     <motion.div
                       key={set.setNum}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.05 }}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: i * 0.03 }}
                     >
                       <Link
                         href={`/set/${set.setNum}`}
-                        className="flex items-center gap-3 p-3 rounded-xl border border-[#2A2F3C]/60 bg-[#161A22]/60 hover:bg-[#1E2330] hover:border-[#3A4050] transition-all"
+                        className="flex items-center gap-4 p-4 rounded-2xl border border-gray-100 bg-white hover:border-[#FFCE4A] hover:shadow-md transition-all group"
                       >
-                        <div className="w-10 h-10 rounded-lg bg-[#1E2330] border border-[#2A2F3C] flex items-center justify-center flex-shrink-0">
-                          <span className="text-[#555B6E] text-[7px] font-mono">
-                            {set.setNum}
-                          </span>
+                        {/* Thumbnail */}
+                        <div className="w-16 h-16 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center p-2 relative flex-shrink-0 group-hover:bg-white transition-colors">
+                          <img src={set.imageUrl} alt={set.name} className="h-full object-contain" onError={(e) => (e.currentTarget.style.display = 'none')} />
                         </div>
+
+                        {/* Info */}
                         <div className="flex-1 min-w-0">
-                          <p className="text-[13px] font-medium text-[#F0F2F5] truncate">
+                          <p className="text-base font-bold text-[#050A18] truncate group-hover:text-[#FF7A30] transition-colors leading-tight mb-1">
                             {set.name}
                           </p>
-                          <p className="text-[11px] text-[#555B6E]">
-                            {set.theme} · {set.year}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-mono bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-bold">
+                              {set.setNum}
+                            </span>
+                            <span className="text-[12px] font-medium text-gray-500 truncate">
+                              {set.theme} · {set.year}
+                            </span>
+                          </div>
                         </div>
+
+                        {/* Value */}
                         <div className="text-right flex-shrink-0">
-                          <p className="font-mono text-[13px] font-semibold text-[#F0F2F5]">
-                            {val ? formatCurrency(val.sealedValue) : "—"}
-                          </p>
+                          {val && (
+                            <>
+                              <p className="font-display text-lg font-bold text-[#050A18]">
+                                {formatCurrency(val.sealedValue)}
+                              </p>
+                              <span
+                                className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded font-bold text-[10px] mt-1 ${
+                                  val.sealedChange7d >= 0
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-red-100 text-red-700"
+                                }`}
+                              >
+                                {val.sealedChange7d >= 0 ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
+                                {formatPercent(val.sealedChange7d)}
+                              </span>
+                            </>
+                          )}
                         </div>
                       </Link>
                     </motion.div>
                   );
                 })}
               </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </motion.div>
+          )}
+
+          {query.trim() && results.length === 0 && !isSearching && (
+            <motion.div
+              key="no-results"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="text-center py-16 border-2 border-dashed border-gray-100 rounded-3xl"
+            >
+              <Search size={48} className="text-gray-300 mx-auto mb-4" />
+              <p className="text-[#050A18] text-xl font-bold mb-2">
+                No sets found for &ldquo;{query}&rdquo;
+              </p>
+              <p className="text-gray-500 font-medium">
+                Try searching for a set number (e.g., 10270) or name.
+              </p>
+            </motion.div>
+          )}
+
+          {!query.trim() && (
+            <motion.div
+              key="suggestions"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="grid grid-cols-1 md:grid-cols-2 gap-8"
+            >
+              {/* Popular Sets */}
+              <div>
+                <div className="flex items-center gap-2 mb-4 px-2">
+                  <Sparkles size={16} className="text-[#FF7A30]" />
+                  <p className="text-gray-500 text-xs font-bold uppercase tracking-wider">
+                    Popular Right Now
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  {popularSets.slice(0, 4).map((set, i) => {
+                    const val = getValuation(set.setNum);
+                    return (
+                      <motion.div
+                        key={set.setNum}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                      >
+                        <Link
+                          href={`/set/${set.setNum}`}
+                          className="flex items-center gap-4 p-3 rounded-2xl bg-gray-50 hover:bg-white hover:shadow-md border border-transparent hover:border-gray-200 transition-all group"
+                        >
+                          <div className="w-12 h-12 rounded-xl bg-white border border-gray-200 flex items-center justify-center p-1.5 flex-shrink-0">
+                             <img src={set.imageUrl} alt={set.name} className="h-full object-contain" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-[#050A18] truncate group-hover:text-[#FF7A30] transition-colors">
+                              {set.name}
+                            </p>
+                            <p className="text-xs font-medium text-gray-500">
+                              {set.setNum} · {set.theme}
+                            </p>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <p className="font-display text-base font-bold text-[#050A18]">
+                              {val ? formatCurrency(val.sealedValue) : "—"}
+                            </p>
+                          </div>
+                        </Link>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Recent Searches */}
+              {recentSearches.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-4 px-2">
+                    <Clock size={16} className="text-gray-400" />
+                    <p className="text-gray-500 text-xs font-bold uppercase tracking-wider">
+                      Recent Searches
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    {recentSearches.map((search) => (
+                      <button
+                        key={search}
+                        onClick={() => handleSelectRecent(search)}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-700 hover:border-[#FF7A30] hover:text-[#FF7A30] transition-all"
+                      >
+                        <Search size={14} className="text-gray-400" />
+                        {search}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
