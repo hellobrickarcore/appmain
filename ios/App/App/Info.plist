@@ -62,7 +62,7 @@
 		<key>NSExceptionDomains</key>
 		<dict>
 			<!-- Digital Ocean YOLO Detection Server - HTTP allowed for direct API calls -->
-			<key>174.138.93.172</key>
+			<key>67.205.172.107</key>
 			<dict>
 				<key>NSExceptionAllowsInsecureHTTPLoads</key>
 				<true/>
