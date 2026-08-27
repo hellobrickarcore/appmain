@@ -115,17 +115,17 @@ export const BrowseScreen: React.FC<BrowseScreenProps> = ({ onNavigate }) => {
     <div className="flex flex-col h-full w-full bg-[#F5F5F7] text-gray-900 pt-[max(env(safe-area-inset-top),2.5rem)] pb-[max(env(safe-area-inset-bottom),6rem)]">
       
       {/* Header & Search */}
-      <div className="px-4 pb-4 sticky top-0 z-20 bg-[#F5F5F7]/80 backdrop-blur-lg border-b border-gray-200">
-        <h1 className="text-2xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">Database</h1>
+      <div className="px-5 pb-3 sticky top-0 z-20 bg-[#F5F5F7]/95 backdrop-blur-lg border-b border-gray-200/80">
+        <h1 className="text-2xl font-black tracking-tight text-gray-900 mb-3">LEGO Catalog</h1>
         
         <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-gray-500" />
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+            <Search className="h-4 w-4 text-gray-400" />
           </div>
           <input
             type="text"
-            className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl leading-5 bg-gray-500 text-gray-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm transition-all shadow-inner"
-            placeholder="Search by name, set number, or theme..."
+            className="block w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-sm"
+            placeholder="Search 20,000+ sets, minifigs, themes..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -135,15 +135,15 @@ export const BrowseScreen: React.FC<BrowseScreenProps> = ({ onNavigate }) => {
       {/* Filters (Theme, Year, Sort) */}
       <div className="z-10 bg-[#F5F5F7]">
         {/* Themes Horizontal Scroll */}
-        <div className="flex overflow-x-auto hide-scrollbar px-4 py-3 gap-2 border-b border-gray-200/50">
+        <div className="flex overflow-x-auto hide-scrollbar px-5 py-2.5 gap-2 border-b border-gray-200/60">
           {THEMES.map(theme => (
             <button
               key={theme}
               onClick={() => setSelectedTheme(theme)}
-              className={`whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              className={`whitespace-nowrap px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
                 selectedTheme === theme 
-                  ? 'bg-emerald-500 text-gray-900 shadow-md shadow-blue-500/20' 
-                  : 'bg-gray-50 text-gray-700 hover:bg-slate-700'
+                  ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/30' 
+                  : 'bg-white text-gray-600 border border-gray-200/80 hover:bg-gray-50'
               }`}
             >
               {theme}
@@ -282,28 +282,28 @@ export const BrowseScreen: React.FC<BrowseScreenProps> = ({ onNavigate }) => {
                     
                     <div className="mt-auto flex justify-between items-end">
                       <div className="flex flex-col">
-                        <span className="text-xs text-gray-500">{set.pieces} pcs</span>
-                        <span className="text-sm font-bold text-emerald-400">${set.marketValue.toFixed(2)}</span>
+                        <span className="text-[11px] font-medium text-gray-500">{set.pieces} pcs</span>
+                        <span className="text-sm font-black text-emerald-600">${set.marketValue.toFixed(2)}</span>
                       </div>
                       
                       {/* Action Buttons */}
-                      <div className="flex gap-2">
+                      <div className="flex gap-1.5">
                         <button 
                           onClick={(e) => { e.stopPropagation(); toggleWishlist(set.id); }}
-                          className={`p-1.5 rounded-full transition-colors ${
+                          className={`p-2 rounded-xl transition-all active:scale-90 ${
                             addedToWishlist[set.id] 
-                              ? 'bg-pink-500/20 text-pink-500' 
-                              : 'bg-gray-50 text-gray-500 hover:bg-slate-700'
+                              ? 'bg-rose-50 text-rose-500 border border-rose-200' 
+                              : 'bg-gray-100 text-gray-400 hover:text-gray-600'
                           }`}
                         >
                           <Heart className="w-4 h-4" fill={addedToWishlist[set.id] ? "currentColor" : "none"} />
                         </button>
                         <button 
                           onClick={(e) => { e.stopPropagation(); toggleCollection(set.id); }}
-                          className={`p-1.5 rounded-full transition-colors ${
+                          className={`p-2 rounded-xl transition-all active:scale-90 ${
                             addedToCollection[set.id] 
-                              ? 'bg-emerald-500/20 text-emerald-500' 
-                              : 'bg-emerald-500 text-gray-900 hover:bg-blue-600 shadow-md shadow-blue-500/20'
+                              ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' 
+                              : 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm shadow-emerald-500/20'
                           }`}
                         >
                           {addedToCollection[set.id] ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}

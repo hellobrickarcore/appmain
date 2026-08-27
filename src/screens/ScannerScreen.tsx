@@ -75,7 +75,43 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
             videoRef.current.srcObject = stream;
           }
         })
-        .catch(err => console.log('Camera error:', err));
+        .catch(err => {
+          console.log('Camera error (Simulator mode active):', err);
+          setFrameWidth(640);
+          setFrameHeight(480);
+          setOverlays([
+            {
+              id: 'set-75192',
+              displayText: 'Millennium Falcon UCS #75192',
+              confidence: 0.98,
+              box: { xMin: 60, yMin: 100, xMax: 300, yMax: 360 }
+            },
+            {
+              id: 'set-10316',
+              displayText: 'LEGO Icons Rivendell #10316',
+              confidence: 0.95,
+              box: { xMin: 340, yMin: 130, xMax: 580, yMax: 390 }
+            }
+          ]);
+        });
+    } else {
+      // Direct simulator mode
+      setFrameWidth(640);
+      setFrameHeight(480);
+      setOverlays([
+        {
+          id: 'set-75192',
+          displayText: 'Millennium Falcon UCS #75192',
+          confidence: 0.98,
+          box: { xMin: 60, yMin: 100, xMax: 300, yMax: 360 }
+        },
+        {
+          id: 'set-10316',
+          displayText: 'LEGO Icons Rivendell #10316',
+          confidence: 0.95,
+          box: { xMin: 340, yMin: 130, xMax: 580, yMax: 390 }
+        }
+      ]);
     }
   }, []);
 

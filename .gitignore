@@ -28,6 +28,7 @@ server/runs/
 ios/Pods/
 ios/build/
 ios/DerivedData/
+build_sim/
 android/.gradle/
 android/app/build/
 android/build/

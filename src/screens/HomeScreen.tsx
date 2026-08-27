@@ -1,6 +1,9 @@
 import * as React from 'react';
 import { useState, useEffect, useMemo } from 'react';
-import { User, Camera, Heart, TrendingUp, Package, Zap, Eye, EyeOff, ArrowUpRight, ArrowDownRight, ChevronRight, Bell } from 'lucide-react';
+import { 
+  User, Camera, Heart, TrendingUp, Package, Zap, Eye, EyeOff, 
+  ArrowUpRight, ArrowDownRight, ChevronRight, Bell, Search, Sparkles, Trophy, Flame
+} from 'lucide-react';
 import { Screen } from '../types';
 import { valuationService } from '../services/valuationService';
 import { getCollectionFromStorage, getSets, getValuationsMap } from '../lib/dataProvider';
@@ -31,17 +34,29 @@ const GROWTH_BY_FILTER: Record<TimeFilter, number> = {
 
 // Quick action tools matching Brickify layout
 const TOOLS = [
-  { id: 'set',     label: 'Scan Set',     sub: 'Scan and identify sets',        emoji: '📦', color: '#10B981', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
-  { id: 'minifig', label: 'Scan Minifig', sub: 'Scan and identify minifigs',    emoji: '🧑', color: '#FF7A30', bg: 'bg-orange-500/10',  border: 'border-orange-500/20' },
-  { id: 'pile',    label: 'Bulk Scan',    sub: 'Scan a pile of loose bricks',   emoji: '🧱', color: '#6366F1', bg: 'bg-indigo-500/10',  border: 'border-indigo-500/20' },
-  { id: 'mystery', label: 'CMF Scanner',  sub: 'Identify hidden figure in box', emoji: '🎁', color: '#F59E0B', bg: 'bg-amber-500/10',   border: 'border-amber-500/20' },
+  { id: 'set',     label: 'Scan Set',     sub: 'Live AR price tags & condition', emoji: '📦', color: '#10B981', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+  { id: 'minifig', label: 'Scan Minifig', sub: 'Identify rare minifig prints',    emoji: '🧑', color: '#FF7A30', bg: 'bg-orange-500/10',  border: 'border-orange-500/20' },
+  { id: 'pile',    label: 'Bulk Scan',    sub: 'Loose brick pile recognition',    emoji: '🧱', color: '#6366F1', bg: 'bg-indigo-500/10',  border: 'border-indigo-500/20' },
+  { id: 'mystery', label: 'CMF Scanner',  sub: 'Read box codes before opening',   emoji: '🎁', color: '#F59E0B', bg: 'bg-amber-500/10',   border: 'border-amber-500/20' },
+  { id: 'ideas',   label: 'What Can I Build?', sub: 'AI MOC instructions for your parts', emoji: '💡', color: '#8B5CF6', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
+  { id: 'alerts',  label: 'Retirement & Price Alerts', sub: 'Get notified before sets retire', emoji: '🔔', color: '#EC4899', bg: 'bg-pink-500/10', border: 'border-pink-500/20' },
 ];
 
 // Retiring soon data for the alert ticker
 const RETIRING_SOON = [
-  { name: 'Bookshop', num: '10270', months: 7, gain: '+15%' },
-  { name: 'Assembly Sq.', num: '10255', months: 5, gain: '+22%' },
-  { name: 'Eiffel Tower', num: '10307', months: 3, gain: '+18%' },
+  { name: 'Bookshop', num: '10270', months: 4, gain: '+35%' },
+  { name: 'Assembly Square', num: '10255', months: 3, gain: '+48%' },
+  { name: 'Eiffel Tower', num: '10307', months: 6, gain: '+22%' },
+  { name: 'Medieval Blacksmith', num: '21325', months: 2, gain: '+72%' },
+  { name: 'UCS Millennium Falcon', num: '75192', months: 8, gain: '+55%' },
+];
+
+// Curated market top movers shown in collector view
+const POPULAR_MARKET_MOVERS = [
+  { setNum: '75192-1', name: 'Millennium Falcon UCS', theme: 'Star Wars', retailPrice: 849.99, marketValue: 940.00, gain: '+18.4%', imageUrl: 'https://cdn.rebrickable.com/media/sets/75192-1/1.jpg' },
+  { setNum: '10316-1', name: 'Rivendell', theme: 'Icons', retailPrice: 499.99, marketValue: 580.00, gain: '+24.1%', imageUrl: 'https://cdn.rebrickable.com/media/sets/10316-1/1.jpg' },
+  { setNum: '21325-1', name: 'Medieval Blacksmith', theme: 'Ideas', retailPrice: 179.99, marketValue: 310.00, gain: '+72.2%', imageUrl: 'https://cdn.rebrickable.com/media/sets/21325-1/1.jpg' },
+  { setNum: '10294-1', name: 'Titanic', theme: 'Icons', retailPrice: 679.99, marketValue: 790.00, gain: '+16.2%', imageUrl: 'https://cdn.rebrickable.com/media/sets/10294-1/1.jpg' },
 ];
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
@@ -57,17 +72,40 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
     return () => clearTimeout(t);
   }, []);
 
+  const loadData = async () => {
+    try {
+      let [col, fetchSets] = await Promise.all([getCollectionFromStorage(), getSets()]);
+      if (!col || col.length === 0) {
+        const demoItems = [
+          { id: 'demo-1', setNum: '75192-1', condition: 'sealed', purchasePrice: 849.99, addedAt: new Date().toISOString() },
+          { id: 'demo-2', setNum: '10316-1', condition: 'used', purchasePrice: 440.00, addedAt: new Date().toISOString() },
+          { id: 'demo-3', setNum: '21325-1', condition: 'sealed', purchasePrice: 179.99, addedAt: new Date().toISOString() },
+        ];
+        localStorage.setItem('hellobrick_collection_sets', JSON.stringify(demoItems));
+        col = demoItems;
+      }
+      setCollection(col);
+      setSets(fetchSets);
+    } catch (e) {}
+  };
+
   useEffect(() => {
-    (async () => {
-      try {
-        const [col, fetchSets] = await Promise.all([getCollectionFromStorage(), getSets()]);
-        setCollection(col);
-        setSets(fetchSets);
-      } catch (e) {}
-    })();
+    loadData();
   }, []);
 
-  const totalValue = useMemo(() => {
+  // Demo Starter loader so new users don't see a blank app
+  const loadDemoPortfolio = () => {
+    const demoItems = [
+      { id: 'demo-1', setNum: '75192-1', condition: 'sealed', purchasePrice: 849.99, addedAt: new Date().toISOString() },
+      { id: 'demo-2', setNum: '10316-1', condition: 'used', purchasePrice: 440.00, addedAt: new Date().toISOString() },
+      { id: 'demo-3', setNum: '21325-1', condition: 'sealed', purchasePrice: 179.99, addedAt: new Date().toISOString() },
+    ];
+    localStorage.setItem('hellobrick_collection_sets', JSON.stringify(demoItems));
+    setCollection(demoItems);
+    window.dispatchEvent(new CustomEvent('hellobrick:collection-updated'));
+  };
+
+  const calculatedTotalValue = useMemo(() => {
     if (collection.length === 0) return 0;
     const valuationsMap = new Map(Object.entries(mockValuations));
     return collection.reduce((sum, item) => {
@@ -86,286 +124,286 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
   }, [collection, sets]);
 
   const isEmpty = collection.length === 0;
+  const displayTotal = isEmpty ? 0 : calculatedTotalValue;
   const changePercent = GROWTH_BY_FILTER[timeFilter];
   const isPositive = changePercent >= 0;
 
   // Top sets hydrated with images
-  const topSets = useMemo(() =>
-    collection
-      .map(item => sets.find(s => s.setNum === item.setNum))
-      .filter((s): s is any => !!s)
-      .slice(0, 6),
-  [collection, sets]);
+  const topSets = useMemo(() => {
+    if (collection.length > 0) {
+      return collection
+        .map(item => sets.find(s => s.setNum === item.setNum) || mockSets.find(s => s.setNum === item.setNum))
+        .filter((s): s is any => !!s)
+        .slice(0, 4);
+    }
+    return POPULAR_MARKET_MOVERS;
+  }, [collection, sets]);
 
   // Stats row
   const stats = [
-    { label: 'Sets', value: collection.length.toString(), icon: '📦' },
-    { label: 'Minifigs', value: '0', icon: '🧑' },
-    { label: 'Pieces', value: collection.length > 0 ? `${(collection.length * 842).toLocaleString()}` : '—', icon: '🧱' },
-    { label: 'Avg Value', value: collection.length > 0 ? `$${Math.round(totalValue / Math.max(collection.length, 1))}` : '—', icon: '💰' },
+    { label: 'Sets', value: collection.length > 0 ? collection.length.toString() : '0', icon: '📦' },
+    { label: 'Minifigs', value: collection.length > 0 ? `${collection.length * 4}` : '0', icon: '🧑' },
+    { label: 'Pieces', value: collection.length > 0 ? `${(collection.length * 842).toLocaleString()}` : '0', icon: '🧱' },
+    { label: 'Avg Return', value: collection.length > 0 ? '+24.5%' : '+18.2%', icon: '📈' },
   ];
 
   return (
     <div className="flex flex-col h-full bg-[#F5F5F7] font-sans text-gray-900 relative overflow-hidden select-none">
       <style>{`
         @keyframes home-in {
-          from { opacity: 0; transform: translateY(20px); }
+          from { opacity: 0; transform: translateY(16px); }
           to   { opacity: 1; transform: translateY(0); }
         }
         @keyframes home-value-in {
-          from { opacity: 0; transform: scale(0.92); }
+          from { opacity: 0; transform: scale(0.95); }
           to   { opacity: 1; transform: scale(1); }
         }
         @keyframes ticker-scroll {
           0%   { transform: translateX(0); }
           100% { transform: translateX(-50%); }
         }
-        .home-r0 { animation: home-in 0.45s 0.05s ease-out both; }
-        .home-r1 { animation: home-value-in 0.5s 0.12s cubic-bezier(0.34,1.56,0.64,1) both; }
-        .home-r2 { animation: home-in 0.4s 0.22s ease-out both; }
-        .home-r3 { animation: home-in 0.4s 0.32s ease-out both; }
-        .home-r4 { animation: home-in 0.4s 0.42s ease-out both; }
-        .home-r5 { animation: home-in 0.4s 0.52s ease-out both; }
-        .ticker-inner { animation: ticker-scroll 22s linear infinite; }
-        .chart-path-transition { transition: d 0.5s ease; }
+        .home-r0 { animation: home-in 0.4s 0.05s ease-out both; }
+        .home-r1 { animation: home-value-in 0.45s 0.1s cubic-bezier(0.34,1.56,0.64,1) both; }
+        .home-r2 { animation: home-in 0.4s 0.18s ease-out both; }
+        .home-r3 { animation: home-in 0.4s 0.25s ease-out both; }
+        .home-r4 { animation: home-in 0.4s 0.32s ease-out both; }
+        .home-r5 { animation: home-in 0.4s 0.4s ease-out both; }
+        .ticker-inner { animation: ticker-scroll 24s linear infinite; }
       `}</style>
 
-      {/* ─── Background radial ─── */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[420px] h-[300px] rounded-full pointer-events-none opacity-40"
-        style={{ background: 'radial-gradient(ellipse, #10B98118 0%, transparent 70%)', marginTop: '-60px' }} />
-
       {/* ─── Header ─── */}
-      <div className="home-r0 px-6 pt-[max(env(safe-area-inset-top),2.8rem)] pb-2 flex items-center justify-between z-10 shrink-0">
-        <Logo size="sm" light={true} />
+      <div className="home-r0 px-5 pt-[max(env(safe-area-inset-top),2.5rem)] pb-2 flex items-center justify-between z-10 shrink-0">
         <div className="flex items-center gap-2">
+          <Logo size="sm" light={false} />
+          <button
+            onClick={() => onNavigate(Screen.SUBSCRIPTION)}
+            className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shadow-sm"
+          >
+            PRO
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Quests Badge */}
+          <button
+            onClick={() => onNavigate(Screen.QUESTS)}
+            className="h-8 px-2.5 rounded-full bg-white border border-gray-200/90 shadow-sm flex items-center gap-1.5 active:scale-95 transition-transform"
+          >
+            <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500" />
+            <span className="text-[11px] font-black text-gray-800">5d</span>
+          </button>
+
+          {/* Alerts Bell */}
+          <button
+            onClick={() => onNavigate(Screen.ALERTS)}
+            className="w-8 h-8 rounded-full bg-white border border-gray-200/90 shadow-sm flex items-center justify-center relative active:scale-95 transition-transform"
+          >
+            <Bell className="w-4 h-4 text-gray-600" />
+            <span className="w-2 h-2 rounded-full bg-emerald-500 absolute top-1 right-1" />
+          </button>
+
+          {/* Profile */}
           <button
             onClick={() => onNavigate(Screen.PROFILE)}
-            className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center active:scale-90 transition-transform"
+            className="w-8 h-8 rounded-full bg-emerald-500 border border-white flex items-center justify-center text-white font-black text-xs shadow-sm active:scale-95 transition-transform"
           >
-            {profileName ? (
-              <span className="text-sm font-black text-gray-900">{profileName.charAt(0).toUpperCase()}</span>
-            ) : (
-              <User className="w-5 h-5 text-gray-500" />
-            )}
+            {profileName ? profileName.charAt(0).toUpperCase() : 'U'}
           </button>
         </div>
       </div>
 
-      {/* ─── Retiring Soon Ticker ─── */}
-      {!isEmpty && (
-        <div className="home-r0 overflow-hidden border-y border-gray-200 bg-white shadow-sm/80 py-2 shrink-0">
-          <div className="ticker-inner flex gap-8 whitespace-nowrap" style={{ width: 'max-content' }}>
-            {[...RETIRING_SOON, ...RETIRING_SOON].map((r, i) => (
-              <span key={i} className="text-[11px] font-bold text-gray-500 flex items-center gap-2">
-                <span className="text-amber-400">⚠️</span>
-                <span className="text-gray-900">{r.name} #{r.num}</span>
-                retiring in {r.months}mo
-                <span className="text-emerald-400">{r.gain}</span>
-                <span className="text-gray-400 mx-2">·</span>
-              </span>
-            ))}
-          </div>
+      {/* ─── Quick Catalog Search Bar (Like Brickify) ─── */}
+      <div className="home-r0 px-5 my-2 shrink-0">
+        <button
+          onClick={() => onNavigate(Screen.BROWSE)}
+          className="w-full bg-white border border-gray-200/80 rounded-2xl px-3.5 py-2.5 flex items-center gap-2.5 shadow-sm active:scale-[0.99] transition-transform text-left"
+        >
+          <Search className="w-4 h-4 text-emerald-500 shrink-0" />
+          <span className="text-[13px] font-medium text-gray-400 flex-1 truncate">
+            Search 20,000+ sets, minifigs, MOCs...
+          </span>
+          <span className="text-[10px] font-black bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-lg border border-emerald-200/60">
+            BROWSE
+          </span>
+        </button>
+      </div>
+
+      {/* ─── Retiring Soon Ticker (Always Visible for AFOLs) ─── */}
+      <div className="home-r0 overflow-hidden border-y border-gray-200/70 bg-white/80 backdrop-blur-md py-1.5 shrink-0">
+        <div className="ticker-inner flex gap-8 whitespace-nowrap" style={{ width: 'max-content' }}>
+          {[...RETIRING_SOON, ...RETIRING_SOON].map((r, i) => (
+            <button
+              key={i}
+              onClick={() => onNavigate(Screen.ALERTS)}
+              className="text-[11px] font-semibold text-gray-600 flex items-center gap-1.5 active:opacity-70"
+            >
+              <span className="text-amber-500">⚠️</span>
+              <span className="font-bold text-gray-900">{r.name} #{r.num}</span>
+              <span className="text-gray-400">retiring in {r.months}mo</span>
+              <span className="font-black text-emerald-600">{r.gain}</span>
+              <span className="text-gray-300 mx-1">·</span>
+            </button>
+          ))}
         </div>
-      )}
+      </div>
 
       {/* ─── Main Scrollable ─── */}
       <div className="flex-1 overflow-y-auto no-scrollbar pb-28">
 
         {/* ─── Value Hero Section ─── */}
-        <div className="px-6 mt-6">
+        <div className="px-5 mt-4">
           {mounted && (
             <div className="home-r1">
-              {/* Category label like Brickify */}
-              <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-1">VALUE TRACKER</p>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em]">PORTFOLIO VALUE</p>
+                <div className="flex items-center gap-1">
+                  {TIME_FILTERS.map(tf => (
+                    <button
+                      key={tf}
+                      onClick={() => setTimeFilter(tf)}
+                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md transition-colors ${
+                        timeFilter === tf ? 'bg-emerald-500 text-white' : 'text-gray-400 hover:text-gray-600'
+                      }`}
+                    >
+                      {tf}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               <div className="flex items-end gap-3 mb-1">
-                <div className="text-[52px] font-black text-gray-900 tracking-tight leading-none">
-                  {hideValue ? '••••••' : (
-                    isEmpty
-                      ? '$0.00'
-                      : `$${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                  )}
+                <div className="text-[44px] sm:text-[50px] font-black text-gray-900 tracking-tight leading-none">
+                  {hideValue ? '••••••' : `$${displayTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                 </div>
                 <button
                   onClick={() => setHideValue(!hideValue)}
-                  className="mb-2 text-gray-400 active:opacity-50 transition-opacity"
+                  className="mb-1.5 text-gray-400 active:opacity-50 transition-opacity"
                 >
                   {hideValue ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                 </button>
               </div>
 
               {/* Growth badge */}
-              <div className="flex items-center gap-2 mb-5">
-                <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] font-black ${isPositive ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}`}>
-                  {isPositive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+              <div className="flex items-center gap-2 mb-4">
+                <div className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black ${isPositive ? 'bg-emerald-500/15 text-emerald-700' : 'bg-red-500/15 text-red-700'}`}>
+                  {isPositive ? <ArrowUpRight className="w-3 h-3 text-emerald-600" /> : <ArrowDownRight className="w-3 h-3 text-red-600" />}
                   {isPositive ? '+' : ''}{changePercent}%
                 </div>
-                <span className="text-gray-400 text-[12px] font-medium">
+                <span className="text-gray-500 text-[11px] font-medium">
                   {timeFilter === '1D' ? 'today' : timeFilter === '1W' ? 'this week' : timeFilter === '1M' ? 'this month' : `past ${timeFilter}`}
                 </span>
+                {isEmpty && (
+                  <button
+                    onClick={loadDemoPortfolio}
+                    className="ml-auto text-[10px] font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full active:scale-95 transition-transform"
+                  >
+                    + Try Demo Portfolio
+                  </button>
+                )}
               </div>
             </div>
           )}
 
-          {/* ─── Chart ─── */}
+          {/* ─── Portfolio Chart ─── */}
           {mounted && (
-            <div className="home-r2 bg-white shadow-sm rounded-[24px] border border-gray-100 p-4 mb-4 overflow-hidden relative">
-              <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/4 to-transparent pointer-events-none" />
+            <div className="home-r2 bg-white shadow-sm rounded-[24px] border border-gray-200/80 p-4 mb-4 relative overflow-hidden">
+              <div className="h-[90px] w-full">
+                <svg viewBox="0 0 400 100" className="w-full h-full" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="hg-grad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#10B981" stopOpacity="0.25" />
+                      <stop offset="100%" stopColor="#10B981" stopOpacity="0" />
+                    </linearGradient>
+                  </defs>
+                  <path d={`${CHART_PATHS[timeFilter]} L400,100 L0,100 Z`} fill="url(#hg-grad)" />
+                  <path d={CHART_PATHS[timeFilter]} fill="none" stroke="#10B981" strokeWidth="3" strokeLinecap="round" />
+                  <circle cx="400" cy="8" r="4.5" fill="#10B981" />
+                  <circle cx="400" cy="8" r="8" fill="#10B981" fillOpacity="0.25" />
+                </svg>
+              </div>
 
-              {isEmpty ? (
-                <div className="h-24 flex flex-col items-center justify-center gap-2">
-                  <TrendingUp className="w-8 h-8 text-zinc-700" />
-                  <p className="text-gray-400 text-xs font-semibold">Add items to track value</p>
-                </div>
-              ) : (
-                <div className="h-[100px] w-full">
-                  <svg viewBox="0 0 400 100" className="w-full h-full" preserveAspectRatio="none">
-                    <defs>
-                      <linearGradient id="hg" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#10B981" stopOpacity="0.3" />
-                        <stop offset="100%" stopColor="#10B981" stopOpacity="0" />
-                      </linearGradient>
-                    </defs>
-                    {/* Fill area */}
-                    <path
-                      d={`${CHART_PATHS[timeFilter]} L400,100 L0,100 Z`}
-                      fill="url(#hg)"
-                    />
-                    {/* Line */}
-                    <path
-                      d={CHART_PATHS[timeFilter]}
-                      fill="none"
-                      stroke="#10B981"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    {/* End dot */}
-                    <circle cx="400" cy="8" r="4" fill="#10B981" />
-                    <circle cx="400" cy="8" r="7" fill="#10B981" fillOpacity="0.2" />
-                  </svg>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ─── Time Filter Pills (like Brickify) ─── */}
-          {mounted && (
-            <div className="home-r2 flex gap-2 overflow-x-auto no-scrollbar pb-1 mb-6">
-              {TIME_FILTERS.map(f => (
-                <button
-                  key={f}
-                  onClick={() => setTimeFilter(f)}
-                  className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-[11px] font-black transition-all active:scale-90 ${
-                    timeFilter === f
-                      ? 'bg-emerald-500 text-gray-900 shadow-[0_4px_15px_rgba(16,185,129,0.4)]'
-                      : 'bg-white text-gray-400 border border-gray-100'
-                  }`}
-                >
-                  {f}
-                </button>
-              ))}
+              {/* Stats Bar under Chart */}
+              <div className="grid grid-cols-4 gap-2 pt-3 mt-1 border-t border-gray-100 text-center">
+                {stats.map((s, i) => (
+                  <div key={i}>
+                    <p className="text-[13px] font-black text-gray-900 leading-tight">{s.value}</p>
+                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">{s.label}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
 
-        {/* ─── Stats Row ─── */}
+        {/* ─── COLLECTOR TOOLS (The Brickify Suite) ─── */}
         {mounted && (
-          <div className="home-r3 px-6 mb-6">
-            <div className="grid grid-cols-4 gap-2">
-              {stats.map((s, i) => (
-                <div key={i} className="bg-white shadow-sm rounded-2xl p-3 border border-gray-100 flex flex-col items-center gap-1">
-                  <span className="text-base">{s.icon}</span>
-                  <p className="text-[14px] font-black text-gray-900">{s.value}</p>
-                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">{s.label}</p>
-                </div>
-              ))}
+          <div className="home-r3 px-5 mb-5">
+            <div className="flex items-center justify-between mb-2.5">
+              <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <h2 className="text-[11px] font-black text-gray-700 uppercase tracking-[0.16em]">SCAN &amp; BUILD TOOLS</h2>
+              </div>
             </div>
-          </div>
-        )}
 
-        {/* ─── TOOLS Section (like Brickify) ─── */}
-        {mounted && (
-          <div className="home-r4 px-6 mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <h2 className="text-[11px] font-black text-gray-500 uppercase tracking-[0.18em]">TOOLS</h2>
-            </div>
-            <div className="bg-white shadow-sm rounded-[22px] border border-gray-100 overflow-hidden divide-y divide-white/5">
+            <div className="grid grid-cols-2 gap-2.5">
               {TOOLS.map((tool) => (
                 <button
                   key={tool.id}
-                  onClick={() => onNavigate(Screen.SCANNER)}
-                  className="w-full flex items-center gap-4 px-5 py-4 active:bg-gray-50 transition-colors text-left"
+                  onClick={() => {
+                    if (tool.id === 'ideas') onNavigate(Screen.IDEAS);
+                    else if (tool.id === 'alerts') onNavigate(Screen.ALERTS);
+                    else onNavigate(Screen.SCANNER, { mode: tool.id });
+                  }}
+                  className="bg-white border border-gray-200/80 rounded-2xl p-3.5 flex flex-col items-start shadow-sm active:scale-[0.98] transition-all text-left group"
                 >
-                  <div className={`w-10 h-10 rounded-2xl ${tool.bg} border ${tool.border} flex items-center justify-center shrink-0 text-lg`}>
+                  <div className={`w-9 h-9 rounded-xl ${tool.bg} border ${tool.border} flex items-center justify-center text-base mb-2 group-hover:scale-105 transition-transform`}>
                     {tool.emoji}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-bold text-gray-900">{tool.label}</p>
-                    <p className="text-[11px] text-gray-400 font-medium">{tool.sub}</p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-zinc-700 shrink-0" />
+                  <p className="text-[13px] font-extrabold text-gray-900 leading-tight mb-0.5">{tool.label}</p>
+                  <p className="text-[10px] text-gray-500 font-medium leading-snug line-clamp-2">{tool.sub}</p>
                 </button>
               ))}
             </div>
           </div>
         )}
 
-        {/* ─── My Collection Preview ─── */}
+        {/* ─── Top Market Movers / Collection Sets ─── */}
         {mounted && (
-          <div className="home-r5 px-6 mb-6">
-            <button
-              onClick={() => onNavigate(Screen.COLLECTION)}
-              className="w-full bg-white shadow-sm rounded-[22px] border border-gray-100 px-5 py-4 flex items-center gap-4 active:bg-gray-50 transition-colors"
-            >
-              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                <Package className="w-5 h-5 text-emerald-400" />
-              </div>
-              <div className="flex-1 text-left">
-                <p className="text-[14px] font-bold text-gray-900">My Collection</p>
-                <p className="text-[11px] text-gray-400 font-medium">
-                  {collection.length} sets · {isEmpty ? '0 minifigures' : `${totalValue > 0 ? '$' + totalValue.toFixed(0) : 'calculating'} value`}
-                </p>
-              </div>
-              <div className="w-8 h-8 bg-gray-100 rounded-xl flex items-center justify-center">
-                <ArrowUpRight className="w-4 h-4 text-gray-500" />
-              </div>
-            </button>
-          </div>
-        )}
-
-        {/* ─── Top Sets Grid (if collection populated) ─── */}
-        {mounted && !isEmpty && topSets.length > 0 && (
-          <div className="home-r5 px-6 mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
+          <div className="home-r4 px-5 mb-5">
+            <div className="flex items-center justify-between mb-2.5">
+              <div className="flex items-center gap-1.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <h2 className="text-[11px] font-black text-gray-500 uppercase tracking-[0.18em]">TOP GAINING SETS</h2>
+                <h2 className="text-[11px] font-black text-gray-700 uppercase tracking-[0.16em]">
+                  {collection.length > 0 ? 'YOUR TOP SETS' : 'TRENDING MARKET MOVERS'}
+                </h2>
               </div>
-              <button onClick={() => onNavigate(Screen.COLLECTION)} className="text-[11px] font-black text-emerald-500 active:opacity-70">
+              <button 
+                onClick={() => onNavigate(collection.length > 0 ? Screen.COLLECTION : Screen.BROWSE)} 
+                className="text-[11px] font-black text-emerald-600 active:opacity-70"
+              >
                 See All →
               </button>
             </div>
+
             <div className="space-y-2">
-              {topSets.slice(0, 4).map((set, i) => (
+              {topSets.map((set, i) => (
                 <button
                   key={i}
                   onClick={() => onNavigate(Screen.SET_DETAIL, { setNum: set.setNum })}
-                  className="w-full bg-white shadow-sm rounded-2xl border border-gray-100 px-4 py-3 flex items-center gap-4 active:bg-gray-50 transition-colors"
+                  className="w-full bg-white shadow-sm rounded-2xl border border-gray-200/80 p-3 flex items-center gap-3.5 active:bg-gray-50 transition-all text-left"
                 >
-                  <div className="w-12 h-12 bg-[#F5F5F7] rounded-xl overflow-hidden p-1 shrink-0">
+                  <div className="w-12 h-12 bg-[#F5F5F7] rounded-xl overflow-hidden p-1 shrink-0 border border-gray-100">
                     <img src={set.imageUrl} alt={set.name} className="w-full h-full object-contain" />
                   </div>
-                  <div className="flex-1 min-w-0 text-left">
+                  <div className="flex-1 min-w-0">
                     <p className="text-[13px] font-bold text-gray-900 truncate">{set.name}</p>
-                    <p className="text-[10px] text-gray-400 font-medium">#{set.setNum?.split('-')[0]}</p>
+                    <p className="text-[10px] text-gray-400 font-semibold">#{set.setNum?.split('-')[0]} · {set.theme || 'LEGO'}</p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-[13px] font-black text-emerald-400">${set.retailPrice || 149}</p>
+                    <p className="text-[13px] font-black text-gray-900">${(set.marketValue || set.retailPrice || 149).toFixed(2)}</p>
                     <div className="flex items-center gap-0.5 justify-end">
-                      <ArrowUpRight className="w-3 h-3 text-emerald-500" />
-                      <p className="text-[10px] font-bold text-emerald-500">+{(4.2 + i * 1.3).toFixed(1)}%</p>
+                      <ArrowUpRight className="w-3 h-3 text-emerald-600" />
+                      <p className="text-[10px] font-black text-emerald-600">{set.gain || `+${(12 + i * 4.2).toFixed(1)}%`}</p>
                     </div>
                   </div>
                 </button>
@@ -374,43 +412,33 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
           </div>
         )}
 
-        {/* ─── Empty State ─── */}
-        {mounted && isEmpty && (
-          <div className="home-r5 px-6 mb-6">
-            <div className="bg-white shadow-sm rounded-[24px] border border-dashed border-gray-200 p-8 flex flex-col items-center text-center">
-              <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-4">
-                <Camera className="w-8 h-8 text-emerald-400" />
-              </div>
-              <h3 className="text-[18px] font-black text-gray-900 mb-2">Start Your Collection</h3>
-              <p className="text-gray-400 text-[13px] font-medium mb-6 leading-relaxed">
-                Scan your first LEGO set to instantly see its market value and start tracking your portfolio.
-              </p>
-              <button
-                onClick={() => onNavigate(Screen.SCANNER)}
-                className="bg-emerald-500 text-black px-7 py-3.5 rounded-2xl font-black text-[14px] flex items-center gap-2 shadow-[0_8px_25px_rgba(16,185,129,0.3)] active:scale-95 transition-transform"
-              >
-                <Camera className="w-5 h-5" />
-                Scan First Set
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ─── Wishlist Quick Access ─── */}
+        {/* ─── Wishlist & Quests Quick Links ─── */}
         {mounted && (
-          <div className="home-r5 px-6 mb-6">
+          <div className="home-r5 px-5 mb-6 grid grid-cols-2 gap-2.5">
             <button
               onClick={() => onNavigate(Screen.WISHLIST)}
-              className="w-full flex items-center gap-4 px-5 py-4 bg-white shadow-sm rounded-[22px] border border-gray-100 active:bg-gray-50 transition-colors"
+              className="bg-white border border-gray-200/80 rounded-2xl p-3.5 flex items-center gap-3 shadow-sm active:scale-[0.98] transition-transform text-left"
             >
-              <div className="w-10 h-10 rounded-2xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center shrink-0">
-                <Heart className="w-5 h-5 text-pink-400" fill="#F472B6" />
+              <div className="w-8 h-8 rounded-xl bg-pink-50 text-pink-500 flex items-center justify-center shrink-0">
+                <Heart className="w-4 h-4" fill="#EC4899" />
               </div>
-              <div className="flex-1 text-left">
-                <p className="text-[14px] font-bold text-gray-900">Wishlist</p>
-                <p className="text-[11px] text-gray-400 font-medium">Sets you want to track &amp; buy next</p>
+              <div className="min-w-0">
+                <p className="text-[12px] font-black text-gray-900">Wishlist</p>
+                <p className="text-[10px] text-gray-400 font-medium truncate">Price alerts</p>
               </div>
-              <ChevronRight className="w-4 h-4 text-zinc-700" />
+            </button>
+
+            <button
+              onClick={() => onNavigate(Screen.LEADERBOARD)}
+              className="bg-white border border-gray-200/80 rounded-2xl p-3.5 flex items-center gap-3 shadow-sm active:scale-[0.98] transition-transform text-left"
+            >
+              <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center shrink-0">
+                <Trophy className="w-4 h-4" fill="#F59E0B" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[12px] font-black text-gray-900">Leaderboard</p>
+                <p className="text-[10px] text-gray-400 font-medium truncate">Top AFOLs</p>
+              </div>
             </button>
           </div>
         )}

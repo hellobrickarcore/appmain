@@ -53,7 +53,7 @@ type Listener = (snapshot: AppStateSnapshot) => void;
 // ── STATE → SCREEN MAPPING ─────────────────────────
 function getScreenForState(state: AppState, params?: any): Screen {
   switch (state) {
-    case 'booting':            return Screen.AUTH;
+    case 'booting':            return Screen.HOME;
     case 'onboarding':         
       if (params?.screen) return params.screen;
       return Screen.ONBOARDING_QUESTIONNAIRE;
@@ -94,31 +94,8 @@ class AppStateService {
 
   // ── BOOT ──────────────────────────────────────────
   private boot() {
-    console.log('[AppState] Booting...');
-
-    const onboardingFinished = localStorage.getItem('hellobrick_onboarding_finished') === 'true';
-
-    // Phase 1 Rules:
-    // 1. If onboarding not done -> ONBOARDING
-    // 2. If onboarding done but not auth -> AUTH
-    // 3. If both done -> HOME
-
-    if (!onboardingFinished) {
-      console.log('[AppState] Step 1: ONBOARDING required');
-      this.transition('onboarding');
-    } else {
-      const userId = localStorage.getItem('hellobrick_userId');
-      const isAuthenticated = localStorage.getItem('hellobrick_authenticated') === 'true';
-      
-      if (!isAuthenticated) {
-        console.log('[AppState] Step 2: AUTH required but user is not signed up - routing to ONBOARDING');
-        this.transition('onboarding');
-      } else {
-        console.log('[AppState] Step 3: Proceeding to HOME');
-        this.transition('home');
-        if (userId) subscriptionService.initialize(userId).catch(console.error);
-      }
-    }
+    console.log('[AppState] Booting directly to Collector Platform HOME...');
+    this.transition('home');
   }
 
   // ── STATE TRANSITIONS ─────────────────────────────
@@ -133,65 +110,20 @@ class AppStateService {
 
   // ── NAVIGATION ────────────────────────────────────
   public navigate(screen: Screen, params?: any) {
-    const onboardingFinished = localStorage.getItem('hellobrick_onboarding_finished') === 'true';
-    const isAuthenticated = localStorage.getItem('hellobrick_authenticated') === 'true';
-
-    // ── RULE 1: Onboarding must be complete ──
-    const onboardingScreens = [
-      Screen.ONBOARDING_QUESTIONNAIRE,
-      Screen.SUBSCRIPTION, // Allow paywall nudge at the end
-      Screen.FEATURE_INTRO, 
-      Screen.NOTIFICATIONS_INTRO, 
-      Screen.BUILDING_INTRO,
-      Screen.HOW_IT_WORKS,
-      Screen.AUTH,
-      Screen.EMAIL_SIGNUP,
-      Screen.EMAIL_LOGIN
-    ];
-
-    if (!onboardingFinished && !onboardingScreens.includes(screen) && !isAuthenticated) {
-      console.log('[AppState] Onboarding lock active');
-      this.transition('onboarding');
-      return;
+    console.log(`[AppState] Navigating directly to ${screen}`, params);
+    
+    // Explicit state mappings
+    if (screen === Screen.SCANNER) {
+      this.transition('scanner', params);
+    } else if (screen === Screen.SUBSCRIPTION) {
+      this.transition('subscription', params);
+    } else if (screen === Screen.AUTH || screen === Screen.EMAIL_LOGIN || screen === Screen.EMAIL_SIGNUP) {
+      this.transition('auth', { screen, ...params });
+    } else if (screen === Screen.ONBOARDING_QUESTIONNAIRE) {
+      this.transition('onboarding', { screen, ...params });
+    } else {
+      this.transition('home', { screen, ...params });
     }
-
-    if (onboardingScreens.includes(screen)) {
-      this.transition('onboarding', { screen });
-      return;
-    }
-
-    // ── RULE 2: Authentication gating ──
-    // Users CANNOT reach the app without being signed in.
-    const publicScreens = [
-      Screen.AUTH, 
-      Screen.EMAIL_SIGNUP, 
-      Screen.EMAIL_LOGIN
-    ];
-    if (!isAuthenticated && !publicScreens.includes(screen) && !onboardingScreens.includes(screen)) {
-      console.log(`[AppState] Auth lock active for ${screen}`);
-      this.returnScreen = screen;
-      this.transition('auth');
-      return;
-    }
-
-    // ── RULE 3: PRO features require subscription ──
-    if (PRO_SCREENS.includes(screen) || (screen === Screen.SCANNER && usageService.isLimitReached())) {
-      const isPro = localStorage.getItem('hellobrick_is_pro') === 'true' || 
-                    localStorage.getItem('hellobrick_dev_mode') === 'true';
-
-      if (!isPro) {
-        console.log(`[AppState] PRO required for ${screen}. Opening paywall.`);
-        this.returnScreen = screen;
-        this.transition('subscription');
-        return;
-      }
-    }
-
-    // Normal navigation within authenticated area
-    this.currentScreen = screen;
-    if (params !== undefined) this.currentParams = params;
-    this.state = 'home';
-    this.notify();
   }
 
   // ── ONBOARDING COMPLETE ───────────────────────────

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Layers, Scan, BarChart2, User } from 'lucide-react';
+import { Home, Layers, Scan, Search, Sparkles } from 'lucide-react';
 import { Screen } from '../types';
 
 interface BottomNavProps {
@@ -8,7 +8,6 @@ interface BottomNavProps {
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({ currentScreen, onNavigate }) => {
-  // Navigation mapping
   const isActive = (screen: Screen) => currentScreen === screen;
 
   const getIconClass = (screen: Screen) =>
@@ -19,49 +18,50 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentScreen, onNavigate 
     }`;
 
   const getLabelClass = (screen: Screen) =>
-    `text-[10px] font-medium mt-1 transition-all duration-300 ${
-      isActive(screen) ? 'text-emerald-500' : 'text-gray-400 group-hover:text-gray-700'
+    `text-[10px] font-semibold mt-1 transition-all duration-300 ${
+      isActive(screen) ? 'text-emerald-600' : 'text-gray-400 group-hover:text-gray-700'
     }`;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[99999] px-4 pb-[max(env(safe-area-inset-bottom),1rem)]">
-      <div className="bg-white/90 backdrop-blur-2xl border-t border-gray-200 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] rounded-full px-2 py-2 flex items-center justify-between w-full max-w-[400px] mx-auto relative">
+    <div className="fixed bottom-0 left-0 right-0 z-[99999] px-3 pb-[max(env(safe-area-inset-bottom),0.8rem)]">
+      <div className="bg-white/95 backdrop-blur-2xl border border-gray-200/80 shadow-[0_10px_35px_rgba(0,0,0,0.08)] rounded-full px-2 py-2 flex items-center justify-between w-full max-w-[420px] mx-auto relative">
         
-        {/* Home */}
-        <button onClick={() => onNavigate(Screen.HOME)} className="flex flex-col items-center justify-center w-16 group active:scale-95 transition-transform">
+        {/* Portfolio / Home */}
+        <button onClick={() => onNavigate(Screen.HOME)} className="flex flex-col items-center justify-center w-14 group active:scale-95 transition-transform">
           <Home className={getIconClass(Screen.HOME)} />
-          <span className={getLabelClass(Screen.HOME)}>Home</span>
+          <span className={getLabelClass(Screen.HOME)}>Portfolio</span>
         </button>
         
         {/* Collection */}
-        <button onClick={() => onNavigate(Screen.COLLECTION)} className="flex flex-col items-center justify-center w-16 group active:scale-95 transition-transform">
+        <button onClick={() => onNavigate(Screen.COLLECTION)} className="flex flex-col items-center justify-center w-14 group active:scale-95 transition-transform">
           <Layers className={getIconClass(Screen.COLLECTION)} />
           <span className={getLabelClass(Screen.COLLECTION)}>Collection</span>
         </button>
         
         {/* Scan (Center Prominent) */}
-        <div className="relative -top-5 flex justify-center w-16">
+        <div className="relative -top-4 flex justify-center w-14">
           <button 
             onClick={() => onNavigate(Screen.SCANNER)} 
-            className="w-14 h-14 bg-emerald-500 rounded-full flex items-center justify-center shadow-[0_8px_24px_rgba(16,185,129,0.4)] active:scale-95 transition-transform border-4 border-white"
+            className="w-14 h-14 bg-gradient-to-tr from-emerald-600 to-emerald-400 rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(16,185,129,0.45)] active:scale-95 transition-transform border-4 border-white"
           >
             <Scan className="w-6 h-6 text-white stroke-[2.5px]" />
           </button>
         </div>
         
-        {/* Insights */}
-        <button onClick={() => onNavigate(Screen.INSIGHTS)} className="flex flex-col items-center justify-center w-16 group active:scale-95 transition-transform">
-          <BarChart2 className={getIconClass(Screen.INSIGHTS)} />
-          <span className={getLabelClass(Screen.INSIGHTS)}>Data</span>
+        {/* Browse Database */}
+        <button onClick={() => onNavigate(Screen.BROWSE)} className="flex flex-col items-center justify-center w-14 group active:scale-95 transition-transform">
+          <Search className={getIconClass(Screen.BROWSE)} />
+          <span className={getLabelClass(Screen.BROWSE)}>Browse</span>
         </button>
 
-        {/* Profile */}
-        <button onClick={() => onNavigate(Screen.PROFILE)} className="flex flex-col items-center justify-center w-16 group active:scale-95 transition-transform">
-          <User className={getIconClass(Screen.PROFILE)} />
-          <span className={getLabelClass(Screen.PROFILE)}>Profile</span>
+        {/* Ideas / What Can I Build */}
+        <button onClick={() => onNavigate(Screen.IDEAS)} className="flex flex-col items-center justify-center w-14 group active:scale-95 transition-transform">
+          <Sparkles className={getIconClass(Screen.IDEAS)} />
+          <span className={getLabelClass(Screen.IDEAS)}>Ideas</span>
         </button>
       </div>
     </div>
   );
 };
+
 

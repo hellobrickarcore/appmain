@@ -32,26 +32,11 @@ import { onAuthStateChange, supabase } from './services/supabaseService';
 
 const App: React.FC = () => {
   const getInitialScreen = (): Screen => {
-    console.log('[App] Determining initial screen...');
-    const urlParams = new URLSearchParams(window.location.search);
-    
-    // Dev Bypass
-    if (import.meta.env.DEV) {
-      if (urlParams.get('dev') === 'true' || localStorage.getItem('hellobrick_dev_mode') === 'true') {
-        localStorage.setItem('hellobrick_dev_mode', 'true');
-        localStorage.setItem('hellobrick_onboarding_finished', 'true');
-        localStorage.setItem('hellobrick_authenticated', 'true');
-        return Screen.HOME;
-      }
+    console.log('[App] Opening Collector Dashboard directly...');
+    const preview = localStorage.getItem('hellobrick_preview_screen');
+    if (preview && Object.values(Screen).includes(preview as any)) {
+      return preview as Screen;
     }
-
-    const hasFinishedOnboarding = localStorage.getItem('hellobrick_onboarding_finished') === 'true';
-    const isAuthenticated = localStorage.getItem('hellobrick_authenticated') === 'true';
-    
-    if (!hasFinishedOnboarding || !isAuthenticated) {
-      return Screen.ONBOARDING_QUESTIONNAIRE;
-    }
-    
     return Screen.HOME;
   };
 
@@ -60,7 +45,7 @@ const App: React.FC = () => {
   const [battleResult, setBattleResult] = useState<BattleResult | null>(null);
   const [selectedMode, setSelectedMode] = useState<GameModeId>('TARGET');
   const [showNav, setShowNav] = useState(true);
-  const [isBooting, setIsBooting] = useState(true);
+  const [isBooting, setIsBooting] = useState(false);
 
   // Sync with appStateService for unified navigation
   useEffect(() => {
@@ -153,6 +138,20 @@ const App: React.FC = () => {
           handleNavigate(Screen.SUBSCRIPTION);
         } else if (data.url.includes('//ideas') || path.includes('/ideas')) {
           handleNavigate(Screen.IDEAS);
+        } else if (data.url.includes('//browse') || path.includes('/browse')) {
+          handleNavigate(Screen.BROWSE);
+        } else if (data.url.includes('//collection') || path.includes('/collection')) {
+          handleNavigate(Screen.COLLECTION);
+        } else if (data.url.includes('//alerts') || path.includes('/alerts')) {
+          handleNavigate(Screen.ALERTS);
+        } else if (data.url.includes('//quests') || path.includes('/quests')) {
+          handleNavigate(Screen.QUESTS);
+        } else if (data.url.includes('//leaderboard') || path.includes('/leaderboard')) {
+          handleNavigate(Screen.LEADERBOARD);
+        } else if (data.url.includes('//wishlist') || path.includes('/wishlist')) {
+          handleNavigate(Screen.WISHLIST);
+        } else if (data.url.includes('//profile') || path.includes('/profile')) {
+          handleNavigate(Screen.PROFILE);
         }
 
         // 3. Handle Supabase Tokens
@@ -344,7 +343,7 @@ const App: React.FC = () => {
         </div>
       )}
       */}
-      {![Screen.ONBOARDING_QUESTIONNAIRE, Screen.AUTH, Screen.EMAIL_SIGNUP, Screen.EMAIL_LOGIN, Screen.SUBSCRIPTION, Screen.NOTIFICATIONS_INTRO].includes(currentScreen) && showNav && (
+      {![Screen.ONBOARDING_QUESTIONNAIRE, Screen.AUTH, Screen.EMAIL_SIGNUP, Screen.EMAIL_LOGIN, Screen.SUBSCRIPTION, Screen.NOTIFICATIONS_INTRO, Screen.SCANNER].includes(currentScreen) && showNav && (
         <BottomNav currentScreen={currentScreen} onNavigate={handleNavigate} />
       )}
     </div>

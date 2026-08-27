@@ -90,7 +90,8 @@ export const OnboardingQuestionnaire: React.FC<OnboardingProps> = ({ onNavigate 
 
   const handleStart = () => {
     try {
-      appStateService.navigate(Screen.AUTH);
+      localStorage.setItem('hellobrick_onboarding_finished', 'true');
+      appStateService.navigate(Screen.HOME);
     } catch (e) {}
   };
 
