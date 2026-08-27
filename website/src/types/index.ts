@@ -82,6 +82,7 @@ export interface BlogPost {
   excerpt: string;
   content: string;
   category: string;
+  author?: string;
   image_url: string;
   seo_metadata: {
     keywords: string[];
