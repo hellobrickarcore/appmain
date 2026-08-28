@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Zap, Plus, Layers, Box, Smile, Sparkles, CreditCard, ChevronRight } from 'lucide-react';
+import { X, Zap, Plus, Layers, Box, Smile, Sparkles, Trophy, Flame, ChevronRight, Check } from 'lucide-react';
 import { Screen, CollectionItem } from '../types';
 import { legoDatabase, AnyCollectible, CollectibleCategory } from '../lib/legoDatabase';
 import confetti from 'canvas-confetti';
@@ -8,6 +8,15 @@ interface ScannerScreenProps {
   onNavigate: (screen: Screen, params?: any) => void;
   mode?: string;
 }
+
+const SCAN_CATEGORIES: { id: CollectibleCategory; label: string; icon: any }[] = [
+  { id: 'set', label: 'Sets', icon: Box },
+  { id: 'minifigure', label: 'Minifigs', icon: Smile },
+  { id: 'pokemon', label: 'Pokémon', icon: Zap },
+  { id: 'sports', label: 'Sports', icon: Trophy },
+  { id: 'other_tcg', label: 'TCG', icon: Flame },
+  { id: 'moc', label: 'Builds', icon: Sparkles },
+];
 
 export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -18,26 +27,59 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
   const [isLocked, setIsLocked] = useState<boolean>(true);
   const [scannedTray, setScannedTray] = useState<AnyCollectible[]>([]);
   const [hoverOffset, setHoverOffset] = useState({ x: 0, y: 0 });
+  const [cameraActive, setCameraActive] = useState(false);
 
-  // Camera setup
+  // Native & WebRTC Live Camera Setup with robust multi-tier fallback
   useEffect(() => {
     let stream: MediaStream | null = null;
 
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
-      })
-      .then(s => {
-        stream = s;
-        if (videoRef.current) {
-          videoRef.current.srcObject = s;
-          videoRef.current.play().catch(() => {});
+    const startCamera = async () => {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.log('[Scanner] MediaDevices not supported in current environment');
+        return;
+      }
+
+      try {
+        // Tier 1: 1080p environment camera
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'environment',
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+          },
+          audio: false
+        });
+      } catch (err1) {
+        try {
+          // Tier 2: standard environment camera
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment' },
+            audio: false
+          });
+        } catch (err2) {
+          try {
+            // Tier 3: any available camera
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: true,
+              audio: false
+            });
+          } catch (err3) {
+            console.log('[Scanner] Camera fallback initialized for testing simulator:', err3);
+          }
         }
-      })
-      .catch(err => {
-        console.log('[Scanner] Simulator camera fallback:', err);
-      });
-    }
+      }
+
+      if (stream && videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.setAttribute('playsinline', 'true');
+        videoRef.current.setAttribute('webkit-playsinline', 'true');
+        videoRef.current.play().then(() => {
+          setCameraActive(true);
+        }).catch(() => {});
+      }
+    };
+
+    startCamera();
 
     return () => {
       if (stream) {
@@ -50,13 +92,17 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
   useEffect(() => {
     let items: AnyCollectible[] = [];
     if (selectedCategory === 'set') {
-      items = legoDatabase.getSets().slice(0, 6);
+      items = legoDatabase.getSets();
     } else if (selectedCategory === 'minifigure') {
-      items = legoDatabase.getMinifigs().slice(0, 6);
-    } else if (selectedCategory === 'moc') {
-      items = legoDatabase.getMocs();
+      items = legoDatabase.getMinifigs();
+    } else if (selectedCategory === 'pokemon') {
+      items = legoDatabase.getPokemon();
+    } else if (selectedCategory === 'sports') {
+      items = legoDatabase.getSports();
+    } else if (selectedCategory === 'other_tcg') {
+      items = legoDatabase.getOtherTcg();
     } else {
-      items = legoDatabase.getCards();
+      items = legoDatabase.getMocs();
     }
 
     setActiveItems(items);
@@ -121,7 +167,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
           purchaseDate: new Date().toISOString().split('T')[0],
           notes: `Scanned with HelloBrick AR (${item.category.toUpperCase()})`,
           addedAt: new Date().toISOString(),
-          itemType: item.category === 'minifigure' ? 'minifig' : (item.category === 'card' ? 'brick' : 'set')
+          itemType: item.category === 'minifigure' ? 'minifig' : (item.category === 'set' ? 'set' : 'brick')
         });
       });
 
@@ -146,7 +192,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
   return (
     <div className="flex flex-col h-full bg-black font-sans text-white relative overflow-hidden select-none">
       
-      {/* ─── 1. Live Camera Viewport ─── */}
+      {/* ─── 1. Live Camera Viewport (iOS Native Ready) ─── */}
       <div className="absolute inset-0 z-0 bg-zinc-950">
         <video 
           ref={videoRef}
@@ -190,45 +236,25 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
         </button>
       </div>
 
-      {/* ─── 3. Mode Category Switcher (Sets / Minifigs / MOCs / Cards) ─── */}
-      <div className="absolute top-[12%] left-0 right-0 z-30 px-5 flex items-center justify-center pointer-events-auto">
-        <div className="bg-black/65 backdrop-blur-2xl border border-white/15 rounded-full p-1 flex items-center gap-1 shadow-2xl">
-          <button
-            onClick={() => setSelectedCategory('set')}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-black transition-all flex items-center gap-1.5 ${
-              selectedCategory === 'set' ? 'bg-emerald-500 text-white shadow-md' : 'text-gray-300 hover:text-white'
-            }`}
-          >
-            <Box className="w-3.5 h-3.5" />
-            <span>Sets</span>
-          </button>
-          <button
-            onClick={() => setSelectedCategory('minifigure')}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-black transition-all flex items-center gap-1.5 ${
-              selectedCategory === 'minifigure' ? 'bg-emerald-500 text-white shadow-md' : 'text-gray-300 hover:text-white'
-            }`}
-          >
-            <Smile className="w-3.5 h-3.5" />
-            <span>Minifigs</span>
-          </button>
-          <button
-            onClick={() => setSelectedCategory('moc')}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-black transition-all flex items-center gap-1.5 ${
-              selectedCategory === 'moc' ? 'bg-emerald-500 text-white shadow-md' : 'text-gray-300 hover:text-white'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Builds</span>
-          </button>
-          <button
-            onClick={() => setSelectedCategory('card')}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-black transition-all flex items-center gap-1.5 ${
-              selectedCategory === 'card' ? 'bg-emerald-500 text-white shadow-md' : 'text-gray-300 hover:text-white'
-            }`}
-          >
-            <CreditCard className="w-3.5 h-3.5" />
-            <span>Cards</span>
-          </button>
+      {/* ─── 3. Collectible Category Switcher (Sets / Minifigs / Pokemon / Sports / TCG / Builds) ─── */}
+      <div className="absolute top-[12%] left-0 right-0 z-30 px-3 flex items-center justify-center pointer-events-auto">
+        <div className="bg-black/65 backdrop-blur-2xl border border-white/15 rounded-full p-1 flex items-center gap-1 shadow-2xl max-w-[95vw] overflow-x-auto no-scrollbar">
+          {SCAN_CATEGORIES.map((cat) => {
+            const Icon = cat.icon;
+            const isSelected = selectedCategory === cat.id;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`px-3 py-1.5 rounded-full text-[11px] font-black transition-all flex items-center gap-1 shrink-0 ${
+                  isSelected ? 'bg-emerald-500 text-white shadow-md' : 'text-gray-300 hover:text-white'
+                }`}
+              >
+                <Icon className="w-3 h-3" />
+                <span>{cat.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -245,7 +271,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
                   : 'bg-black/50 border-white/15 text-gray-300 hover:bg-black/70'
               }`}
             >
-              #{item.code.replace('-1', '')} {item.name.split(' ')[0]}
+              {item.name.split(' ')[0]} #{item.code.replace('-1', '')}
             </button>
           ))}
         </div>
@@ -293,7 +319,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
               {/* Center Floating Price Tag */}
               <div className="flex flex-col items-center justify-center my-auto drop-shadow-2xl">
                 
-                <div className="w-24 h-24 bg-white rounded-2xl p-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.5)] border-2 border-emerald-400 mb-3 flex items-center justify-center overflow-hidden">
+                <div className="w-24 h-24 bg-white rounded-2xl p-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.5)] border-2 border-emerald-400 mb-2.5 flex items-center justify-center overflow-hidden">
                   <img 
                     src={activeItem.imageUrl} 
                     alt={activeItem.name}
@@ -304,22 +330,36 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
                   />
                 </div>
 
+                {/* Primary Price: PSA 10 for Cards, Sealed for Sets */}
                 <div className="text-4xl font-black text-white tracking-tight drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]">
-                  ${activeItem.sealedPrice.toFixed(2)}
+                  ${(activeItem.psa10Value ? activeItem.psa10Value : activeItem.sealedPrice).toLocaleString()}
                 </div>
                 <p className="text-[11px] font-black text-emerald-400 uppercase tracking-widest mt-0.5 drop-shadow">
-                  CURRENT MARKET VALUE
+                  {activeItem.psa10Value ? 'PSA 10 GEM MINT VALUE' : 'CURRENT MARKET VALUE'}
                 </p>
 
-                {/* Sealed vs Used / PSA grade breakdown */}
-                <div className="flex items-center gap-2 mt-3">
-                  <div className="bg-black/75 backdrop-blur-md border border-emerald-500/40 rounded-full px-3 py-1 text-xs font-bold text-emerald-300 shadow-lg flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                    <span>Sealed: ${activeItem.sealedPrice.toFixed(2)}</span>
-                  </div>
-                  <div className="bg-black/75 backdrop-blur-md border border-white/15 rounded-full px-3 py-1 text-xs font-bold text-gray-300 shadow-lg">
-                    <span>Used: ${activeItem.usedPrice.toFixed(2)}</span>
-                  </div>
+                {/* Condition Breakdown */}
+                <div className="flex items-center gap-1.5 mt-2.5">
+                  {activeItem.psa9Value ? (
+                    <>
+                      <div className="bg-black/75 backdrop-blur-md border border-emerald-500/40 rounded-full px-2.5 py-0.5 text-[11px] font-bold text-emerald-300 shadow-lg">
+                        PSA 9: ${activeItem.psa9Value.toLocaleString()}
+                      </div>
+                      <div className="bg-black/75 backdrop-blur-md border border-white/15 rounded-full px-2.5 py-0.5 text-[11px] font-bold text-gray-300 shadow-lg">
+                        Raw: ${activeItem.sealedPrice.toLocaleString()}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="bg-black/75 backdrop-blur-md border border-emerald-500/40 rounded-full px-2.5 py-0.5 text-[11px] font-bold text-emerald-300 shadow-lg flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        <span>Sealed: ${activeItem.sealedPrice.toFixed(2)}</span>
+                      </div>
+                      <div className="bg-black/75 backdrop-blur-md border border-white/15 rounded-full px-2.5 py-0.5 text-[11px] font-bold text-gray-300 shadow-lg">
+                        <span>Used: ${activeItem.usedPrice.toFixed(2)}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -360,7 +400,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
                 <Layers className="w-3.5 h-3.5 text-emerald-400" />
                 Scanned Vault Items ({scannedTray.length})
               </span>
-              <span className="text-xs font-bold text-emerald-400">${totalValue.toFixed(2)} total</span>
+              <span className="text-xs font-bold text-emerald-400">${totalValue.toLocaleString()} total</span>
             </div>
 
             <div className="flex overflow-x-auto pb-1 gap-2.5 snap-x no-scrollbar">
@@ -382,7 +422,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
                   <div className="flex-1 min-w-0">
                     <h4 className="text-white font-bold text-xs truncate leading-tight">{item.name}</h4>
                     <p className="text-[10px] text-gray-400">#{item.code.replace('-1', '')} · {item.category}</p>
-                    <p className="text-emerald-400 font-extrabold text-xs mt-0.5">${item.sealedPrice.toFixed(2)}</p>
+                    <p className="text-emerald-400 font-extrabold text-xs mt-0.5">${item.sealedPrice.toLocaleString()}</p>
                   </div>
                   <button 
                     onClick={(e) => removeFromTray(item.id, e)}
@@ -409,7 +449,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
             {scannedTray.length > 0 ? (
               <>
                 <Plus className="w-5 h-5" />
-                <span>Add {scannedTray.length} {scannedTray.length === 1 ? 'Item' : 'Items'} to Collection (${totalValue.toFixed(2)})</span>
+                <span>Add {scannedTray.length} {scannedTray.length === 1 ? 'Item' : 'Items'} to Collection (${totalValue.toLocaleString()})</span>
               </>
             ) : (
               <span>Point Camera at Collectible or Box</span>

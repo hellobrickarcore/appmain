@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Screen, CollectionItem, WishlistItem } from '../types';
-import { Search, Plus, Heart, ChevronDown, Check, Box, Smile, Sparkles, CreditCard, ArrowUpRight } from 'lucide-react';
+import { Search, Plus, Heart, ChevronDown, Check, Box, Smile, Sparkles, Trophy, Flame, ArrowUpRight } from 'lucide-react';
 import { legoDatabase, AnyCollectible, CollectibleCategory } from '../lib/legoDatabase';
 
 interface BrowseScreenProps {
@@ -10,12 +10,14 @@ interface BrowseScreenProps {
 const CATEGORIES: { id: CollectibleCategory | 'all'; label: string; icon: any }[] = [
   { id: 'all', label: 'All Catalog', icon: Sparkles },
   { id: 'set', label: 'Sets & Boxes', icon: Box },
-  { id: 'minifigure', label: 'Minifigures', icon: Smile },
+  { id: 'minifigure', label: 'Minifigs', icon: Smile },
+  { id: 'pokemon', label: 'Pokémon TCG', icon: Flame },
+  { id: 'sports', label: 'Sports Cards', icon: Trophy },
+  { id: 'other_tcg', label: 'Other TCG', icon: Flame },
   { id: 'moc', label: 'MOC Builds', icon: Sparkles },
-  { id: 'card', label: 'Cards & Promo', icon: CreditCard },
 ];
 
-const THEMES = ['All', 'Star Wars', 'Icons', 'Marvel', 'Ideas', 'Harry Potter', 'Technic', 'Creator Expert', 'Ninjago', 'Architecture', 'Botanical Collection', 'Space'];
+const THEMES = ['All', 'Star Wars', 'Pokémon Base Set', 'Evolving Skies', 'Basketball Cards', 'Icons', 'Marvel', 'Ideas', 'Harry Potter', 'Technic', 'Creator Expert', 'Ninjago', 'Architecture', 'Space'];
 
 const SORT_OPTIONS = [
   { label: 'Highest Value', value: 'price_desc' },
@@ -34,8 +36,6 @@ export const BrowseScreen: React.FC<BrowseScreenProps> = ({ onNavigate }) => {
   const [addedMap, setAddedMap] = useState<Record<string, boolean>>({});
   const [wishlistMap, setWishlistMap] = useState<Record<string, boolean>>({});
 
-  const allItems = useMemo(() => legoDatabase.getAll(), []);
-
   const filteredItems = useMemo(() => {
     let result = legoDatabase.search(searchQuery, selectedCategory);
 
@@ -44,13 +44,16 @@ export const BrowseScreen: React.FC<BrowseScreenProps> = ({ onNavigate }) => {
     }
 
     result.sort((a, b) => {
+      const priceA = a.psa10Value ? a.psa10Value : a.sealedPrice;
+      const priceB = b.psa10Value ? b.psa10Value : b.sealedPrice;
+
       switch (sortBy) {
         case 'price_desc':
-          return b.sealedPrice - a.sealedPrice;
+          return priceB - priceA;
         case 'growth_desc':
           return b.growth1Y - a.growth1Y;
         case 'price_asc':
-          return a.sealedPrice - b.sealedPrice;
+          return priceA - priceB;
         case 'recent':
           return b.year - a.year;
         case 'alpha':
@@ -79,7 +82,7 @@ export const BrowseScreen: React.FC<BrowseScreenProps> = ({ onNavigate }) => {
         purchaseDate: new Date().toISOString().split('T')[0],
         notes: `Added from Catalog`,
         addedAt: new Date().toISOString(),
-        itemType: item.category === 'minifigure' ? 'minifig' : (item.category === 'card' ? 'brick' : 'set')
+        itemType: item.category === 'minifigure' ? 'minifig' : (item.category === 'set' ? 'set' : 'brick')
       });
 
       localStorage.setItem('hellobrick_collection_sets', JSON.stringify(current));
@@ -121,8 +124,8 @@ export const BrowseScreen: React.FC<BrowseScreenProps> = ({ onNavigate }) => {
       <div className="px-5 pt-[max(env(safe-area-inset-top),2.5rem)] pb-3 bg-white border-b border-gray-200/80 shrink-0">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h1 className="text-2xl font-black text-gray-900 tracking-tight">LEGO Database</h1>
-            <p className="text-xs font-semibold text-gray-500">Live market values & price charts</p>
+            <h1 className="text-2xl font-black text-gray-900 tracking-tight">Collectibles Catalog</h1>
+            <p className="text-xs font-semibold text-gray-500">Live market values across LEGO, Pokémon, Sports & TCG</p>
           </div>
           <span className="bg-emerald-50 text-emerald-700 text-xs font-black px-2.5 py-1 rounded-full border border-emerald-200">
             {filteredItems.length} items
@@ -134,7 +137,7 @@ export const BrowseScreen: React.FC<BrowseScreenProps> = ({ onNavigate }) => {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Search 20,000+ sets, minifigs, MOCs, codes..."
+            placeholder="Search sets, Charizard, Boba Fett, Jordan, codes..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-[#F5F5F7] text-gray-900 pl-10 pr-4 py-2.5 rounded-2xl text-sm font-medium border border-gray-200/80 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
@@ -220,6 +223,7 @@ export const BrowseScreen: React.FC<BrowseScreenProps> = ({ onNavigate }) => {
         {filteredItems.map((item) => {
           const isAdded = addedMap[item.code];
           const isWished = wishlistMap[item.code];
+          const displayPrice = item.psa10Value ? item.psa10Value : item.sealedPrice;
 
           return (
             <div
@@ -228,7 +232,7 @@ export const BrowseScreen: React.FC<BrowseScreenProps> = ({ onNavigate }) => {
               className="bg-white rounded-[24px] p-3.5 border border-gray-200/80 shadow-sm flex items-center gap-3.5 active:scale-[0.99] transition-all cursor-pointer group hover:shadow-md"
             >
               {/* Thumbnail */}
-              <div className="w-20 h-20 bg-[#F5F5F7] rounded-2xl p-1.5 flex items-center justify-center shrink-0 overflow-hidden border border-gray-100">
+              <div className="w-20 h-20 bg-[#F5F5F7] rounded-2xl p-1 flex items-center justify-center shrink-0 overflow-hidden border border-gray-100">
                 <img
                   src={item.imageUrl}
                   alt={item.name}
@@ -256,12 +260,12 @@ export const BrowseScreen: React.FC<BrowseScreenProps> = ({ onNavigate }) => {
                 <h3 className="text-sm font-bold text-gray-900 truncate leading-snug">{item.name}</h3>
                 
                 <p className="text-[11px] text-gray-500 font-medium mt-0.5">
-                  #{item.code} {item.category === 'set' && `· ${(item as any).pieces?.toLocaleString()} pcs`}
+                  #{item.code} · {item.category.toUpperCase()}
                 </p>
 
                 {/* Price & Growth */}
                 <div className="flex items-center gap-2 mt-1.5">
-                  <span className="text-sm font-black text-gray-900">${item.sealedPrice.toFixed(2)}</span>
+                  <span className="text-sm font-black text-gray-900">${displayPrice.toLocaleString()}</span>
                   <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded">
                     +{item.growth1Y}% 1Y
                   </span>
@@ -295,7 +299,7 @@ export const BrowseScreen: React.FC<BrowseScreenProps> = ({ onNavigate }) => {
         {filteredItems.length === 0 && (
           <div className="text-center py-16">
             <p className="text-gray-400 font-bold text-base mb-1">No collectibles found</p>
-            <p className="text-gray-400 text-xs">Try searching for set numbers like "75192", "Rivendell", or "Boba Fett"</p>
+            <p className="text-gray-400 text-xs">Try searching for "Charizard", "Jordan", "75192", or "Boba Fett"</p>
           </div>
         )}
       </div>

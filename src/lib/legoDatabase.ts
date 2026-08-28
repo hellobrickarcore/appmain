@@ -1,7 +1,7 @@
 // src/lib/legoDatabase.ts
-// Comprehensive Master Collectibles Database for HelloBrick (Sets, Minifigures, MOCs, Cards)
+// Master Collectibles Database (LEGO Sets, Minifigures, Pokémon TCG, Sports Cards, Magic, Lorcana, MOCs)
 
-export type CollectibleCategory = 'set' | 'minifigure' | 'moc' | 'card';
+export type CollectibleCategory = 'set' | 'minifigure' | 'pokemon' | 'sports' | 'other_tcg' | 'moc';
 export type InvestmentRating = 'Grail' | 'Blue Chip' | 'Strong Buy' | 'Hold' | 'Speculative';
 
 export interface BaseCollectible {
@@ -12,10 +12,12 @@ export interface BaseCollectible {
   category: CollectibleCategory;
   year: number;
   retailPrice: number;
-  sealedPrice: number;
-  usedPrice: number;
-  growth1Y: number; // e.g. 24.5 (%)
-  growth30D: number; // e.g. 3.2 (%)
+  sealedPrice: number; // For sets: Sealed MISB. For cards: Raw / Near Mint
+  usedPrice: number;   // For sets: Used / Complete. For cards: Played / PSA 8
+  psa10Value?: number; // For cards: PSA 10 Gem Mint
+  psa9Value?: number;  // For cards: PSA 9 Mint
+  growth1Y: number;    // % 1-Year growth
+  growth30D: number;   // % 30-Day growth
   rarityScore: number; // 1-10
   demandScore: number; // 1-10
   rating: InvestmentRating;
@@ -37,7 +39,27 @@ export interface MinifigureItem extends BaseCollectible {
   category: 'minifigure';
   exclusiveSetNum?: string;
   exclusiveSetName?: string;
-  conditionGrade?: string;
+}
+
+export interface PokemonCardItem extends BaseCollectible {
+  category: 'pokemon';
+  cardNumber: string;
+  setSeries: string;
+  holoType: string;
+}
+
+export interface SportsCardItem extends BaseCollectible {
+  category: 'sports';
+  cardNumber: string;
+  player: string;
+  sport: 'Basketball' | 'Football' | 'Baseball' | 'Soccer';
+  gradeManufacturer: 'PSA' | 'BGS' | 'SGC';
+}
+
+export interface OtherTcgItem extends BaseCollectible {
+  category: 'other_tcg';
+  game: 'Magic The Gathering' | 'Disney Lorcana' | 'One Piece' | 'Yu-Gi-Oh';
+  cardNumber: string;
 }
 
 export interface MocBuildItem extends BaseCollectible {
@@ -48,15 +70,7 @@ export interface MocBuildItem extends BaseCollectible {
   designer: string;
 }
 
-export interface CollectibleCardItem extends BaseCollectible {
-  category: 'card';
-  cardNumber: string;
-  psa10Value: number;
-  psa9Value: number;
-  rawCondition: string;
-}
-
-export type AnyCollectible = LegoSetItem | MinifigureItem | MocBuildItem | CollectibleCardItem;
+export type AnyCollectible = LegoSetItem | MinifigureItem | PokemonCardItem | SportsCardItem | OtherTcgItem | MocBuildItem;
 
 // ── 1. MASTER LEGO SETS DATABASE ──────────────────────────────
 export const MASTER_SETS: LegoSetItem[] = [
@@ -242,164 +256,6 @@ export const MASTER_SETS: LegoSetItem[] = [
     imageUrl: 'https://images.brickset.com/sets/images/75252-1.jpg',
     isRetired: true,
     description: 'Massive retired Star Destroyer flagship including scale Tantive IV Rebel blockade runner and Imperial crew.'
-  },
-  {
-    id: 'set-42115',
-    code: '42115-1',
-    name: 'Lamborghini Sián FKP 37',
-    theme: 'Technic',
-    subtheme: 'Ultimate Supercar',
-    category: 'set',
-    year: 2020,
-    pieces: 3696,
-    minifigsCount: 0,
-    retailPrice: 449.99,
-    sealedPrice: 480.00,
-    usedPrice: 310.00,
-    partOutValue: 640.00,
-    growth1Y: 9.2,
-    growth30D: 1.1,
-    rarityScore: 6,
-    demandScore: 7,
-    rating: 'Hold',
-    imageUrl: 'https://images.brickset.com/sets/images/42115-1.jpg',
-    isRetired: false,
-    description: 'Lime green 1:8 scale supercar with 8-speed paddle gearbox, V12 engine with moving pistons, and scissor doors.'
-  },
-  {
-    id: 'set-71043',
-    code: '71043-1',
-    name: 'Hogwarts Castle',
-    theme: 'Harry Potter',
-    category: 'set',
-    year: 2018,
-    pieces: 6020,
-    minifigsCount: 4,
-    retailPrice: 469.99,
-    sealedPrice: 490.00,
-    usedPrice: 320.00,
-    partOutValue: 780.00,
-    growth1Y: 8.5,
-    growth30D: 1.0,
-    rarityScore: 6,
-    demandScore: 8,
-    rating: 'Hold',
-    imageUrl: 'https://images.brickset.com/sets/images/71043-1.jpg',
-    isRetired: false,
-    description: 'Microscale magical castle featuring Great Hall, Chamber of Secrets, Hagrid Hut, and 4 Hogwarts Founders minifigures.'
-  },
-  {
-    id: 'set-10270',
-    code: '10270-1',
-    name: 'Bookshop (Modular Building)',
-    theme: 'Creator Expert',
-    subtheme: 'Modular Buildings',
-    category: 'set',
-    year: 2020,
-    pieces: 2504,
-    minifigsCount: 5,
-    retailPrice: 199.99,
-    sealedPrice: 285.00,
-    usedPrice: 190.00,
-    partOutValue: 390.00,
-    growth1Y: 42.5,
-    growth30D: 3.8,
-    rarityScore: 8,
-    demandScore: 8,
-    rating: 'Strong Buy',
-    imageUrl: 'https://images.brickset.com/sets/images/10270-1.jpg',
-    isRetired: true,
-    description: 'Charming European style townhouse and Birch Books bookshop with birch tree and detailed interior furnishings.'
-  },
-  {
-    id: 'set-21333',
-    code: '21333-1',
-    name: 'Vincent van Gogh - The Starry Night',
-    theme: 'Ideas',
-    category: 'set',
-    year: 2022,
-    pieces: 2316,
-    minifigsCount: 1,
-    retailPrice: 169.99,
-    sealedPrice: 190.00,
-    usedPrice: 130.00,
-    partOutValue: 270.00,
-    growth1Y: 11.8,
-    growth30D: 2.3,
-    rarityScore: 6,
-    demandScore: 8,
-    rating: 'Hold',
-    imageUrl: 'https://images.brickset.com/sets/images/21333-1.jpg',
-    isRetired: false,
-    description: '3D wall-art reproduction in partnership with MoMA featuring an exclusive Vincent van Gogh minifigure with easel.'
-  },
-  {
-    id: 'set-75313',
-    code: '75313-1',
-    name: 'AT-AT (UCS)',
-    theme: 'Star Wars',
-    subtheme: 'Ultimate Collector Series',
-    category: 'set',
-    year: 2021,
-    pieces: 6785,
-    minifigsCount: 9,
-    retailPrice: 849.99,
-    sealedPrice: 910.00,
-    usedPrice: 650.00,
-    partOutValue: 1380.00,
-    growth1Y: 14.1,
-    growth30D: 1.9,
-    rarityScore: 8,
-    demandScore: 9,
-    rating: 'Strong Buy',
-    imageUrl: 'https://images.brickset.com/sets/images/75313-1.jpg',
-    isRetired: false,
-    retiresInMonths: 8,
-    description: 'Gigantic 62cm-tall Imperial Walker with posable legs, interior room for 40 minifigures, 4 speeder bikes, and E-Web cannon.'
-  },
-  {
-    id: 'set-21056',
-    code: '21056-1',
-    name: 'Taj Mahal',
-    theme: 'Architecture',
-    category: 'set',
-    year: 2021,
-    pieces: 2022,
-    minifigsCount: 0,
-    retailPrice: 119.99,
-    sealedPrice: 165.00,
-    usedPrice: 105.00,
-    partOutValue: 240.00,
-    growth1Y: 37.5,
-    growth30D: 4.1,
-    rarityScore: 7,
-    demandScore: 7,
-    rating: 'Strong Buy',
-    imageUrl: 'https://images.brickset.com/sets/images/21056-1.jpg',
-    isRetired: true,
-    description: 'Exquisite architectural tribute with crypt with sarcophagi of Mumtaz and Shah Jahan, central dome, and 4 minarets.'
-  },
-  {
-    id: 'set-10281',
-    code: '10281-1',
-    name: 'Bonsai Tree',
-    theme: 'Botanical Collection',
-    category: 'set',
-    year: 2021,
-    pieces: 878,
-    minifigsCount: 0,
-    retailPrice: 49.99,
-    sealedPrice: 55.00,
-    usedPrice: 38.00,
-    partOutValue: 85.00,
-    growth1Y: 10.0,
-    growth30D: 1.5,
-    rarityScore: 5,
-    demandScore: 9,
-    rating: 'Hold',
-    imageUrl: 'https://images.brickset.com/sets/images/10281-1.jpg',
-    isRetired: false,
-    description: 'Iconic botanical display with interchangeable green leaves and vibrant pink cherry blossom frog blooms.'
   }
 ];
 
@@ -408,7 +264,7 @@ export const MASTER_MINIFIGS: MinifigureItem[] = [
   {
     id: 'fig-sw0107',
     code: 'sw0107',
-    name: 'Boba Fett (Cloud City - Printed Arms & Legs)',
+    name: 'Boba Fett (Cloud City Printed Arms & Legs)',
     theme: 'Star Wars',
     category: 'minifigure',
     year: 2003,
@@ -550,7 +406,284 @@ export const MASTER_MINIFIGS: MinifigureItem[] = [
   }
 ];
 
-// ── 3. MASTER MOC BUILDS DATABASE ─────────────────────────────
+// ── 3. MASTER POKÉMON TCG CARDS DATABASE ──────────────────────
+export const MASTER_POKEMON: PokemonCardItem[] = [
+  {
+    id: 'pok-charizard-base',
+    code: 'PKM-BASE-4',
+    name: '1st Edition Shadowless Charizard Holo',
+    theme: 'Pokémon Base Set',
+    category: 'pokemon',
+    year: 1999,
+    retailPrice: 3.99,
+    sealedPrice: 4500.00, // Raw Near Mint
+    usedPrice: 1800.00,   // Played / Light Play
+    psa10Value: 350000.00,
+    psa9Value: 24000.00,
+    growth1Y: 38.2,
+    growth30D: 4.5,
+    rarityScore: 10,
+    demandScore: 10,
+    rating: 'Grail',
+    imageUrl: 'https://images.pokemontcg.io/base1/4_hires.png',
+    cardNumber: '4/102',
+    setSeries: 'Base Set 1st Edition',
+    holoType: 'Galaxy Holofoil',
+    isRetired: true,
+    description: 'The pinnacle of trading card collectibles. The 1999 1st Edition Shadowless Charizard #4 with 100 Fire Spin Attack.'
+  },
+  {
+    id: 'pok-moonbreon',
+    code: 'PKM-EVO-215',
+    name: 'Umbreon VMAX Alt Art (Moonbreon)',
+    theme: 'Evolving Skies',
+    category: 'pokemon',
+    year: 2021,
+    retailPrice: 4.49,
+    sealedPrice: 850.00,
+    usedPrice: 620.00,
+    psa10Value: 1450.00,
+    psa9Value: 890.00,
+    growth1Y: 42.0,
+    growth30D: 6.8,
+    rarityScore: 9,
+    demandScore: 10,
+    rating: 'Grail',
+    imageUrl: 'https://images.pokemontcg.io/swsh7/215_hires.png',
+    cardNumber: '215/203',
+    setSeries: 'Sword & Shield: Evolving Skies',
+    holoType: 'Secret Rare Alternate Art',
+    isRetired: true,
+    description: 'The celebrated Moonbreon showing Umbreon reaching for the luminous moon. Modern TCG masterpiece.'
+  },
+  {
+    id: 'pok-gengar-vmax',
+    code: 'PKM-FUS-271',
+    name: 'Gengar VMAX Alternate Art',
+    theme: 'Fusion Strike',
+    category: 'pokemon',
+    year: 2021,
+    retailPrice: 4.49,
+    sealedPrice: 380.00,
+    usedPrice: 260.00,
+    psa10Value: 720.00,
+    psa9Value: 450.00,
+    growth1Y: 34.5,
+    growth30D: 5.1,
+    rarityScore: 9,
+    demandScore: 9,
+    rating: 'Strong Buy',
+    imageUrl: 'https://images.pokemontcg.io/swsh8/271_hires.png',
+    cardNumber: '271/264',
+    setSeries: 'Sword & Shield: Fusion Strike',
+    holoType: 'Secret Rare Alt Art',
+    isRetired: true,
+    description: 'Gigantamax Gengar swallowing entire buildings in vivid comic-book style artwork.'
+  },
+  {
+    id: 'pok-rayquaza-vmax',
+    code: 'PKM-EVO-218',
+    name: 'Rayquaza VMAX Alt Art',
+    theme: 'Evolving Skies',
+    category: 'pokemon',
+    year: 2021,
+    retailPrice: 4.49,
+    sealedPrice: 340.00,
+    usedPrice: 240.00,
+    psa10Value: 680.00,
+    psa9Value: 420.00,
+    growth1Y: 28.0,
+    growth30D: 3.9,
+    rarityScore: 8,
+    demandScore: 9,
+    rating: 'Strong Buy',
+    imageUrl: 'https://images.pokemontcg.io/swsh7/218_hires.png',
+    cardNumber: '218/203',
+    setSeries: 'Sword & Shield: Evolving Skies',
+    holoType: 'Secret Rare Alt Art',
+    isRetired: true,
+    description: 'Emerald Sky Dragon Rayquaza soaring through celestial clouds with Zinnia.'
+  },
+  {
+    id: 'pok-giratina-v',
+    code: 'PKM-LOR-186',
+    name: 'Giratina V Alternate Art',
+    theme: 'Lost Origin',
+    category: 'pokemon',
+    year: 2022,
+    retailPrice: 4.49,
+    sealedPrice: 290.00,
+    usedPrice: 210.00,
+    psa10Value: 580.00,
+    psa9Value: 360.00,
+    growth1Y: 29.5,
+    growth30D: 4.0,
+    rarityScore: 8,
+    demandScore: 9,
+    rating: 'Strong Buy',
+    imageUrl: 'https://images.pokemontcg.io/swsh11/186_hires.png',
+    cardNumber: '186/196',
+    setSeries: 'Sword & Shield: Lost Origin',
+    holoType: 'Ultra Rare Alt Art',
+    isRetired: true,
+    description: 'Mesmerizing distortion world artwork by Shinji Kanda depicting Giratina in the nether realm.'
+  },
+  {
+    id: 'pok-shining-charizard',
+    code: 'PKM-NEO-107',
+    name: 'Shining Charizard 1st Edition',
+    theme: 'Neo Destiny',
+    category: 'pokemon',
+    year: 2002,
+    retailPrice: 3.99,
+    sealedPrice: 950.00,
+    usedPrice: 520.00,
+    psa10Value: 3200.00,
+    psa9Value: 1400.00,
+    growth1Y: 22.0,
+    growth30D: 2.8,
+    rarityScore: 10,
+    demandScore: 9,
+    rating: 'Grail',
+    imageUrl: 'https://images.pokemontcg.io/neo4/107_hires.png',
+    cardNumber: '107/105',
+    setSeries: 'Neo Destiny 1st Edition',
+    holoType: 'Triple Star Shining Holo',
+    isRetired: true,
+    description: 'Iconic shiny Charizard printed with reflective silver foil body on midnight blue backdrop.'
+  }
+];
+
+// ── 4. MASTER SPORTS & CORE CARDS DATABASE ────────────────────
+export const MASTER_SPORTS: SportsCardItem[] = [
+  {
+    id: 'spt-jordan-1986',
+    code: 'SPT-FLR-57',
+    name: '1986 Fleer Michael Jordan Rookie Card #57',
+    theme: 'Basketball Cards',
+    category: 'sports',
+    year: 1986,
+    retailPrice: 0.35,
+    sealedPrice: 3200.00, // Raw
+    usedPrice: 1600.00,
+    psa10Value: 180000.00,
+    psa9Value: 18500.00,
+    growth1Y: 21.5,
+    growth30D: 3.2,
+    rarityScore: 10,
+    demandScore: 10,
+    rating: 'Grail',
+    imageUrl: 'https://images.brickset.com/sets/images/75192-1.jpg',
+    cardNumber: '#57',
+    player: 'Michael Jordan',
+    sport: 'Basketball',
+    gradeManufacturer: 'PSA',
+    isRetired: true,
+    description: 'The defining sports card of modern hobby history. Michael Jordan slam dunk rookie.'
+  },
+  {
+    id: 'spt-lebron-2003',
+    code: 'SPT-TOP-111',
+    name: '2003 Topps Chrome LeBron James Rookie #111',
+    theme: 'Basketball Cards',
+    category: 'sports',
+    year: 2003,
+    retailPrice: 3.00,
+    sealedPrice: 1400.00,
+    usedPrice: 850.00,
+    psa10Value: 12000.00,
+    psa9Value: 3400.00,
+    growth1Y: 18.0,
+    growth30D: 2.1,
+    rarityScore: 9,
+    demandScore: 9,
+    rating: 'Blue Chip',
+    imageUrl: 'https://images.brickset.com/sets/images/10316-1.jpg',
+    cardNumber: '#111',
+    player: 'LeBron James',
+    sport: 'Basketball',
+    gradeManufacturer: 'PSA',
+    isRetired: true,
+    description: 'LeBron James Cleveland Cavaliers official Topps Chrome debut rookie card.'
+  },
+  {
+    id: 'spt-brady-2000',
+    code: 'SPT-PLY-144',
+    name: '2000 Playoff Contenders Tom Brady Rookie Ticket Auto #144',
+    theme: 'Football Cards',
+    category: 'sports',
+    year: 2000,
+    retailPrice: 5.00,
+    sealedPrice: 15000.00,
+    usedPrice: 8500.00,
+    psa10Value: 250000.00,
+    psa9Value: 45000.00,
+    growth1Y: 26.0,
+    growth30D: 3.5,
+    rarityScore: 10,
+    demandScore: 10,
+    rating: 'Grail',
+    imageUrl: 'https://images.brickset.com/sets/images/75252-1.jpg',
+    cardNumber: '#144',
+    player: 'Tom Brady',
+    sport: 'Football',
+    gradeManufacturer: 'PSA',
+    isRetired: true,
+    description: 'Autographed rookie card of the 7-time Super Bowl champion quarterback.'
+  }
+];
+
+// ── 5. MASTER OTHER TCG (Lorcana, One Piece, Magic) ───────────
+export const MASTER_OTHER_TCG: OtherTcgItem[] = [
+  {
+    id: 'tcg-lorcana-elsa',
+    code: 'LOR-CHP1-207',
+    name: 'Elsa - Spirit of Winter (Enchanted Foil)',
+    theme: 'Disney Lorcana',
+    category: 'other_tcg',
+    year: 2023,
+    retailPrice: 5.99,
+    sealedPrice: 750.00,
+    usedPrice: 480.00,
+    psa10Value: 1400.00,
+    psa9Value: 850.00,
+    growth1Y: 55.0,
+    growth30D: 8.2,
+    rarityScore: 9,
+    demandScore: 10,
+    rating: 'Grail',
+    imageUrl: 'https://images.pokemontcg.io/sm5/151_hires.png',
+    game: 'Disney Lorcana',
+    cardNumber: '207/204',
+    isRetired: true,
+    description: 'Enchanted alternate art holofoil of Elsa from The First Chapter.'
+  },
+  {
+    id: 'tcg-op-shanks',
+    code: 'OP-ROM-120',
+    name: 'Manga Shanks (Super Parallel SEC)',
+    theme: 'One Piece TCG',
+    category: 'other_tcg',
+    year: 2022,
+    retailPrice: 4.99,
+    sealedPrice: 950.00,
+    usedPrice: 680.00,
+    psa10Value: 1650.00,
+    psa9Value: 1100.00,
+    growth1Y: 44.0,
+    growth30D: 5.5,
+    rarityScore: 9,
+    demandScore: 10,
+    rating: 'Grail',
+    imageUrl: 'https://images.pokemontcg.io/sm9/165_hires.png',
+    game: 'One Piece',
+    cardNumber: 'OP01-120',
+    isRetired: true,
+    description: 'Manga background super parallel secret rare Red-Haired Shanks.'
+  }
+];
+
+// ── 6. MASTER MOC BUILDS DATABASE ─────────────────────────────
 export const MASTER_MOCS: MocBuildItem[] = [
   {
     id: 'moc-01',
@@ -597,91 +730,20 @@ export const MASTER_MOCS: MocBuildItem[] = [
     difficulty: 'Hard',
     designer: 'Sir_Bricksalot',
     description: 'Heavily fortified stone guard tower built into rocky terrain with working portcullis.'
-  },
-  {
-    id: 'moc-03',
-    code: 'MOC-10281',
-    name: 'Autumn Maple Bonsai',
-    theme: 'Botanical',
-    category: 'moc',
-    year: 2024,
-    retailPrice: 35.00,
-    sealedPrice: 70.00,
-    usedPrice: 48.00,
-    growth1Y: 12.0,
-    growth30D: 1.8,
-    rarityScore: 6,
-    demandScore: 8,
-    rating: 'Hold',
-    imageUrl: 'https://images.brickset.com/sets/images/10281-1.jpg',
-    isRetired: false,
-    pieceCount: 420,
-    matchPercentage: 96,
-    difficulty: 'Easy',
-    designer: 'ZenBrickWorks',
-    description: 'Alternate color transformation of set 10281 with fiery red, orange, and amber autumn canopy.'
   }
 ];
 
-// ── 4. MASTER COLLECTIBLE CARDS DATABASE ──────────────────────
-export const MASTER_CARDS: CollectibleCardItem[] = [
-  {
-    id: 'card-01',
-    code: 'TCG-75192',
-    cardNumber: '#001-UCS',
-    name: 'Millennium Falcon Gold Foil Collector Card',
-    theme: 'Star Wars Cards',
-    category: 'card',
-    year: 2017,
-    retailPrice: 15.00,
-    sealedPrice: 180.00,
-    usedPrice: 95.00,
-    psa10Value: 420.00,
-    psa9Value: 210.00,
-    rawCondition: 'Near Mint',
-    growth1Y: 48.0,
-    growth30D: 6.2,
-    rarityScore: 9,
-    demandScore: 9,
-    rating: 'Grail',
-    imageUrl: 'https://images.brickset.com/sets/images/75192-1.jpg',
-    isRetired: true,
-    description: 'Numbered VIP exclusive embossed gold foil commemorative card awarded to first-day UCS Millennium Falcon buyers.'
-  },
-  {
-    id: 'card-02',
-    code: 'TCG-CMF26',
-    cardNumber: '#CMF-026',
-    name: 'Space Astronaut Holographic QR Card',
-    theme: 'CMF Series 26',
-    category: 'card',
-    year: 2024,
-    retailPrice: 4.99,
-    sealedPrice: 28.00,
-    usedPrice: 14.00,
-    psa10Value: 75.00,
-    psa9Value: 35.00,
-    rawCondition: 'Mint',
-    growth1Y: 15.0,
-    growth30D: 3.0,
-    rarityScore: 7,
-    demandScore: 8,
-    rating: 'Strong Buy',
-    imageUrl: 'https://images.brickset.com/sets/images/60351-1.jpg',
-    isRetired: false,
-    description: 'Holographic collector card with scannable matrix code for instant digital vault syncing.'
-  }
-];
-
-// ── 5. ALL COLLECTIBLES UNIFIED ───────────────────────────────
+// ── 7. ALL COLLECTIBLES UNIFIED ───────────────────────────────
 export const ALL_COLLECTIBLES: AnyCollectible[] = [
   ...MASTER_SETS,
   ...MASTER_MINIFIGS,
-  ...MASTER_MOCS,
-  ...MASTER_CARDS
+  ...MASTER_POKEMON,
+  ...MASTER_SPORTS,
+  ...MASTER_OTHER_TCG,
+  ...MASTER_MOCS
 ];
 
-// ── 6. UTILITY QUERY ENGINE ──────────────────────────────────
+// ── 8. UTILITY QUERY ENGINE ──────────────────────────────────
 export const legoDatabase = {
   getSets(): LegoSetItem[] {
     return MASTER_SETS;
@@ -691,12 +753,20 @@ export const legoDatabase = {
     return MASTER_MINIFIGS;
   },
 
-  getMocs(): MocBuildItem[] {
-    return MASTER_MOCS;
+  getPokemon(): PokemonCardItem[] {
+    return MASTER_POKEMON;
   },
 
-  getCards(): CollectibleCardItem[] {
-    return MASTER_CARDS;
+  getSports(): SportsCardItem[] {
+    return MASTER_SPORTS;
+  },
+
+  getOtherTcg(): OtherTcgItem[] {
+    return MASTER_OTHER_TCG;
+  },
+
+  getMocs(): MocBuildItem[] {
+    return MASTER_MOCS;
   },
 
   getAll(): AnyCollectible[] {

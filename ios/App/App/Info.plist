@@ -46,13 +46,13 @@
     <key>UIViewControllerBasedStatusBarAppearance</key>
     <true/>
     <key>NSCameraUsageDescription</key>
-    <string>We need camera access to scan your building bricks in AR.</string>
+    <string>HelloBrick requires camera access for live AR identification of LEGO sets, minifigures, Pokémon cards, and trading card collectibles.</string>
     <key>NSPhotoLibraryUsageDescription</key>
-    <string>We need access to your photo library to save and share your brick creations.</string>
+    <string>HelloBrick requires photo library access to import and save collection item photos.</string>
     <key>NSPhotoLibraryAddUsageDescription</key>
-    <string>We need permission to save photos of your brick builds to your library.</string>
+    <string>HelloBrick requires permission to save scanned collection cards and portfolio reports to your library.</string>
     <key>NSMicrophoneUsageDescription</key>
-    <string>We need microphone access for video recording and analysis.</string>
+    <string>HelloBrick uses the microphone for video capture analysis.</string>
     <key>NSUserTrackingUsageDescription</key>
     <string>We use this to analyze app performance and improve your experience.</string>
 	<key>NSAppTransportSecurity</key>
