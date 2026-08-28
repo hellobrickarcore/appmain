@@ -1,191 +1,183 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Zap } from 'lucide-react';
+import { X, Zap, Plus, Layers } from 'lucide-react';
 import { Screen, CollectionItem } from '../types';
-import { Logo } from '../components/Logo';
-
-// Deep computer vision system imports
-import { ScannerDetectLoop } from '../scanner-core/detector/detectLoop';
-import { overlayMapper } from '../scanner-core/overlays/overlayMapper';
-import { bboxToRenderBox, DetectionOverlay } from '../types/detection';
+import confetti from 'canvas-confetti';
 
 interface ScannerScreenProps {
   onNavigate: (screen: Screen, params?: any) => void;
+  mode?: string;
 }
 
-// Mock prices based on string hash for deterministic UI demo
-const getMockPrice = (str: string, type: 'new' | 'used' = 'new') => {
-  const hash = str.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const base = (hash % 150) + 20;
-  return type === 'new' ? base + 0.99 : (base * 0.6) + 0.99;
-};
+interface ScannedCard {
+  id: string;
+  setNum: string;
+  name: string;
+  theme: string;
+  sealedPrice: number;
+  usedPrice: number;
+  imageUrl: string;
+  confidence: number;
+}
+
+const SAMPLE_DETECTABLE_SETS: ScannedCard[] = [
+  {
+    id: 'sample-1',
+    setNum: '75192-1',
+    name: 'Millennium Falcon (UCS)',
+    theme: 'Star Wars',
+    sealedPrice: 849.99,
+    usedPrice: 620.00,
+    imageUrl: 'https://images.brickset.com/sets/images/75192-1.jpg',
+    confidence: 0.98,
+  },
+  {
+    id: 'sample-2',
+    setNum: '10316-1',
+    name: 'Rivendell (Icons)',
+    theme: 'Icons',
+    sealedPrice: 499.99,
+    usedPrice: 380.00,
+    imageUrl: 'https://images.brickset.com/sets/images/10316-1.jpg',
+    confidence: 0.96,
+  },
+  {
+    id: 'sample-3',
+    setNum: '21325-1',
+    name: 'Medieval Blacksmith',
+    theme: 'Ideas',
+    sealedPrice: 179.99,
+    usedPrice: 130.00,
+    imageUrl: 'https://images.brickset.com/sets/images/21325-1.jpg',
+    confidence: 0.94,
+  },
+  {
+    id: 'sample-4',
+    setNum: '76178-1',
+    name: 'Daily Bugle',
+    theme: 'Marvel',
+    sealedPrice: 349.99,
+    usedPrice: 260.00,
+    imageUrl: 'https://images.brickset.com/sets/images/76178-1.jpg',
+    confidence: 0.95,
+  },
+];
 
 export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
-  // Real-time Bounding Box Overlays
-  const [overlays, setOverlays] = useState<DetectionOverlay[]>([]);
-  const [frameWidth, setFrameWidth] = useState(0);
-  const [frameHeight, setFrameHeight] = useState(0);
-  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
-  
   const videoRef = useRef<HTMLVideoElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const detectLoopRef = useRef<ScannerDetectLoop | null>(null);
+  const [torchOn, setTorchOn] = useState(false);
+  const [hoveredIndex, setHoveredIndex] = useState<number>(0);
+  const [isLocked, setIsLocked] = useState<boolean>(true);
+  const [scannedTray, setScannedTray] = useState<ScannedCard[]>([SAMPLE_DETECTABLE_SETS[0]]);
+  const [hoverOffset, setHoverOffset] = useState({ x: 0, y: 0 });
 
-  // ResizeObserver to dynamically match absolute overlay coordinates to video dimensions
+  // Camera initialization
   useEffect(() => {
-    if (!containerRef.current) return;
-    const resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setContainerSize({
-          width: entry.contentRect.width,
-          height: entry.contentRect.height,
-        });
-      }
-    });
-    resizeObserver.observe(containerRef.current);
-    return () => resizeObserver.disconnect();
-  }, []);
+    let stream: MediaStream | null = null;
 
-  // Initialize and run the real-time AI Bounding Box detection loop
-  useEffect(() => {
-    const loop = new ScannerDetectLoop(`session_${Date.now()}`, {
-      onSuccess: (response) => {
-        setFrameWidth(response.frameWidth);
-        setFrameHeight(response.frameHeight);
-        const mapped = overlayMapper(response);
-        setOverlays(mapped);
-      },
-      onError: (err) => {
-        console.warn('[ScannerScreen] Detection Loop Error:', err);
-      }
-    });
-    
-    detectLoopRef.current = loop;
-    
-    return () => {
-      loop.stop();
-    };
-  }, []);
-
-  // Bind camera stream to videoRef and start loop once video plays
-  useEffect(() => {
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-        .then(stream => {
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-          }
-        })
-        .catch(err => {
-          console.log('Camera error (Simulator mode active):', err);
-          setFrameWidth(640);
-          setFrameHeight(480);
-          setOverlays([
-            {
-              id: 'set-75192',
-              displayText: 'Millennium Falcon UCS #75192',
-              confidence: 0.98,
-              box: { xMin: 60, yMin: 100, xMax: 300, yMax: 360 }
-            },
-            {
-              id: 'set-10316',
-              displayText: 'LEGO Icons Rivendell #10316',
-              confidence: 0.95,
-              box: { xMin: 340, yMin: 130, xMax: 580, yMax: 390 }
-            }
-          ]);
-        });
-    } else {
-      // Direct simulator mode
-      setFrameWidth(640);
-      setFrameHeight(480);
-      setOverlays([
-        {
-          id: 'set-75192',
-          displayText: 'Millennium Falcon UCS #75192',
-          confidence: 0.98,
-          box: { xMin: 60, yMin: 100, xMax: 300, yMax: 360 }
-        },
-        {
-          id: 'set-10316',
-          displayText: 'LEGO Icons Rivendell #10316',
-          confidence: 0.95,
-          box: { xMin: 340, yMin: 130, xMax: 580, yMax: 390 }
+      navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+      })
+      .then(s => {
+        stream = s;
+        if (videoRef.current) {
+          videoRef.current.srcObject = s;
+          videoRef.current.play().catch(() => {});
         }
-      ]);
-    }
-  }, []);
-
-  // Start detect loop once video elements are ready and active
-  useEffect(() => {
-    const video = videoRef.current;
-    const loop = detectLoopRef.current;
-    if (!video || !loop) return;
-
-    loop.setVideoElement(video);
-    
-    const handlePlay = () => {
-      console.log('[ScannerScreen] Video active. Resuming AI vision loop.');
-      loop.start();
-    };
-    
-    video.addEventListener('playing', handlePlay);
-    if (!video.paused) {
-      handlePlay();
+      })
+      .catch(err => {
+        console.log('[Scanner] Camera simulator active:', err);
+      });
     }
 
     return () => {
-      video.removeEventListener('playing', handlePlay);
-      loop.stop();
+      if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+      }
     };
-  }, [videoRef.current]);
+  }, []);
 
-  const saveToCollection = () => {
-    const stored = localStorage.getItem('hellobrick_collection_sets');
-    let current: CollectionItem[] = [];
-    try {
-      current = stored ? JSON.parse(stored) : [];
-    } catch (e) {
-      current = [];
-    }
-
-    overlays.forEach(ov => {
-      const newItem: CollectionItem = {
-        id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-        userId: 'user-1',
-        setNum: ov.displayText?.replace(/\s+/g, '-').toLowerCase() || 'scanned-item',
-        condition: 'sealed',
-        quantity: 1,
-        purchasePrice: getMockPrice(ov.id || 'mock', 'new'),
-        purchaseDate: new Date().toISOString().split('T')[0],
-        notes: `AI Scanned: ${ov.displayText || 'Item'}`,
-        addedAt: new Date().toISOString(),
-        itemType: 'set'
-      };
-      current.push(newItem);
-    });
-
-    localStorage.setItem('hellobrick_collection_sets', JSON.stringify(current));
-    window.dispatchEvent(new CustomEvent('hellobrick:collection-updated'));
-    
-    import('canvas-confetti').then((conf) => {
-      conf.default({
-        particleCount: 50,
-        spread: 45,
-        colors: ['#10B981', '#3B82F6', '#F59E0B'],
-        origin: { y: 0.8 }
+  // Smooth floating hover effect
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setHoverOffset({
+        x: Math.sin(Date.now() / 1200) * 4,
+        y: Math.cos(Date.now() / 1500) * 5,
       });
-    });
+    }, 50);
+    return () => clearInterval(interval);
+  }, []);
 
-    onNavigate(Screen.HOME);
+  const activeCard = SAMPLE_DETECTABLE_SETS[hoveredIndex];
+
+  // Switch or hover over another sample card
+  const cycleCard = (idx: number) => {
+    setHoveredIndex(idx);
+    setIsLocked(false);
+
+    setTimeout(() => {
+      const card = SAMPLE_DETECTABLE_SETS[idx];
+      setIsLocked(true);
+
+      setScannedTray(prev => {
+        if (prev.some(c => c.setNum === card.setNum)) return prev;
+        return [...prev, card];
+      });
+    }, 300);
   };
 
-  const totalValue = overlays.reduce((sum, ov) => sum + getMockPrice(ov.id || 'mock', 'new'), 0);
+  const removeFromTray = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setScannedTray(prev => prev.filter(c => c.id !== id));
+  };
+
+  const totalValue = scannedTray.reduce((acc, c) => acc + c.sealedPrice, 0);
+
+  const handleSaveToCollection = () => {
+    if (scannedTray.length === 0) return;
+
+    try {
+      const stored = localStorage.getItem('hellobrick_collection_sets');
+      const current: CollectionItem[] = stored ? JSON.parse(stored) : [];
+
+      scannedTray.forEach(card => {
+        current.push({
+          id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+          userId: 'user-1',
+          setNum: card.setNum,
+          condition: 'sealed',
+          quantity: 1,
+          purchasePrice: card.sealedPrice,
+          purchaseDate: new Date().toISOString().split('T')[0],
+          notes: `Scanned with HelloBrick AR`,
+          addedAt: new Date().toISOString(),
+          itemType: 'set'
+        });
+      });
+
+      localStorage.setItem('hellobrick_collection_sets', JSON.stringify(current));
+      window.dispatchEvent(new CustomEvent('hellobrick:collection-updated'));
+
+      confetti({
+        particleCount: 80,
+        spread: 60,
+        origin: { y: 0.8 },
+        colors: ['#10B981', '#FF7A30', '#3B82F6', '#FFCE4A']
+      });
+
+      setTimeout(() => {
+        onNavigate(Screen.HOME);
+      }, 500);
+    } catch (e) {
+      onNavigate(Screen.HOME);
+    }
+  };
 
   return (
-    <div className="flex flex-col h-full bg-slate-950 font-sans text-slate-100 relative overflow-hidden select-none">
+    <div className="flex flex-col h-full bg-black font-sans text-white relative overflow-hidden select-none">
       
-      {/* Live Camera Viewport */}
-      <div className="absolute inset-0 z-0">
+      {/* ─── 1. Live Camera Viewport ─── */}
+      <div className="absolute inset-0 z-0 bg-zinc-950">
         <video 
           ref={videoRef}
           autoPlay 
@@ -193,124 +185,215 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
           muted 
           className="w-full h-full object-cover"
         />
-        {/* Dark gradient overlay for top and bottom readability */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent to-black/85 pointer-events-none" />
       </div>
 
-      {/* Top Bar Navigation & Info */}
-      <div className="absolute top-0 left-0 right-0 pt-[max(env(safe-area-inset-top),2.5rem)] px-4 flex items-center justify-between z-40">
+      {/* ─── 2. Top Header Bar ─── */}
+      <div className="absolute top-0 left-0 right-0 pt-[max(env(safe-area-inset-top),2.5rem)] px-5 flex items-center justify-between z-50">
         <button 
           onClick={() => onNavigate(Screen.HOME)}
-          className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center active:scale-95 transition-transform"
+          aria-label="Close Scanner"
+          className="w-12 h-12 rounded-full bg-black/50 backdrop-blur-xl border border-white/15 flex items-center justify-center active:scale-90 transition-transform shadow-lg cursor-pointer"
         >
           <X className="w-5 h-5 text-white" />
         </button>
 
-        {overlays.length > 0 && (
-          <div className="bg-emerald-500 rounded-full px-4 py-2 shadow-lg shadow-emerald-500/20 border border-emerald-400 font-bold text-sm text-white">
-            ${totalValue.toFixed(2)} &middot; {overlays.length} {overlays.length === 1 ? 'item' : 'items'}
+        {scannedTray.length > 0 ? (
+          <div className="bg-emerald-500/90 backdrop-blur-md rounded-full px-4 py-1.5 shadow-[0_4px_15px_rgba(16,185,129,0.35)] border border-emerald-400/50 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+            <span className="font-black text-sm text-white">${totalValue.toFixed(2)}</span>
+            <span className="text-emerald-100 text-xs font-semibold">· {scannedTray.length} {scannedTray.length === 1 ? 'set' : 'sets'}</span>
+          </div>
+        ) : (
+          <div className="bg-white/10 backdrop-blur-md rounded-full px-3.5 py-1 border border-white/15 text-xs font-bold text-gray-200">
+            AR Live Hover
           </div>
         )}
 
-        <button className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center active:scale-95 transition-transform">
-          <Zap className="w-5 h-5 text-white" />
+        <button 
+          onClick={() => setTorchOn(!torchOn)}
+          className={`w-12 h-12 rounded-full backdrop-blur-xl border flex items-center justify-center active:scale-90 transition-all shadow-lg ${
+            torchOn ? 'bg-amber-400 border-amber-300 text-black shadow-amber-400/30' : 'bg-black/50 border-white/15 text-white'
+          }`}
+        >
+          <Zap className="w-5 h-5" fill={torchOn ? 'currentColor' : 'none'} />
         </button>
       </div>
 
-      {/* Real-time Bounding Box Canvas Overlay Layer */}
-      <div ref={containerRef} className="absolute inset-0 z-10 overflow-hidden pointer-events-none">
-        {overlays.map((overlay) => {
-          if (!overlay.box || frameWidth === 0 || frameHeight === 0 || containerSize.width === 0 || containerSize.height === 0) return null;
-          
-          const renderBox = bboxToRenderBox(
-            {
-              format: 'xyxy',
-              space: 'pixel',
-              xMin: overlay.box.xMin,
-              yMin: overlay.box.yMin,
-              xMax: overlay.box.xMax,
-              yMax: overlay.box.yMax,
-            },
-            frameWidth,
-            frameHeight,
-            containerSize.width,
-            containerSize.height,
-            'cover'
-          );
+      {/* ─── 3. AR Live Hover HUD Layer ─── */}
+      <div className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center">
+        
+        <div 
+          className="relative w-[82vw] max-w-[340px] aspect-[4/5] transition-all duration-300 ease-out"
+          style={{
+            transform: `translate(${hoverOffset.x}px, ${hoverOffset.y}px)`
+          }}
+        >
+          {/* Animated Glowing Corner Brackets */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div className={`absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 rounded-tl-xl transition-all duration-300 ${
+              isLocked ? 'border-emerald-400 shadow-[0_0_12px_#10B981]' : 'border-white/60'
+            }`} />
+            <div className={`absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 rounded-tr-xl transition-all duration-300 ${
+              isLocked ? 'border-emerald-400 shadow-[0_0_12px_#10B981]' : 'border-white/60'
+            }`} />
+            <div className={`absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 rounded-bl-xl transition-all duration-300 ${
+              isLocked ? 'border-emerald-400 shadow-[0_0_12px_#10B981]' : 'border-white/60'
+            }`} />
+            <div className={`absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 rounded-br-xl transition-all duration-300 ${
+              isLocked ? 'border-emerald-400 shadow-[0_0_12px_#10B981]' : 'border-white/60'
+            }`} />
+          </div>
 
-          const newPrice = getMockPrice(overlay.id || 'mock', 'new');
-          const usedPrice = getMockPrice(overlay.id || 'mock', 'used');
+          {/* Active Card HUD (Floats Directly Inside / Over The Card) */}
+          {isLocked && activeCard && (
+            <div className="absolute inset-0 flex flex-col justify-between p-4 pointer-events-auto">
+              
+              <div className="flex justify-between items-center">
+                <div className="bg-emerald-500/90 backdrop-blur-md px-2.5 py-1 rounded-full text-[11px] font-black text-white flex items-center gap-1.5 shadow-md">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                  <span>IDENTIFIED</span>
+                </div>
+                <div className="bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-[11px] font-bold text-gray-200 border border-white/10">
+                  {Math.round(activeCard.confidence * 100)}% Match
+                </div>
+              </div>
 
-          return (
-            <div
-              key={overlay.id}
-              className="absolute border-2 border-emerald-400 bg-emerald-500/10 pointer-events-auto shadow-[0_0_15px_rgba(52,211,153,0.4)] flex flex-col items-center justify-center"
-              style={{
-                top: `${renderBox.top}%`,
-                left: `${renderBox.left}%`,
-                width: `${renderBox.width}%`,
-                height: `${renderBox.height}%`,
-              }}
-            >
-              {/* Floating Price Direct Overlay */}
-              <div className="flex flex-col items-center justify-center drop-shadow-2xl">
-                <span className="text-3xl font-black text-white" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.8)' }}>
-                  ${newPrice.toFixed(2)}
-                </span>
+              {/* Center Floating Price Tag (The Signature Brickify Hover Effect) */}
+              <div className="flex flex-col items-center justify-center my-auto drop-shadow-2xl">
                 
-                {/* Condition Pills */}
-                <div className="flex gap-2 mt-2">
-                  <div className="bg-black/70 backdrop-blur-md rounded-full px-2 py-0.5 border border-white/20 text-[10px] font-bold text-white shadow-lg">
-                    Sealed: ${newPrice.toFixed(2)}
+                <div className="w-24 h-24 bg-white rounded-2xl p-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.5)] border-2 border-emerald-400 mb-3 flex items-center justify-center overflow-hidden">
+                  <img 
+                    src={activeCard.imageUrl} 
+                    alt={activeCard.name}
+                    className="w-full h-full object-contain filter drop-shadow-sm"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://images.brickset.com/sets/images/75192-1.jpg';
+                    }}
+                  />
+                </div>
+
+                <div className="text-4xl font-black text-white tracking-tight drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]">
+                  ${activeCard.sealedPrice.toFixed(2)}
+                </div>
+                <p className="text-xs font-black text-emerald-400 uppercase tracking-widest mt-0.5 drop-shadow">
+                  CURRENT MARKET VALUE
+                </p>
+
+                <div className="flex items-center gap-2 mt-3">
+                  <div className="bg-black/75 backdrop-blur-md border border-emerald-500/40 rounded-full px-3 py-1 text-xs font-bold text-emerald-300 shadow-lg flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    <span>Sealed: ${activeCard.sealedPrice.toFixed(2)}</span>
                   </div>
-                  <div className="bg-black/70 backdrop-blur-md rounded-full px-2 py-0.5 border border-white/20 text-[10px] font-bold text-zinc-300 shadow-lg">
-                    Used: ${usedPrice.toFixed(2)}
+                  <div className="bg-black/75 backdrop-blur-md border border-white/15 rounded-full px-3 py-1 text-xs font-bold text-gray-300 shadow-lg">
+                    <span>Used: ${activeCard.usedPrice.toFixed(2)}</span>
                   </div>
                 </div>
+              </div>
+
+              {/* Bottom Card Title */}
+              <div className="bg-black/70 backdrop-blur-md rounded-xl p-2.5 border border-white/10 text-center">
+                <p className="text-white font-black text-sm truncate">{activeCard.name}</p>
+                <p className="text-gray-400 text-[11px] font-semibold">#{activeCard.setNum.split('-')[0]} · {activeCard.theme}</p>
               </div>
             </div>
-          );
-        })}
+          )}
+
+          {!isLocked && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <div className="w-10 h-10 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin mb-3" />
+              <p className="text-white font-bold text-xs bg-black/60 px-3 py-1 rounded-full backdrop-blur-md">
+                Locking on card...
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Bottom Tray & CTA */}
-      <div className="absolute bottom-0 left-0 right-0 z-40 pb-[max(env(safe-area-inset-bottom),2rem)]">
+      {/* ─── 4. Quick Sample Switcher (Hover Simulation) ─── */}
+      <div className="absolute top-[13%] left-0 right-0 z-30 px-5 flex items-center justify-center pointer-events-auto">
+        <div className="bg-black/60 backdrop-blur-xl border border-white/15 rounded-full p-1 flex items-center gap-1 shadow-2xl overflow-x-auto max-w-[92vw]">
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider pl-2.5 pr-1 shrink-0">Hover Card:</span>
+          {SAMPLE_DETECTABLE_SETS.map((sample, idx) => (
+            <button
+              key={sample.setNum}
+              onClick={() => cycleCard(idx)}
+              className={`px-3 py-1 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                hoveredIndex === idx && isLocked
+                  ? 'bg-emerald-500 text-white shadow-md'
+                  : 'bg-white/10 text-gray-300 hover:bg-white/20'
+              }`}
+            >
+              #{sample.setNum.split('-')[0]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── 5. Bottom Scanned Items Tray & CTA ─── */}
+      <div className="absolute bottom-0 left-0 right-0 z-40 pb-[max(env(safe-area-inset-bottom),2rem)] bg-gradient-to-t from-black via-black/90 to-transparent pt-6">
         
-        {/* Horizontal scroll of detected item cards */}
-        {overlays.length > 0 && (
-          <div className="flex overflow-x-auto px-4 pb-4 gap-3 snap-x no-scrollbar">
-            {overlays.map((ov, idx) => (
-              <div key={idx} className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl p-3 flex gap-3 min-w-[260px] snap-center shrink-0 items-center">
-                <div className="w-14 h-14 bg-white/5 rounded-xl border border-white/10 flex items-center justify-center shrink-0">
-                  <span className="text-2xl">🧱</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-white font-bold text-sm truncate">{ov.displayText || 'LEGO Set'}</h4>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded text-[10px] font-bold">Sealed</span>
-                    <span className="text-white font-bold text-xs">${getMockPrice(ov.id || 'mock', 'new').toFixed(2)}</span>
+        {scannedTray.length > 0 && (
+          <div className="px-5 mb-3.5">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-extrabold text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
+                <Layers className="w-3.5 h-3.5 text-emerald-400" />
+                Scanned Items ({scannedTray.length})
+              </span>
+              <span className="text-xs font-bold text-emerald-400">${totalValue.toFixed(2)} total</span>
+            </div>
+
+            <div className="flex overflow-x-auto pb-1 gap-2.5 snap-x no-scrollbar">
+              {scannedTray.map((card) => (
+                <div 
+                  key={card.id} 
+                  className="bg-white/10 backdrop-blur-xl border border-white/15 rounded-2xl p-2.5 flex items-center gap-3 min-w-[240px] snap-center shrink-0 shadow-lg"
+                >
+                  <div className="w-12 h-12 bg-white rounded-xl p-1 flex items-center justify-center shrink-0 overflow-hidden">
+                    <img 
+                      src={card.imageUrl} 
+                      alt={card.name} 
+                      className="w-full h-full object-contain"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://images.brickset.com/sets/images/75192-1.jpg';
+                      }}
+                    />
                   </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-white font-bold text-xs truncate leading-tight">{card.name}</h4>
+                    <p className="text-[10px] text-gray-400">#{card.setNum.split('-')[0]}</p>
+                    <p className="text-emerald-400 font-extrabold text-xs mt-0.5">${card.sealedPrice.toFixed(2)}</p>
+                  </div>
+                  <button 
+                    onClick={(e) => removeFromTray(card.id, e)}
+                    className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-gray-400 hover:text-white shrink-0 active:scale-90 transition-transform cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
                 </div>
-                <button className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-                  <X className="w-4 h-4 text-zinc-400" />
-                </button>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
 
-        {/* Big Green CTA */}
-        <div className="px-4">
+        <div className="px-5">
           <button 
-            onClick={saveToCollection}
-            disabled={overlays.length === 0}
-            className={`w-full py-4 rounded-2xl font-bold text-lg shadow-[0_8px_20px_rgba(16,185,129,0.3)] flex items-center justify-center transition-all ${
-              overlays.length > 0 
-                ? 'bg-emerald-500 text-white active:scale-95' 
-                : 'bg-zinc-800 text-zinc-500 opacity-80'
+            onClick={handleSaveToCollection}
+            disabled={scannedTray.length === 0}
+            className={`w-full py-4 rounded-2xl font-black text-base shadow-[0_8px_25px_rgba(16,185,129,0.4)] flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              scannedTray.length > 0 
+                ? 'bg-emerald-500 hover:bg-emerald-400 text-white active:scale-[0.98]' 
+                : 'bg-zinc-800 text-zinc-500 opacity-60 pointer-events-none'
             }`}
           >
-            {overlays.length > 0 ? `Add ${overlays.length} to Collection` : 'Searching for LEGO...'}
+            {scannedTray.length > 0 ? (
+              <>
+                <Plus className="w-5 h-5" />
+                <span>Add {scannedTray.length} {scannedTray.length === 1 ? 'Set' : 'Sets'} to Collection (${totalValue.toFixed(2)})</span>
+              </>
+            ) : (
+              <span>Point Camera at LEGO Box or Card</span>
+            )}
           </button>
         </div>
       </div>

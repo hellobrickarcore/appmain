@@ -351,13 +351,19 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                     {/* Image */}
                     <div className="w-full h-[90px] bg-[#F5F5F7] rounded-[14px] flex items-center justify-center overflow-hidden mb-3">
                       <img
-                        src={`https://cdn.rebrickable.com/media/sets/${item.set.setNum}.jpg`}
+                        src={`https://images.brickset.com/sets/images/${item.set.setNum}.jpg`}
                         alt={item.set.name}
                         className="w-full h-full object-contain p-2"
                         onError={e => {
                           const el = e.currentTarget;
-                          if (!el.dataset.fallback) { el.dataset.fallback = '1'; el.src = `https://cdn.rebrickable.com/media/sets/${item.set.setNum}-1.jpg`; }
-                          else if (el.dataset.fallback === '1') { el.dataset.fallback = '2'; el.src = item.set.imageUrl || ''; }
+                          if (!el.dataset.fallback) { 
+                            el.dataset.fallback = '1'; 
+                            el.src = `https://cdn.rebrickable.com/media/sets/${item.set.setNum}.jpg`; 
+                          }
+                          else if (el.dataset.fallback === '1') { 
+                            el.dataset.fallback = '2'; 
+                            el.src = item.set.imageUrl || ''; 
+                          }
                         }}
                       />
                     </div>
@@ -404,9 +410,16 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                   >
                     <div className="w-12 h-12 bg-[#F5F5F7] rounded-xl overflow-hidden shrink-0 p-1">
                       <img
-                        src={`https://cdn.rebrickable.com/media/sets/${item.set.setNum}-1.jpg`}
+                        src={`https://images.brickset.com/sets/images/${item.set.setNum}.jpg`}
                         alt={item.set.name}
                         className="w-full h-full object-contain"
+                        onError={e => {
+                          const el = e.currentTarget;
+                          if (!el.dataset.fallback) {
+                            el.dataset.fallback = '1';
+                            el.src = `https://cdn.rebrickable.com/media/sets/${item.set.setNum}.jpg`;
+                          }
+                        }}
                       />
                     </div>
                     <div className="flex-1 min-w-0">

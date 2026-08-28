@@ -32,11 +32,11 @@ import { onAuthStateChange, supabase } from './services/supabaseService';
 
 const App: React.FC = () => {
   const getInitialScreen = (): Screen => {
-    console.log('[App] Opening Collector Dashboard directly...');
     const preview = localStorage.getItem('hellobrick_preview_screen');
-    if (preview && Object.values(Screen).includes(preview as any)) {
-      return preview as Screen;
-    }
+    if (preview === 'browse') return Screen.BROWSE;
+    if (preview === 'ideas') return Screen.IDEAS;
+    if (preview === 'collection') return Screen.COLLECTION;
+    if (preview === 'scanner') return Screen.SCANNER;
     return Screen.HOME;
   };
 

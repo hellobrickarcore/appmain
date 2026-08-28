@@ -14,28 +14,28 @@ interface BuildIdea {
   difficulty: Difficulty;
   pieceCount: number;
   matchPercentage: number;
-  thumbnailColor: string;
+  imageUrl: string;
   isSaved: boolean;
   theme: string;
 }
 
 const MOCK_IDEAS: BuildIdea[] = [
-  { id: '1', name: 'Mini Space Station', difficulty: 'Medium', pieceCount: 145, matchPercentage: 87, thumbnailColor: 'from-blue-500 to-purple-600', isSaved: false, theme: 'Space' },
-  { id: '2', name: 'Micro Castle', difficulty: 'Hard', pieceCount: 320, matchPercentage: 65, thumbnailColor: 'from-slate-400 to-slate-600', isSaved: true, theme: 'Castle' },
-  { id: '3', name: 'Pocket Robot', difficulty: 'Easy', pieceCount: 45, matchPercentage: 98, thumbnailColor: 'from-cyan-400 to-blue-500', isSaved: false, theme: 'Sci-Fi' },
-  { id: '4', name: 'Speedster Car', difficulty: 'Medium', pieceCount: 110, matchPercentage: 78, thumbnailColor: 'from-red-500 to-orange-500', isSaved: false, theme: 'City' },
-  { id: '5', name: 'Bonsai Tree', difficulty: 'Hard', pieceCount: 450, matchPercentage: 42, thumbnailColor: 'from-emerald-400 to-green-600', isSaved: true, theme: 'Botanical' },
-  { id: '6', name: 'Pirate Raft', difficulty: 'Easy', pieceCount: 65, matchPercentage: 92, thumbnailColor: 'from-amber-700 to-orange-900', isSaved: false, theme: 'Pirates' },
-  { id: '7', name: 'Cyberpunk Speeder', difficulty: 'Medium', pieceCount: 180, matchPercentage: 71, thumbnailColor: 'from-fuchsia-500 to-pink-600', isSaved: false, theme: 'Sci-Fi' },
-  { id: '8', name: 'Dragon Whelp', difficulty: 'Hard', pieceCount: 290, matchPercentage: 55, thumbnailColor: 'from-red-600 to-rose-800', isSaved: false, theme: 'Fantasy' },
-  { id: '9', name: 'Lunar Rover', difficulty: 'Medium', pieceCount: 130, matchPercentage: 84, thumbnailColor: 'from-gray-300 to-gray-500', isSaved: false, theme: 'Space' },
-  { id: '10', name: 'Ice Cream Stand', difficulty: 'Easy', pieceCount: 85, matchPercentage: 95, thumbnailColor: 'from-pink-300 to-rose-400', isSaved: false, theme: 'City' },
+  { id: '1', name: 'Rocket Launch Center', difficulty: 'Medium', pieceCount: 145, matchPercentage: 87, imageUrl: 'https://images.brickset.com/sets/images/60351-1.jpg', isSaved: false, theme: 'Space' },
+  { id: '2', name: 'Micro Castle', difficulty: 'Hard', pieceCount: 320, matchPercentage: 65, imageUrl: 'https://images.brickset.com/sets/images/10305-1.jpg', isSaved: true, theme: 'Castle' },
+  { id: '3', name: 'Pocket Robot', difficulty: 'Easy', pieceCount: 45, matchPercentage: 98, imageUrl: 'https://images.brickset.com/sets/images/31115-1.jpg', isSaved: false, theme: 'Sci-Fi' },
+  { id: '4', name: 'Speedster Car', difficulty: 'Medium', pieceCount: 110, matchPercentage: 78, imageUrl: 'https://images.brickset.com/sets/images/76917-1.jpg', isSaved: false, theme: 'City' },
+  { id: '5', name: 'Bonsai Tree', difficulty: 'Hard', pieceCount: 450, matchPercentage: 42, imageUrl: 'https://images.brickset.com/sets/images/10281-1.jpg', isSaved: true, theme: 'Botanical' },
+  { id: '6', name: 'Pirate Raft', difficulty: 'Easy', pieceCount: 65, matchPercentage: 92, imageUrl: 'https://images.brickset.com/sets/images/21322-1.jpg', isSaved: false, theme: 'Pirates' },
+  { id: '7', name: 'Cyberpunk Speeder', difficulty: 'Medium', pieceCount: 180, matchPercentage: 71, imageUrl: 'https://images.brickset.com/sets/images/75300-1.jpg', isSaved: false, theme: 'Sci-Fi' },
+  { id: '8', name: 'Dragon Whelp', difficulty: 'Hard', pieceCount: 290, matchPercentage: 55, imageUrl: 'https://images.brickset.com/sets/images/21348-1.jpg', isSaved: false, theme: 'Fantasy' },
+  { id: '9', name: 'Lunar Rover', difficulty: 'Medium', pieceCount: 130, matchPercentage: 84, imageUrl: 'https://images.brickset.com/sets/images/60348-1.jpg', isSaved: false, theme: 'Space' },
+  { id: '10', name: 'Ice Cream Stand', difficulty: 'Easy', pieceCount: 85, matchPercentage: 95, imageUrl: 'https://images.brickset.com/sets/images/60314-1.jpg', isSaved: false, theme: 'City' },
 ];
 
 const DIFFICULTY_COLORS = {
-  Easy: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-  Medium: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-  Hard: 'bg-rose-500/20 text-rose-400 border-rose-500/30',
+  Easy: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+  Medium: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
+  Hard: 'bg-rose-500/10 text-rose-600 border-rose-500/20',
 };
 
 type FilterType = 'All' | Difficulty;
@@ -47,13 +47,10 @@ export const IdeasScreen: React.FC<IdeasScreenProps> = ({ onNavigate }) => {
 
   const handleGenerate = () => {
     setIsGenerating(true);
-    // Simulate generation
     setTimeout(() => {
       setIsGenerating(false);
-      // In a real app, we would fetch new ideas here.
-      // For now, let's just shuffle the existing ones to simulate change.
       setIdeas(prev => [...prev].sort(() => Math.random() - 0.5));
-    }, 2000);
+    }, 1500);
   };
 
   const toggleSave = (id: string) => {
@@ -66,15 +63,22 @@ export const IdeasScreen: React.FC<IdeasScreenProps> = ({ onNavigate }) => {
   const savedIdeas = ideas.filter(idea => idea.isSaved);
 
   const IdeaCard = ({ idea, compact = false }: { idea: BuildIdea, compact?: boolean }) => (
-    <div className={`relative group rounded-2xl overflow-hidden bg-white border border-gray-200 transition-all duration-300 hover:border-purple-500/50 hover:shadow-[0_0_20px_rgba(168,85,247,0.15)] ${compact ? 'flex flex-row' : 'flex flex-col'}`}>
+    <div className={`relative group rounded-2xl overflow-hidden bg-white border border-gray-200/80 shadow-sm transition-all duration-300 hover:shadow-md ${compact ? 'flex flex-row' : 'flex flex-col'}`}>
       
-      {/* Thumbnail */}
-      <div className={`${compact ? 'w-24 h-24 shrink-0' : 'h-32 w-full'} bg-gradient-to-br ${idea.thumbnailColor} relative flex items-center justify-center`}>
-        <Sparkles className="w-8 h-8 text-gray-900/50 opacity-50 mix-blend-overlay" />
+      {/* Real LEGO Model Thumbnail */}
+      <div className={`${compact ? 'w-24 h-24 shrink-0' : 'h-36 w-full'} bg-gray-50 relative flex items-center justify-center p-2 border-b border-gray-100 overflow-hidden`}>
+        <img 
+          src={idea.imageUrl} 
+          alt={idea.name} 
+          className="max-h-full max-w-full object-contain filter drop-shadow-sm group-hover:scale-105 transition-transform duration-300"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = 'https://images.brickset.com/sets/images/10281-1.jpg';
+          }}
+        />
         {!compact && (
-          <div className="absolute top-2 right-2 bg-[#F5F5F7]/60 backdrop-blur-md rounded-full px-2 py-1 flex items-center space-x-1 border border-gray-200">
-            <Zap className="w-3 h-3 text-emerald-400" />
-            <span className="text-xs font-medium text-emerald-400">{idea.matchPercentage}% Match</span>
+          <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-md rounded-full px-2 py-0.5 flex items-center space-x-1 border border-gray-200/60 shadow-sm">
+            <Zap className="w-3 h-3 text-emerald-600" />
+            <span className="text-[11px] font-bold text-emerald-600">{idea.matchPercentage}% Match</span>
           </div>
         )}
       </div>

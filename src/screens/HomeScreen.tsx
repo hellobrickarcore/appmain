@@ -53,10 +53,10 @@ const RETIRING_SOON = [
 
 // Curated market top movers shown in collector view
 const POPULAR_MARKET_MOVERS = [
-  { setNum: '75192-1', name: 'Millennium Falcon UCS', theme: 'Star Wars', retailPrice: 849.99, marketValue: 940.00, gain: '+18.4%', imageUrl: 'https://cdn.rebrickable.com/media/sets/75192-1/1.jpg' },
-  { setNum: '10316-1', name: 'Rivendell', theme: 'Icons', retailPrice: 499.99, marketValue: 580.00, gain: '+24.1%', imageUrl: 'https://cdn.rebrickable.com/media/sets/10316-1/1.jpg' },
-  { setNum: '21325-1', name: 'Medieval Blacksmith', theme: 'Ideas', retailPrice: 179.99, marketValue: 310.00, gain: '+72.2%', imageUrl: 'https://cdn.rebrickable.com/media/sets/21325-1/1.jpg' },
-  { setNum: '10294-1', name: 'Titanic', theme: 'Icons', retailPrice: 679.99, marketValue: 790.00, gain: '+16.2%', imageUrl: 'https://cdn.rebrickable.com/media/sets/10294-1/1.jpg' },
+  { setNum: '75192-1', name: 'Millennium Falcon UCS', theme: 'Star Wars', retailPrice: 849.99, marketValue: 940.00, gain: '+18.4%', imageUrl: 'https://images.brickset.com/sets/images/75192-1.jpg' },
+  { setNum: '10316-1', name: 'Rivendell', theme: 'Icons', retailPrice: 499.99, marketValue: 580.00, gain: '+24.1%', imageUrl: 'https://images.brickset.com/sets/images/10316-1.jpg' },
+  { setNum: '21325-1', name: 'Medieval Blacksmith', theme: 'Ideas', retailPrice: 179.99, marketValue: 310.00, gain: '+72.2%', imageUrl: 'https://images.brickset.com/sets/images/21325-1.jpg' },
+  { setNum: '10294-1', name: 'Titanic', theme: 'Icons', retailPrice: 679.99, marketValue: 790.00, gain: '+16.2%', imageUrl: 'https://images.brickset.com/sets/images/10294-1.jpg' },
 ];
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {

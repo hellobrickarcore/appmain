@@ -94,8 +94,19 @@ class AppStateService {
 
   // ── BOOT ──────────────────────────────────────────
   private boot() {
-    console.log('[AppState] Booting directly to Collector Platform HOME...');
-    this.transition('home');
+    const preview = typeof window !== 'undefined' ? localStorage.getItem('hellobrick_preview_screen') : null;
+    console.log('[AppState] Booting directly, preview =', preview);
+    if (preview === 'scanner') {
+      this.transition('scanner');
+    } else if (preview === 'browse') {
+      this.transition('home', { screen: Screen.BROWSE });
+    } else if (preview === 'ideas') {
+      this.transition('home', { screen: Screen.IDEAS });
+    } else if (preview === 'collection') {
+      this.transition('home', { screen: Screen.COLLECTION });
+    } else {
+      this.transition('home');
+    }
   }
 
   // ── STATE TRANSITIONS ─────────────────────────────

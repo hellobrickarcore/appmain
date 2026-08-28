@@ -255,17 +255,22 @@ export const BrowseScreen: React.FC<BrowseScreenProps> = ({ onNavigate }) => {
                 
                 <div className="flex h-32 relative">
                   {/* Image Area */}
-                  <div className="w-1/3 bg-[#F5F5F7] p-2 flex items-center justify-center relative border-r border-gray-200/50">
+                  <div className="w-1/3 bg-white p-2.5 flex items-center justify-center relative border-r border-gray-100">
                     <img 
-                      src={`https://img.bricklink.com/ItemImage/SN/0/${set.setNum}.png`}
+                      src={`https://images.brickset.com/sets/images/${set.setNum}.jpg`}
                       alt={set.name}
-                      className="max-w-full max-h-full object-contain filter drop-shadow-lg group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                      className="max-w-full max-h-full object-contain filter drop-shadow-sm group-hover:scale-105 transition-transform duration-300"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150/0f172a/334155?text=No+Image';
+                        const target = e.target as HTMLImageElement;
+                        if (!target.dataset.triedFallback) {
+                          target.dataset.triedFallback = 'true';
+                          target.src = `https://cdn.rebrickable.com/media/sets/${set.setNum}.jpg`;
+                        }
                       }}
                     />
                     {set.retired && (
-                      <div className="absolute top-2 left-2 bg-red-500/90 text-gray-900 text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm">
+                      <div className="absolute top-2 left-2 bg-red-500 text-white text-[9px] font-black tracking-wider px-1.5 py-0.5 rounded shadow-sm">
                         RETIRED
                       </div>
                     )}
