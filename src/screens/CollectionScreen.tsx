@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Plus, X, TrendingUp, Trash2, ChevronRight, Eye, EyeOff, ArrowUpRight, Search, Package, BarChart2, Filter, Heart } from 'lucide-react';
 import { Screen, CollectionItem } from '../types';
 import { mockSets, mockValuations, mockMinifigs } from '../lib/mock-data';
+import { legoDatabase } from '../lib/legoDatabase';
 import { valuationService } from '../services/valuationService';
 import { Logo } from '../components/Logo';
 import confetti from 'canvas-confetti';
@@ -80,17 +81,41 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
   }, []);
 
   const hydratedCollection = useMemo(() => {
-    if (!sets.length && !collection.length) return [];
+    if (!collection.length) return [];
     return collection.map((item) => {
-      const set = sets.find(s => s.setNum === item.setNum) ||
-        mockSets.find(s => s.setNum === item.setNum) ||
-        mockMinifigs.find(f => f.figNum === item.setNum) ||
-        { name: `Set ${item.setNum}`, setNum: item.setNum, retailPrice: item.purchasePrice || 49.99, imageUrl: 'https://cdn.rebrickable.com/media/sets/10305-1.jpg', theme: 'Custom' };
-      const val = valuationsMap.get(item.setNum) || {
-        sealedValue: set.retailPrice || 149.99,
-        usedValue: (set.retailPrice || 149.99) * 0.7,
-        sealedChange30d: 4.2, usedChange30d: 3.1,
+      const dbItem = legoDatabase.findById(item.setNum);
+      const set = dbItem ? {
+        id: dbItem.id,
+        name: dbItem.name,
+        setNum: dbItem.code,
+        retailPrice: dbItem.retailPrice,
+        imageUrl: dbItem.imageUrl,
+        theme: dbItem.theme,
+        year: dbItem.year,
+        isRetired: dbItem.isRetired
+      } : {
+        id: `custom-${item.setNum}`,
+        name: `Collectible #${item.setNum}`,
+        setNum: item.setNum,
+        retailPrice: item.purchasePrice || 49.99,
+        imageUrl: `https://images.brickset.com/sets/images/${item.setNum.includes('-') ? item.setNum : item.setNum + '-1'}.jpg`,
+        theme: 'Custom',
+        year: 2023,
+        isRetired: false
       };
+
+      const val = dbItem ? {
+        sealedValue: dbItem.sealedPrice,
+        usedValue: dbItem.usedPrice,
+        sealedChange30d: dbItem.growth30D,
+        usedChange30d: dbItem.growth30D * 0.8
+      } : {
+        sealedValue: (set.retailPrice || 99) * 1.2,
+        usedValue: (set.retailPrice || 99) * 0.8,
+        sealedChange30d: 3.5,
+        usedChange30d: 2.1
+      };
+
       const quantity = (item as any).quantity ?? 1;
       const currentValue = (item.condition === 'sealed' ? val.sealedValue : val.usedValue) * quantity;
       const purchaseCost = (item.purchasePrice || (set.retailPrice || 100) * 0.8) * quantity;
@@ -98,7 +123,7 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
       const returnPct = purchaseCost > 0 ? (returnVal / purchaseCost) * 100 : 0;
       return { ...item, set, val, currentValue, purchaseCost, returnVal, returnPct };
     });
-  }, [collection, sets, valuationsMap]);
+  }, [collection]);
 
   const filteredCollection = useMemo(() =>
     search.trim()

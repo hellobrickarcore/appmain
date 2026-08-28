@@ -1,149 +1,181 @@
 import React, { useState, useMemo } from 'react';
-import { Screen } from '../types';
-import { Search, Filter, Plus, Heart, ChevronDown, Check, Star } from 'lucide-react';
+import { Screen, CollectionItem, WishlistItem } from '../types';
+import { Search, Plus, Heart, ChevronDown, Check, Box, Smile, Sparkles, CreditCard, ArrowUpRight } from 'lucide-react';
+import { legoDatabase, AnyCollectible, CollectibleCategory } from '../lib/legoDatabase';
 
 interface BrowseScreenProps {
   onNavigate: (screen: Screen, params?: any) => void;
 }
 
-interface LegoSet {
-  id: string;
-  setNum: string;
-  name: string;
-  theme: string;
-  pieces: number;
-  marketValue: number;
-  year: number;
-  retired: boolean;
-  minifigures?: number;
-}
-
-const THEMES = ['All', 'Star Wars', 'City', 'Technic', 'Creator', 'Harry Potter', 'Icons', 'Marvel', 'Ideas', 'Architecture'];
-const SORT_OPTIONS = [
-  { label: 'Recently Released', value: 'recent' },
-  { label: 'Price: High to Low', value: 'price_desc' },
-  { label: 'Price: Low to High', value: 'price_asc' },
-  { label: 'Alphabetical', value: 'alpha' },
+const CATEGORIES: { id: CollectibleCategory | 'all'; label: string; icon: any }[] = [
+  { id: 'all', label: 'All Catalog', icon: Sparkles },
+  { id: 'set', label: 'Sets & Boxes', icon: Box },
+  { id: 'minifigure', label: 'Minifigures', icon: Smile },
+  { id: 'moc', label: 'MOC Builds', icon: Sparkles },
+  { id: 'card', label: 'Cards & Promo', icon: CreditCard },
 ];
-const YEARS = ['All', '2024', '2023', '2022', '2021', '2020', '2019'];
 
-const MOCK_DATA: LegoSet[] = [
-  { id: '1', setNum: '75192-1', name: 'Millennium Falcon', theme: 'Star Wars', pieces: 7541, marketValue: 849.99, year: 2017, retired: false },
-  { id: '2', setNum: '10316-1', name: 'The Lord of the Rings: Rivendell', theme: 'Icons', pieces: 6167, marketValue: 499.99, year: 2023, retired: false },
-  { id: '3', setNum: '75331-1', name: 'The Razor Crest', theme: 'Star Wars', pieces: 6187, marketValue: 599.99, year: 2022, retired: false },
-  { id: '4', setNum: '10305-1', name: 'Lion Knights\' Castle', theme: 'Icons', pieces: 4514, marketValue: 399.99, year: 2022, retired: false },
-  { id: '5', setNum: '42115-1', name: 'Lamborghini Sián FKP 37', theme: 'Technic', pieces: 3696, marketValue: 449.99, year: 2020, retired: false },
-  { id: '6', setNum: '71043-1', name: 'Hogwarts Castle', theme: 'Harry Potter', pieces: 6020, marketValue: 469.99, year: 2018, retired: false },
-  { id: '7', setNum: '76178-1', name: 'Daily Bugle', theme: 'Marvel', pieces: 3772, marketValue: 349.99, year: 2021, retired: false },
-  { id: '8', setNum: '21330-1', name: 'Home Alone', theme: 'Ideas', pieces: 3955, marketValue: 299.99, year: 2021, retired: false },
-  { id: '9', setNum: '21056-1', name: 'Taj Mahal', theme: 'Architecture', pieces: 2022, marketValue: 119.99, year: 2021, retired: true },
-  { id: '10', setNum: '60337-1', name: 'Express Passenger Train', theme: 'City', pieces: 764, marketValue: 189.99, year: 2022, retired: false },
-  { id: '11', setNum: '75252-1', name: 'Imperial Star Destroyer', theme: 'Star Wars', pieces: 4784, marketValue: 950.00, year: 2019, retired: true },
-  { id: '12', setNum: '42143-1', name: 'Ferrari Daytona SP3', theme: 'Technic', pieces: 3778, marketValue: 449.99, year: 2022, retired: false },
-  { id: '13', setNum: '31120-1', name: 'Medieval Castle', theme: 'Creator', pieces: 1426, marketValue: 99.99, year: 2021, retired: false },
-  { id: '14', setNum: '10294-1', name: 'Titanic', theme: 'Icons', pieces: 9090, marketValue: 679.99, year: 2021, retired: false },
-  { id: '15', setNum: '21333-1', name: 'Vincent van Gogh - The Starry Night', theme: 'Ideas', pieces: 2316, marketValue: 169.99, year: 2022, retired: false },
-  { id: '16', setNum: '76210-1', name: 'Hulkbuster', theme: 'Marvel', pieces: 4049, marketValue: 549.99, year: 2022, retired: false },
-  { id: '17', setNum: '75313-1', name: 'AT-AT', theme: 'Star Wars', pieces: 6785, marketValue: 849.99, year: 2021, retired: false },
-  { id: '18', setNum: '21058-1', name: 'Great Pyramid of Giza', theme: 'Architecture', pieces: 1476, marketValue: 129.99, year: 2022, retired: false },
-  { id: '19', setNum: '76405-1', name: 'Hogwarts Express - Collectors\' Edition', theme: 'Harry Potter', pieces: 5129, marketValue: 499.99, year: 2022, retired: false },
-  { id: '20', setNum: '60324-1', name: 'Mobile Crane', theme: 'City', pieces: 340, marketValue: 39.99, year: 2022, retired: false },
+const THEMES = ['All', 'Star Wars', 'Icons', 'Marvel', 'Ideas', 'Harry Potter', 'Technic', 'Creator Expert', 'Ninjago', 'Architecture', 'Botanical Collection', 'Space'];
+
+const SORT_OPTIONS = [
+  { label: 'Highest Value', value: 'price_desc' },
+  { label: 'Top 1Y Growth', value: 'growth_desc' },
+  { label: 'Lowest Value', value: 'price_asc' },
+  { label: 'Release Year (Newest)', value: 'recent' },
+  { label: 'Alphabetical', value: 'alpha' },
 ];
 
 export const BrowseScreen: React.FC<BrowseScreenProps> = ({ onNavigate }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<CollectibleCategory | 'all'>('all');
   const [selectedTheme, setSelectedTheme] = useState('All');
-  const [selectedYear, setSelectedYear] = useState('All');
-  const [sortBy, setSortBy] = useState('recent');
+  const [sortBy, setSortBy] = useState('price_desc');
   const [isSortOpen, setIsSortOpen] = useState(false);
-  const [isYearOpen, setIsYearOpen] = useState(false);
+  const [addedMap, setAddedMap] = useState<Record<string, boolean>>({});
+  const [wishlistMap, setWishlistMap] = useState<Record<string, boolean>>({});
 
-  // Simulated added state for demo purposes
-  const [addedToCollection, setAddedToCollection] = useState<Record<string, boolean>>({});
-  const [addedToWishlist, setAddedToWishlist] = useState<Record<string, boolean>>({});
+  const allItems = useMemo(() => legoDatabase.getAll(), []);
 
-  const toggleCollection = (id: string) => {
-    setAddedToCollection(prev => ({ ...prev, [id]: !prev[id] }));
-  };
+  const filteredItems = useMemo(() => {
+    let result = legoDatabase.search(searchQuery, selectedCategory);
 
-  const toggleWishlist = (id: string) => {
-    setAddedToWishlist(prev => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const filteredAndSortedSets = useMemo(() => {
-    let result = [...MOCK_DATA];
-
-    // Filter by search
-    if (searchQuery) {
-      const lowerQuery = searchQuery.toLowerCase();
-      result = result.filter(set => 
-        set.name.toLowerCase().includes(lowerQuery) || 
-        set.setNum.toLowerCase().includes(lowerQuery) ||
-        set.theme.toLowerCase().includes(lowerQuery)
-      );
-    }
-
-    // Filter by theme
     if (selectedTheme !== 'All') {
-      result = result.filter(set => set.theme === selectedTheme);
+      result = result.filter(item => item.theme.toLowerCase() === selectedTheme.toLowerCase());
     }
 
-    // Filter by year
-    if (selectedYear !== 'All') {
-      result = result.filter(set => set.year === parseInt(selectedYear));
-    }
-
-    // Sort
     result.sort((a, b) => {
       switch (sortBy) {
         case 'price_desc':
-          return b.marketValue - a.marketValue;
+          return b.sealedPrice - a.sealedPrice;
+        case 'growth_desc':
+          return b.growth1Y - a.growth1Y;
         case 'price_asc':
-          return a.marketValue - b.marketValue;
+          return a.sealedPrice - b.sealedPrice;
+        case 'recent':
+          return b.year - a.year;
         case 'alpha':
           return a.name.localeCompare(b.name);
-        case 'recent':
         default:
-          return b.year - a.year;
+          return 0;
       }
     });
 
     return result;
-  }, [searchQuery, selectedTheme, selectedYear, sortBy]);
+  }, [searchQuery, selectedCategory, selectedTheme, sortBy]);
+
+  const handleAddToCollection = (item: AnyCollectible, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const stored = localStorage.getItem('hellobrick_collection_sets');
+      const current: CollectionItem[] = stored ? JSON.parse(stored) : [];
+
+      current.push({
+        id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+        userId: 'user-1',
+        setNum: item.code,
+        condition: 'sealed',
+        quantity: 1,
+        purchasePrice: item.sealedPrice,
+        purchaseDate: new Date().toISOString().split('T')[0],
+        notes: `Added from Catalog`,
+        addedAt: new Date().toISOString(),
+        itemType: item.category === 'minifigure' ? 'minifig' : (item.category === 'card' ? 'brick' : 'set')
+      });
+
+      localStorage.setItem('hellobrick_collection_sets', JSON.stringify(current));
+      window.dispatchEvent(new CustomEvent('hellobrick:collection-updated'));
+      setAddedMap(prev => ({ ...prev, [item.code]: true }));
+    } catch (err) {}
+  };
+
+  const handleToggleWishlist = (item: AnyCollectible, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const stored = localStorage.getItem('hellobrick_wishlist_sets');
+      let current: WishlistItem[] = stored ? JSON.parse(stored) : [];
+
+      if (wishlistMap[item.code]) {
+        current = current.filter(w => w.setNum !== item.code);
+        setWishlistMap(prev => ({ ...prev, [item.code]: false }));
+      } else {
+        current.push({
+          id: `wish_${Date.now()}`,
+          userId: 'user-1',
+          setNum: item.code,
+          targetPrice: item.sealedPrice * 0.9,
+          alertEnabled: true,
+          addedAt: new Date().toISOString(),
+          itemType: item.category === 'minifigure' ? 'minifig' : 'set'
+        });
+        setWishlistMap(prev => ({ ...prev, [item.code]: true }));
+      }
+
+      localStorage.setItem('hellobrick_wishlist_sets', JSON.stringify(current));
+    } catch (err) {}
+  };
 
   return (
-    <div className="flex flex-col h-full w-full bg-[#F5F5F7] text-gray-900 pt-[max(env(safe-area-inset-top),2.5rem)] pb-[max(env(safe-area-inset-bottom),6rem)]">
+    <div className="flex flex-col h-full bg-[#F5F5F7] font-sans text-gray-900 overflow-hidden">
       
-      {/* Header & Search */}
-      <div className="px-5 pb-3 sticky top-0 z-20 bg-[#F5F5F7]/95 backdrop-blur-lg border-b border-gray-200/80">
-        <h1 className="text-2xl font-black tracking-tight text-gray-900 mb-3">LEGO Catalog</h1>
-        
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-            <Search className="h-4 w-4 text-gray-400" />
+      {/* ─── Header & Search ─── */}
+      <div className="px-5 pt-[max(env(safe-area-inset-top),2.5rem)] pb-3 bg-white border-b border-gray-200/80 shrink-0">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h1 className="text-2xl font-black text-gray-900 tracking-tight">LEGO Database</h1>
+            <p className="text-xs font-semibold text-gray-500">Live market values & price charts</p>
           </div>
+          <span className="bg-emerald-50 text-emerald-700 text-xs font-black px-2.5 py-1 rounded-full border border-emerald-200">
+            {filteredItems.length} items
+          </span>
+        </div>
+
+        {/* Search input */}
+        <div className="relative">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            className="block w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-sm"
-            placeholder="Search 20,000+ sets, minifigs, themes..."
+            placeholder="Search 20,000+ sets, minifigs, MOCs, codes..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-[#F5F5F7] text-gray-900 pl-10 pr-4 py-2.5 rounded-2xl text-sm font-medium border border-gray-200/80 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
           />
+        </div>
+
+        {/* Category Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar mt-3 pt-0.5">
+          {CATEGORIES.map((cat) => {
+            const Icon = cat.icon;
+            const isSelected = selectedCategory === cat.id;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap flex items-center gap-1.5 transition-all shrink-0 ${
+                  isSelected
+                    ? 'bg-emerald-500 text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span>{cat.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Filters (Theme, Year, Sort) */}
-      <div className="z-10 bg-[#F5F5F7]">
-        {/* Themes Horizontal Scroll */}
-        <div className="flex overflow-x-auto hide-scrollbar px-5 py-2.5 gap-2 border-b border-gray-200/60">
-          {THEMES.map(theme => (
+      {/* ─── Secondary Filter & Sort Bar ─── */}
+      <div className="px-5 py-2.5 bg-white/70 backdrop-blur-md border-b border-gray-200/60 flex items-center justify-between shrink-0">
+        {/* Theme Scroll */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar max-w-[65%]">
+          {THEMES.map((theme) => (
             <button
               key={theme}
               onClick={() => setSelectedTheme(theme)}
-              className={`whitespace-nowrap px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
-                selectedTheme === theme 
-                  ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/30' 
-                  : 'bg-white text-gray-600 border border-gray-200/80 hover:bg-gray-50'
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all shrink-0 ${
+                selectedTheme === theme
+                  ? 'bg-gray-900 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
               {theme}
@@ -151,178 +183,122 @@ export const BrowseScreen: React.FC<BrowseScreenProps> = ({ onNavigate }) => {
           ))}
         </div>
 
-        {/* Year and Sort Dropdowns */}
-        <div className="flex px-4 py-3 gap-3 border-b border-gray-200/50">
-          
-          {/* Sort Dropdown */}
-          <div className="relative flex-1">
-            <button 
-              onClick={() => { setIsSortOpen(!isSortOpen); setIsYearOpen(false); }}
-              className="w-full flex items-center justify-between px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-emerald-500" />
-                <span className="truncate">{SORT_OPTIONS.find(o => o.value === sortBy)?.label}</span>
-              </div>
-              <ChevronDown className="w-4 h-4 text-gray-400" />
-            </button>
-            
-            {isSortOpen && (
-              <div className="absolute top-full left-0 mt-1 w-full bg-gray-50 border border-gray-300 rounded-lg shadow-xl z-30 overflow-hidden">
-                {SORT_OPTIONS.map(option => (
-                  <button
-                    key={option.value}
-                    onClick={() => { setSortBy(option.value); setIsSortOpen(false); }}
-                    className="w-full text-left px-3 py-2 text-sm text-gray-800 hover:bg-slate-700 flex justify-between items-center"
-                  >
-                    {option.label}
-                    {sortBy === option.value && <Check className="w-4 h-4 text-emerald-500" />}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+        {/* Sort Dropdown Toggle */}
+        <div className="relative">
+          <button
+            onClick={() => setIsSortOpen(!isSortOpen)}
+            className="flex items-center gap-1.5 text-xs font-bold text-gray-700 bg-gray-100 px-2.5 py-1 rounded-lg hover:bg-gray-200 transition-colors"
+          >
+            <span>Sort</span>
+            <ChevronDown className="w-3 h-3 text-gray-500" />
+          </button>
 
-          {/* Year Dropdown */}
-          <div className="relative flex-1">
-            <button 
-              onClick={() => { setIsYearOpen(!isYearOpen); setIsSortOpen(false); }}
-              className="w-full flex items-center justify-between px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              <span className="truncate">Year: {selectedYear}</span>
-              <ChevronDown className="w-4 h-4 text-gray-400" />
-            </button>
-            
-            {isYearOpen && (
-              <div className="absolute top-full right-0 mt-1 w-full bg-gray-50 border border-gray-300 rounded-lg shadow-xl z-30 overflow-hidden max-h-48 overflow-y-auto">
-                {YEARS.map(year => (
-                  <button
-                    key={year}
-                    onClick={() => { setSelectedYear(year); setIsYearOpen(false); }}
-                    className="w-full text-left px-3 py-2 text-sm text-gray-800 hover:bg-slate-700 flex justify-between items-center"
-                  >
-                    {year}
-                    {selectedYear === year && <Check className="w-4 h-4 text-emerald-500" />}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          {isSortOpen && (
+            <div className="absolute right-0 top-full mt-1.5 w-44 bg-white rounded-2xl shadow-xl border border-gray-200 py-1.5 z-50 animate-in fade-in zoom-in-95">
+              {SORT_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => {
+                    setSortBy(opt.value);
+                    setIsSortOpen(false);
+                  }}
+                  className={`w-full px-3.5 py-2 text-left text-xs font-semibold flex items-center justify-between hover:bg-gray-50 ${
+                    sortBy === opt.value ? 'text-emerald-600 font-bold bg-emerald-50/50' : 'text-gray-700'
+                  }`}
+                >
+                  <span>{opt.label}</span>
+                  {sortBy === opt.value && <Check className="w-3.5 h-3.5 text-emerald-600" />}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Grid / List of Sets */}
-      <div className="flex-1 overflow-y-auto px-4 py-4" onClick={() => { setIsSortOpen(false); setIsYearOpen(false); }}>
-        
-        {filteredAndSortedSets.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-center">
-            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4">
-              <Search className="h-8 w-8 text-slate-600" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-800 mb-1">No sets found</h3>
-            <p className="text-gray-400 text-sm max-w-[250px]">
-              We couldn't find any LEGO sets matching your current search and filters.
-            </p>
-            <button 
-              onClick={() => { setSearchQuery(''); setSelectedTheme('All'); setSelectedYear('All'); }}
-              className="mt-6 px-4 py-2 bg-gray-50 text-gray-700 rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors"
+      {/* ─── Main Collectibles List ─── */}
+      <div className="flex-1 overflow-y-auto no-scrollbar p-5 space-y-3 pb-28">
+        {filteredItems.map((item) => {
+          const isAdded = addedMap[item.code];
+          const isWished = wishlistMap[item.code];
+
+          return (
+            <div
+              key={item.id}
+              onClick={() => onNavigate(Screen.SET_DETAIL, { setNum: item.code })}
+              className="bg-white rounded-[24px] p-3.5 border border-gray-200/80 shadow-sm flex items-center gap-3.5 active:scale-[0.99] transition-all cursor-pointer group hover:shadow-md"
             >
-              Clear filters
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredAndSortedSets.map((set, index) => (
-              <div 
-                key={set.id}
-                className="bg-white border border-gray-200/60 rounded-2xl overflow-hidden shadow-sm hover:border-gray-300 transition-all duration-300 group"
-                style={{ 
-                  animation: `fadeInUp 0.4s ease-out forwards`,
-                  animationDelay: `${Math.min(index * 0.05, 0.5)}s`,
-                  opacity: 0,
-                  transform: 'translateY(10px)'
-                }}
-              >
-                {/* Custom keyframes injected via style tag for simplicity in this component */}
-                <style dangerouslySetInnerHTML={{__html: `
-                  @keyframes fadeInUp {
-                    to {
-                      opacity: 1;
-                      transform: translateY(0);
-                    }
-                  }
-                `}} />
+              {/* Thumbnail */}
+              <div className="w-20 h-20 bg-[#F5F5F7] rounded-2xl p-1.5 flex items-center justify-center shrink-0 overflow-hidden border border-gray-100">
+                <img
+                  src={item.imageUrl}
+                  alt={item.name}
+                  className="w-full h-full object-contain filter drop-shadow-sm group-hover:scale-105 transition-transform"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = 'https://images.brickset.com/sets/images/75192-1.jpg';
+                  }}
+                />
+              </div>
+
+              {/* Details */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60">
+                    {item.theme}
+                  </span>
+                  <span className="text-[10px] font-bold text-gray-400">· {item.year}</span>
+                  {item.isRetired && (
+                    <span className="text-[9px] font-black uppercase tracking-wider text-red-600 bg-red-50 px-1.5 py-0.5 rounded">
+                      Retired
+                    </span>
+                  )}
+                </div>
+
+                <h3 className="text-sm font-bold text-gray-900 truncate leading-snug">{item.name}</h3>
                 
-                <div className="flex h-32 relative">
-                  {/* Image Area */}
-                  <div className="w-1/3 bg-white p-2.5 flex items-center justify-center relative border-r border-gray-100">
-                    <img 
-                      src={`https://images.brickset.com/sets/images/${set.setNum}.jpg`}
-                      alt={set.name}
-                      loading="lazy"
-                      className="max-w-full max-h-full object-contain filter drop-shadow-sm group-hover:scale-105 transition-transform duration-300"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        if (!target.dataset.triedFallback) {
-                          target.dataset.triedFallback = 'true';
-                          target.src = `https://cdn.rebrickable.com/media/sets/${set.setNum}.jpg`;
-                        }
-                      }}
-                    />
-                    {set.retired && (
-                      <div className="absolute top-2 left-2 bg-red-500 text-white text-[9px] font-black tracking-wider px-1.5 py-0.5 rounded shadow-sm">
-                        RETIRED
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Info Area */}
-                  <div className="w-2/3 p-3 flex flex-col">
-                    <div className="flex justify-between items-start">
-                      <div className="text-xs font-medium text-emerald-500 mb-1">{set.theme} • {set.year}</div>
-                      <div className="text-xs font-mono text-gray-400 bg-[#F5F5F7] px-1.5 py-0.5 rounded">{set.setNum}</div>
-                    </div>
-                    
-                    <h3 className="font-semibold text-gray-900 text-sm leading-tight line-clamp-2 mb-1">{set.name}</h3>
-                    
-                    <div className="mt-auto flex justify-between items-end">
-                      <div className="flex flex-col">
-                        <span className="text-[11px] font-medium text-gray-500">{set.pieces} pcs</span>
-                        <span className="text-sm font-black text-emerald-600">${set.marketValue.toFixed(2)}</span>
-                      </div>
-                      
-                      {/* Action Buttons */}
-                      <div className="flex gap-1.5">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); toggleWishlist(set.id); }}
-                          className={`p-2 rounded-xl transition-all active:scale-90 ${
-                            addedToWishlist[set.id] 
-                              ? 'bg-rose-50 text-rose-500 border border-rose-200' 
-                              : 'bg-gray-100 text-gray-400 hover:text-gray-600'
-                          }`}
-                        >
-                          <Heart className="w-4 h-4" fill={addedToWishlist[set.id] ? "currentColor" : "none"} />
-                        </button>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); toggleCollection(set.id); }}
-                          className={`p-2 rounded-xl transition-all active:scale-90 ${
-                            addedToCollection[set.id] 
-                              ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' 
-                              : 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm shadow-emerald-500/20'
-                          }`}
-                        >
-                          {addedToCollection[set.id] ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                <p className="text-[11px] text-gray-500 font-medium mt-0.5">
+                  #{item.code} {item.category === 'set' && `· ${(item as any).pieces?.toLocaleString()} pcs`}
+                </p>
+
+                {/* Price & Growth */}
+                <div className="flex items-center gap-2 mt-1.5">
+                  <span className="text-sm font-black text-gray-900">${item.sealedPrice.toFixed(2)}</span>
+                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded">
+                    +{item.growth1Y}% 1Y
+                  </span>
                 </div>
               </div>
-            ))}
+
+              {/* Action Buttons */}
+              <div className="flex flex-col items-center gap-1.5 shrink-0">
+                <button
+                  onClick={(e) => handleToggleWishlist(item, e)}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                    isWished ? 'bg-rose-50 text-rose-500' : 'bg-gray-100 text-gray-400 hover:text-gray-700'
+                  }`}
+                >
+                  <Heart className="w-4 h-4" fill={isWished ? 'currentColor' : 'none'} />
+                </button>
+
+                <button
+                  onClick={(e) => handleAddToCollection(item, e)}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                    isAdded ? 'bg-emerald-500 text-white' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                  }`}
+                >
+                  {isAdded ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+
+        {filteredItems.length === 0 && (
+          <div className="text-center py-16">
+            <p className="text-gray-400 font-bold text-base mb-1">No collectibles found</p>
+            <p className="text-gray-400 text-xs">Try searching for set numbers like "75192", "Rivendell", or "Boba Fett"</p>
           </div>
         )}
       </div>
-
     </div>
   );
 };

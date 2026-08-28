@@ -33,10 +33,11 @@ import { onAuthStateChange, supabase } from './services/supabaseService';
 const App: React.FC = () => {
   const getInitialScreen = (): Screen => {
     const preview = localStorage.getItem('hellobrick_preview_screen');
-    if (preview === 'browse') return Screen.BROWSE;
     if (preview === 'ideas') return Screen.IDEAS;
     if (preview === 'collection') return Screen.COLLECTION;
     if (preview === 'scanner') return Screen.SCANNER;
+    if (preview === 'browse') return Screen.BROWSE;
+    if (preview === 'detail') return Screen.SET_DETAIL;
     return Screen.HOME;
   };
 

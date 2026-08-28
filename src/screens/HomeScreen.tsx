@@ -8,6 +8,7 @@ import { Screen } from '../types';
 import { valuationService } from '../services/valuationService';
 import { getCollectionFromStorage, getSets, getValuationsMap } from '../lib/dataProvider';
 import { mockSets, mockValuations, mockMinifigs } from '../lib/mock-data';
+import { legoDatabase } from '../lib/legoDatabase';
 import { Logo } from '../components/Logo';
 
 interface HomeScreenProps {
@@ -107,21 +108,16 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
 
   const calculatedTotalValue = useMemo(() => {
     if (collection.length === 0) return 0;
-    const valuationsMap = new Map(Object.entries(mockValuations));
     return collection.reduce((sum, item) => {
-      const set = sets.find(s => s.setNum === item.setNum) ||
-        mockSets.find(s => s.setNum === item.setNum) ||
-        mockMinifigs.find(f => f.figNum === item.setNum) ||
-        { retailPrice: item.purchasePrice || 49.99 };
-      const val = valuationsMap.get(item.setNum) || {
-        sealedValue: set.retailPrice || 149.99,
-        usedValue: (set.retailPrice || 149.99) * 0.7,
-      };
-      const quantity = (item as any).quantity ?? 1;
-      const currentValue = (item.condition === 'sealed' ? val.sealedValue : val.usedValue) * quantity;
-      return sum + currentValue;
+      const dbItem = legoDatabase.findById(item.setNum);
+      const qty = (item as any).quantity ?? 1;
+      if (dbItem) {
+        const val = item.condition === 'sealed' ? dbItem.sealedPrice : dbItem.usedPrice;
+        return sum + (val * qty);
+      }
+      return sum + ((item.purchasePrice || 89.99) * qty);
     }, 0);
-  }, [collection, sets]);
+  }, [collection]);
 
   const isEmpty = collection.length === 0;
   const displayTotal = isEmpty ? 0 : calculatedTotalValue;

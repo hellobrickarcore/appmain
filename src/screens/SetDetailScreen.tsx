@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { ChevronLeft, Share2, Search, TrendingUp, Info } from 'lucide-react';
-import { Screen, LegoSetModel } from '../types';
-import { Logo } from '../components/Logo';
-import { mockSets, mockValuations, mockMinifigs } from '../lib/mock-data';
+import React, { useState, useMemo } from 'react';
+import { ChevronLeft, Share2, Heart, Plus, TrendingUp, ShieldCheck, Sparkles, Check, Info, Bell } from 'lucide-react';
+import { Screen, CollectionItem, WishlistItem } from '../types';
+import { legoDatabase } from '../lib/legoDatabase';
+import confetti from 'canvas-confetti';
 
 interface SetDetailScreenProps {
   onNavigate: (screen: Screen, params?: any) => void;
@@ -10,186 +10,292 @@ interface SetDetailScreenProps {
 }
 
 export const SetDetailScreen: React.FC<SetDetailScreenProps> = ({ onNavigate, setNum }) => {
-  const activeSetNum = setNum || '10274-1'; // Default to Ecto-1 or similar
-  
-  const isMinifig = activeSetNum.startsWith('fig') || 
-                    activeSetNum.startsWith('sp') || 
-                    activeSetNum.startsWith('inf') || 
-                    activeSetNum.startsWith('njo');
-  
-  const rawSet = mockSets.find(s => s.setNum === activeSetNum) || 
-                 mockMinifigs.find(f => f.figNum === activeSetNum) || 
-                 {
-                   id: "set-default",
-                   name: "Ghostbusters ECTO-1",
-                   setNum: "10274-1",
-                   retailPrice: 239.99,
-                   imageUrl: 'https://cdn.rebrickable.com/media/sets/10274-1.jpg',
-                   isRetired: true,
-                   type: 'set' as const
-                 };
-
-  const set = {
-    id: rawSet.id,
-    name: rawSet.name,
-    setNum: 'setNum' in rawSet ? rawSet.setNum : ('figNum' in rawSet ? rawSet.figNum : activeSetNum),
-    retailPrice: 'retailPrice' in rawSet ? rawSet.retailPrice : ('resaleValue' in rawSet ? rawSet.resaleValue : 199.99),
-    imageUrl: rawSet.imageUrl,
-    isRetired: 'isRetired' in rawSet ? rawSet.isRetired : true,
-    type: 'type' in rawSet ? rawSet.type : 'minifig'
-  };
-
-  // Fake history chart data
-  const chartPoints = "0,80 50,50 100,60 150,30 200,40 250,15 300,20";
-
+  const activeCode = setNum || '75192-1';
+  const item = useMemo(() => legoDatabase.findById(activeCode) || legoDatabase.getSets()[0], [activeCode]);
   const [timeframe, setTimeframe] = useState<'1D' | '1W' | '1M' | '1Y' | 'ALL'>('1Y');
+  const [isAdded, setIsAdded] = useState(false);
+  const [isWished, setIsWished] = useState(false);
 
-  // Different chart data per timeframe for visual variety
-  const chartDataByTimeframe = {
-    '1D': '0,45 50,42 100,48 150,44 200,46 250,43 300,47',
-    '1W': '0,60 50,55 100,58 150,45 200,42 250,38 300,35',
-    '1M': '0,70 50,65 100,55 150,50 200,45 250,30 300,25',
-    '1Y': '0,80 50,50 100,60 150,30 200,40 250,15 300,20',
-    'ALL': '0,95 50,80 100,70 150,65 200,50 250,30 300,15',
+  const priceHistory = useMemo(() => legoDatabase.getPriceHistory(item.code, 12), [item.code]);
+
+  // Generate SVG path for price trend
+  const chartPath = useMemo(() => {
+    if (!priceHistory || priceHistory.length === 0) return '';
+    const minVal = Math.min(...priceHistory.map(p => p.sealed));
+    const maxVal = Math.max(...priceHistory.map(p => p.sealed));
+    const range = maxVal - minVal || 1;
+
+    const points = priceHistory.map((p, i) => {
+      const x = (i / (priceHistory.length - 1)) * 360;
+      const y = 80 - ((p.sealed - minVal) / range) * 65;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+
+    return `M${points.join(' L')}`;
+  }, [priceHistory]);
+
+  const handleAddToCollection = () => {
+    try {
+      const stored = localStorage.getItem('hellobrick_collection_sets');
+      const current: CollectionItem[] = stored ? JSON.parse(stored) : [];
+
+      current.push({
+        id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+        userId: 'user-1',
+        setNum: item.code,
+        condition: 'sealed',
+        quantity: 1,
+        purchasePrice: item.sealedPrice,
+        purchaseDate: new Date().toISOString().split('T')[0],
+        notes: `Added from Set Detail`,
+        addedAt: new Date().toISOString(),
+        itemType: item.category === 'minifigure' ? 'minifig' : (item.category === 'card' ? 'brick' : 'set')
+      });
+
+      localStorage.setItem('hellobrick_collection_sets', JSON.stringify(current));
+      window.dispatchEvent(new CustomEvent('hellobrick:collection-updated'));
+      setIsAdded(true);
+
+      confetti({
+        particleCount: 50,
+        spread: 50,
+        origin: { y: 0.8 },
+        colors: ['#10B981', '#FF7A30', '#3B82F6']
+      });
+    } catch (e) {}
   };
-  const activeChartPoints = chartDataByTimeframe[timeframe];
+
+  const handleToggleWishlist = () => {
+    try {
+      const stored = localStorage.getItem('hellobrick_wishlist_sets');
+      let current: WishlistItem[] = stored ? JSON.parse(stored) : [];
+
+      if (isWished) {
+        current = current.filter(w => w.setNum !== item.code);
+        setIsWished(false);
+      } else {
+        current.push({
+          id: `wish_${Date.now()}`,
+          userId: 'user-1',
+          setNum: item.code,
+          targetPrice: item.sealedPrice * 0.9,
+          alertEnabled: true,
+          addedAt: new Date().toISOString(),
+          itemType: item.category === 'minifigure' ? 'minifig' : 'set'
+        });
+        setIsWished(true);
+      }
+
+      localStorage.setItem('hellobrick_wishlist_sets', JSON.stringify(current));
+    } catch (e) {}
+  };
+
+  const pricePerPiece = (item as any).pieces ? (item.retailPrice / (item as any).pieces).toFixed(3) : null;
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F5F5F7] font-sans text-gray-900 overflow-y-auto pb-32">
       
-      {/* Header */}
-      <div className="px-6 pt-[max(env(safe-area-inset-top),3rem)] pb-4 flex items-center justify-between z-10 sticky top-0 bg-[#F5F5F7]/90 backdrop-blur-md">
+      {/* ─── Top Header ─── */}
+      <div className="px-5 pt-[max(env(safe-area-inset-top),2.5rem)] pb-3 flex items-center justify-between sticky top-0 bg-[#F5F5F7]/90 backdrop-blur-xl z-20">
         <button
           onClick={() => onNavigate(Screen.HOME)}
-          className="w-10 h-10 flex items-center justify-center -ml-2 active:scale-95 transition-transform"
+          className="w-10 h-10 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center active:scale-95 transition-transform"
         >
-          <ChevronLeft className="w-7 h-7 text-gray-900" />
+          <ChevronLeft className="w-6 h-6 text-gray-800" />
         </button>
-        <Logo size="sm" light={true} />
-        <button className="w-10 h-10 flex items-center justify-center bg-gray-50 rounded-full -mr-2 active:scale-95 transition-transform">
-          <Search className="w-5 h-5 text-gray-900" />
-        </button>
+
+        <div className="text-center">
+          <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600">MARKET DOSSIER</p>
+          <h2 className="text-xs font-bold text-gray-700">#{item.code}</h2>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={handleToggleWishlist}
+            className={`w-10 h-10 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center active:scale-95 transition-all ${
+              isWished ? 'text-rose-500 bg-rose-50' : 'text-gray-600'
+            }`}
+          >
+            <Heart className="w-5 h-5" fill={isWished ? 'currentColor' : 'none'} />
+          </button>
+        </div>
       </div>
 
-      <div className="px-6 mt-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <h1 className="text-3xl font-bold mb-6 tracking-tight">Set Detail</h1>
-
-        {/* Hero Image Card */}
-        <div className="bg-white shadow-sm rounded-[32px] p-6 flex flex-col items-center relative border border-gray-200 shadow-2xl mb-6">
-           <img 
-              src={set.imageUrl} 
-              alt={set.name}
-              className="w-full max-w-[280px] h-[200px] object-contain drop-shadow-2xl mb-4"
-           />
-           {set.isRetired && (
-             <div className="absolute bottom-6 left-6 bg-[#FF6B6B]/20 border border-[#FF6B6B]/50 text-[#FF6B6B] px-4 py-1.5 rounded-full font-bold text-sm tracking-wide">
-               Retired
-             </div>
-           )}
-        </div>
-
-        <h2 className="text-xl font-semibold mb-6 px-2">{set.name}</h2>
-
-        {/* Value Cards (Sealed, Used, Resale) */}
-        <div className="grid grid-cols-3 gap-3 mb-8">
-          <div className="bg-white rounded-[24px] p-4 flex flex-col items-center justify-center shadow-lg">
-             <span className="text-gray-400 font-semibold text-sm mb-1">Sealed</span>
-             <span className="text-black font-bold text-xl">${((set.retailPrice ?? 99) * 1.8).toFixed(0)}</span>
+      <div className="px-5 mt-2 space-y-4">
+        
+        {/* ─── 1. Hero Showcase Card ─── */}
+        <div className="bg-white rounded-[32px] p-6 border border-gray-200/80 shadow-sm relative overflow-hidden flex flex-col items-center">
+          
+          {/* Status Badges */}
+          <div className="w-full flex items-center justify-between mb-4">
+            <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-200">
+              {item.theme} · {item.year}
+            </span>
+            <span className="text-[10px] font-black uppercase tracking-wider bg-gray-900 text-white px-2.5 py-1 rounded-full">
+              {item.rating}
+            </span>
           </div>
-          <div className="bg-[#FFB067] rounded-[24px] p-4 flex flex-col items-center justify-center shadow-[0_8px_24px_rgba(255,176,103,0.3)]">
-             <span className="text-black/70 font-semibold text-sm mb-1">Used</span>
-             <span className="text-black font-bold text-xl">${((set.retailPrice ?? 99) * 1.2).toFixed(0)}</span>
+
+          {/* Large Image */}
+          <div className="w-full h-56 flex items-center justify-center p-2 mb-4">
+            <img
+              src={item.imageUrl}
+              alt={item.name}
+              className="max-h-full max-w-full object-contain filter drop-shadow-xl"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = 'https://images.brickset.com/sets/images/75192-1.jpg';
+              }}
+            />
           </div>
-          <div className="bg-white rounded-[24px] p-4 flex flex-col items-center justify-center shadow-lg">
-             <span className="text-gray-400 font-semibold text-sm mb-1">Resale</span>
-             <span className="text-black font-bold text-xl">${((set.retailPrice ?? 99) * 1.5).toFixed(0)}</span>
+
+          {/* Title & Set Info */}
+          <h1 className="text-xl font-black text-gray-900 text-center leading-tight">{item.name}</h1>
+          <p className="text-xs text-gray-500 font-semibold mt-1 text-center">
+            Set #{item.code} {item.category === 'set' && `· ${(item as any).pieces?.toLocaleString()} pieces · ${(item as any).minifigsCount} minifigs`}
+          </p>
+
+          {item.isRetired && (
+            <div className="mt-3 bg-red-50 text-red-700 text-xs font-bold px-3 py-1 rounded-full border border-red-200">
+              ⚠️ Official LEGO Production Retired
+            </div>
+          )}
+        </div>
+
+        {/* ─── 2. Market Valuation Grid ─── */}
+        <div className="grid grid-cols-3 gap-2.5">
+          <div className="bg-white rounded-[24px] p-4 border border-gray-200/80 shadow-sm text-center">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">SEALED (MISB)</p>
+            <p className="text-lg font-black text-gray-900">${item.sealedPrice.toFixed(0)}</p>
+            <p className="text-[10px] font-bold text-emerald-600 mt-0.5">+{item.growth1Y}% 1Y</p>
+          </div>
+
+          <div className="bg-white rounded-[24px] p-4 border border-gray-200/80 shadow-sm text-center">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">USED / BUILT</p>
+            <p className="text-lg font-black text-gray-900">${item.usedPrice.toFixed(0)}</p>
+            <p className="text-[10px] font-semibold text-gray-500 mt-0.5">Complete</p>
+          </div>
+
+          <div className="bg-white rounded-[24px] p-4 border border-gray-200/80 shadow-sm text-center">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">ORIGINAL MSRP</p>
+            <p className="text-lg font-black text-gray-900">${item.retailPrice.toFixed(0)}</p>
+            <p className="text-[10px] font-semibold text-gray-500 mt-0.5">{item.year}</p>
           </div>
         </div>
 
-        {/* Price History Chart */}
-        <div className="bg-white rounded-[32px] p-6 text-black shadow-xl mb-6 relative overflow-hidden">
-           <div className="flex justify-between items-center mb-6 relative z-10">
-              <h3 className="font-bold text-lg">Price History</h3>
-              <span className="text-gray-500 font-semibold text-sm">Drop</span>
-           </div>
+        {/* ─── 3. Interactive Price History Chart ─── */}
+        <div className="bg-white rounded-[28px] p-5 border border-gray-200/80 shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">HISTORICAL TRAJECTORY</p>
+              <h3 className="text-sm font-bold text-gray-900">Price Movement</h3>
+            </div>
+            <div className="flex items-center gap-1 bg-[#F5F5F7] p-1 rounded-xl">
+              {(['1M', '3M', '1Y', 'ALL'] as const).map(tf => (
+                <button
+                  key={tf}
+                  onClick={() => setTimeframe(tf as any)}
+                  className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all ${
+                    timeframe === tf ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'
+                  }`}
+                >
+                  {tf}
+                </button>
+              ))}
+            </div>
+          </div>
 
-           <div className="flex gap-2 mb-4">
-             {(['1D', '1W', '1M', '1Y', 'ALL'] as const).map(tf => (
-               <button
-                 key={tf}
-                 onClick={() => setTimeframe(tf)}
-                 className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                   timeframe === tf
-                     ? 'bg-[#FF7A30] text-gray-900 shadow-md'
-                     : 'bg-zinc-100 text-gray-400 hover:bg-zinc-200'
-                 }`}
-               >
-                 {tf}
-               </button>
-             ))}
-           </div>
+          {/* SVG Line Chart */}
+          <div className="w-full h-28 relative">
+            <svg viewBox="0 0 360 85" className="w-full h-full overflow-visible">
+              <defs>
+                <linearGradient id="detailGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10B981" stopOpacity="0.25" />
+                  <stop offset="100%" stopColor="#10B981" stopOpacity="0.0" />
+                </linearGradient>
+              </defs>
+              <path
+                d={`${chartPath} L360,85 L0,85 Z`}
+                fill="url(#detailGrad)"
+              />
+              <path
+                d={chartPath}
+                fill="none"
+                stroke="#10B981"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+              />
+            </svg>
+          </div>
 
-           {/* Elegant Graph Area */}
-           <div className="h-[140px] w-full relative mb-6">
-              {/* Grid Lines */}
-              <div className="absolute inset-0 flex flex-col justify-between">
-                <div className="border-t border-zinc-100 w-full flex items-start"><span className="text-xs text-gray-500 -mt-2 ml-1">$5k</span></div>
-                <div className="border-t border-zinc-100 w-full flex items-start"><span className="text-xs text-gray-500 -mt-2 ml-1">$2k</span></div>
-                <div className="border-t border-zinc-100 w-full flex items-start"><span className="text-xs text-gray-500 -mt-2 ml-1">$1k</span></div>
-                <div className="border-t border-zinc-100 w-full flex items-start"><span className="text-xs text-gray-500 -mt-2 ml-1">$50</span></div>
-              </div>
-              
-              {/* SVG Line */}
-              <div className="absolute inset-0 pl-8 pb-4">
-                 <svg viewBox="0 0 300 100" className="w-full h-full overflow-visible" preserveAspectRatio="none">
-                    <defs>
-                      <linearGradient id="gradientArea" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#FF7A30" stopOpacity="0.3" />
-                        <stop offset="100%" stopColor="#FF7A30" stopOpacity="0" />
-                      </linearGradient>
-                    </defs>
-                    <path 
-                      d={`M0,100 L${activeChartPoints} L300,100 Z`}
-                      fill="url(#gradientArea)"
-                    />
-                    <path 
-                      d={`M${activeChartPoints}`}
-                      fill="none" 
-                      stroke="#FF7A30" 
-                      strokeWidth="4" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round"
-                    />
-                    <circle cx="300" cy="20" r="6" fill="#FF7A30" stroke="white" strokeWidth="2" />
-                 </svg>
-              </div>
-           </div>
-
-           {/* X-Axis labels */}
-           <div className="flex justify-between px-8 text-gray-500 font-semibold text-xs relative z-10">
-              <span>40</span>
-              <span>31</span>
-              <span>44</span>
-              <span>19</span>
-              <span>31</span>
-              <span>22</span>
-           </div>
+          <div className="flex items-center justify-between pt-2 border-t border-gray-100 text-[11px] text-gray-500">
+            <span>12 Months Ago: ${(priceHistory[0]?.sealed || item.retailPrice).toFixed(0)}</span>
+            <span className="font-black text-emerald-600">Current: ${item.sealedPrice.toFixed(0)} (+{item.growth1Y}%)</span>
+          </div>
         </div>
 
-        {/* Rarity Score Card */}
-        <div className="bg-white rounded-[24px] p-5 flex items-center justify-between text-black shadow-lg">
-           <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-[#FF7A30] rounded-xl flex items-center justify-center shadow-[0_4px_12px_rgba(255,122,48,0.3)]">
-                <Info className="w-6 h-6 text-gray-900" />
+        {/* ─── 4. Detailed Analytics Breakdown ─── */}
+        <div className="bg-white rounded-[28px] p-5 border border-gray-200/80 shadow-sm space-y-3">
+          <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">Collector Analytics</h3>
+          
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between text-xs py-1 border-b border-gray-100">
+              <span className="text-gray-500 font-medium">Demand Index</span>
+              <div className="flex items-center gap-1">
+                <span className="font-bold text-gray-900">{item.demandScore}/10</span>
+                <span className="text-emerald-500">★★★★★</span>
               </div>
-              <div className="flex items-center gap-2">
-                 <span className="text-2xl font-black">9.5</span>
-                 <span className="text-gray-400 font-semibold text-sm pt-1">Rarity Score</span>
+            </div>
+
+            <div className="flex items-center justify-between text-xs py-1 border-b border-gray-100">
+              <span className="text-gray-500 font-medium">Rarity Tier</span>
+              <span className="font-bold text-gray-900">{item.rarityScore}/10 ({item.rating})</span>
+            </div>
+
+            {pricePerPiece && (
+              <div className="flex items-center justify-between text-xs py-1 border-b border-gray-100">
+                <span className="text-gray-500 font-medium">Price Per Piece (MSRP)</span>
+                <span className="font-bold text-gray-900">${pricePerPiece}/pc</span>
               </div>
-           </div>
-           <ChevronLeft className="w-6 h-6 text-gray-500 transform rotate-180" />
+            )}
+
+            {(item as any).partOutValue && (
+              <div className="flex items-center justify-between text-xs py-1">
+                <span className="text-gray-500 font-medium">Part-Out Value (BrickLink)</span>
+                <span className="font-black text-emerald-600">${(item as any).partOutValue.toFixed(2)}</span>
+              </div>
+            )}
+          </div>
         </div>
 
+        {/* ─── 5. Set Description ─── */}
+        <div className="bg-white rounded-[28px] p-5 border border-gray-200/80 shadow-sm">
+          <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider mb-2">Overview</h3>
+          <p className="text-xs text-gray-600 leading-relaxed">{item.description}</p>
+        </div>
+
+        {/* ─── 6. Action CTAs ─── */}
+        <div className="pt-2">
+          <button
+            onClick={handleAddToCollection}
+            className={`w-full py-4 rounded-2xl font-black text-base shadow-[0_8px_25px_rgba(16,185,129,0.35)] flex items-center justify-center gap-2 transition-all ${
+              isAdded 
+                ? 'bg-emerald-600 text-white'
+                : 'bg-emerald-500 hover:bg-emerald-400 text-white active:scale-[0.98]'
+            }`}
+          >
+            {isAdded ? (
+              <>
+                <Check className="w-5 h-5" />
+                <span>Added to Your Vault</span>
+              </>
+            ) : (
+              <>
+                <Plus className="w-5 h-5" />
+                <span>Add to My Collection (${item.sealedPrice.toFixed(0)})</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
