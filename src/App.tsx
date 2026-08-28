@@ -37,6 +37,7 @@ const App: React.FC = () => {
     if (preview === 'collection') return Screen.COLLECTION;
     if (preview === 'scanner') return Screen.SCANNER;
     if (preview === 'browse') return Screen.BROWSE;
+    if (preview === 'leaderboard') return Screen.LEADERBOARD;
     return Screen.HOME;
   };
 
