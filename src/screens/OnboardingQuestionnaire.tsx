@@ -1,138 +1,86 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Screen } from '../types';
 import { appStateService } from '../services/appStateService';
 import { Logo } from '../components/Logo';
+import { ChevronRight, CheckCircle2, TrendingUp, Star, Camera } from 'lucide-react';
 
 interface OnboardingProps {
   onNavigate?: (screen: Screen) => void;
 }
 
-const slides = [
-  {
-    id: 'value',
-    headline: 'Your LEGO Collection\nIs Worth Thousands',
-    sub: 'Discover the true market value of every set you own — automatically.',
-    accent: '#10B981',
-    cards: [
-      { img: 'https://cdn.rebrickable.com/media/sets/75192-1/1.jpg', label: 'Millennium Falcon', price: '$849', rot: -8, x: '5%', y: '0%', delay: '0s', size: 140 },
-      { img: 'https://cdn.rebrickable.com/media/sets/10294-1/1.jpg', label: 'Titanic', price: '$679', rot: 6, x: '52%', y: '10%', delay: '0.4s', size: 148 },
-    ]
-  },
-  {
-    id: 'scan',
-    headline: 'Scan Any Set\nin Seconds',
-    sub: 'Point. Tap. Done. Our AI identifies any LEGO set or minifigure instantly.',
-    accent: '#FF7A30',
-    cards: [
-      { img: 'https://cdn.rebrickable.com/media/sets/10300-1/1.jpg', label: 'Back to Future', price: '$234', rot: -5, x: '8%', y: '5%', delay: '0.1s', size: 136 },
-      { img: 'https://cdn.rebrickable.com/media/sets/75313-1/1.jpg', label: 'AT-AT', price: '$549', rot: 7, x: '50%', y: '0%', delay: '0.5s', size: 152 },
-    ]
-  },
-  {
-    id: 'track',
-    headline: 'Track, Wishlist\n& Invest Smarter',
-    sub: 'Watch prices rise, get retirement alerts, and grow your collection like a portfolio.',
-    accent: '#6366F1',
-    cards: [
-      { img: 'https://cdn.rebrickable.com/media/sets/10255-1/1.jpg', label: 'Assembly Square', price: '$412', rot: -6, x: '3%', y: '8%', delay: '0.2s', size: 138 },
-      { img: 'https://cdn.rebrickable.com/media/sets/10270-1/1.jpg', label: 'Bookshop', price: '$339', rot: 8, x: '55%', y: '2%', delay: '0.6s', size: 144 },
-    ]
-  },
-  {
-    id: 'ready',
-    headline: 'Ready to Discover\nYour Vault?',
-    sub: 'Join thousands of LEGO collectors who track and grow their collections with HelloBrick.',
-    accent: '#FFD600',
-    cards: [
-      { img: 'https://cdn.rebrickable.com/media/sets/21318-1/1.jpg', label: 'Tree House', price: '$297', rot: -7, x: '6%', y: '3%', delay: '0s', size: 142 },
-      { img: 'https://cdn.rebrickable.com/media/sets/71040-1/1.jpg', label: 'Disney Castle', price: '$998', rot: 5, x: '53%', y: '8%', delay: '0.4s', size: 146 },
-    ]
-  }
+const CATEGORIES = [
+  { id: 'pokemon', label: 'Pokémon TCG', icon: '⚡', color: '#F59E0B' },
+  { id: 'lego', label: 'LEGO Sets & Minifigs', icon: '🧱', color: '#10B981' },
+  { id: 'mtg', label: 'Magic: The Gathering', icon: '🔥', color: '#EF4444' },
+  { id: 'sports', label: 'Sports Cards', icon: '🏀', color: '#3B82F6' },
+  { id: 'all', label: 'A bit of everything', icon: '✨', color: '#8B5CF6' },
+];
+
+const GOALS = [
+  { id: 'track', label: 'Track portfolio value', icon: <TrendingUp className="w-6 h-6" /> },
+  { id: 'scan', label: 'Quickly scan & identify', icon: <Camera className="w-6 h-6" /> },
+  { id: 'wishlist', label: 'Build a wishlist', icon: <Star className="w-6 h-6" /> },
 ];
 
 export const OnboardingQuestionnaire: React.FC<OnboardingProps> = ({ onNavigate }) => {
-  const [slideIdx, setSlideIdx] = useState(0);
+  const [step, setStep] = useState(0);
   const [mounted, setMounted] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
   const [direction, setDirection] = useState<'forward' | 'back'>('forward');
-  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
-  const touchStartX = useRef<number | null>(null);
-  const touchStartY = useRef<number | null>(null);
+  
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
+  const [loadingText, setLoadingText] = useState('Analyzing collection data...');
 
   useEffect(() => {
-    // Slight delay so mount animation fires
     const t = setTimeout(() => setMounted(true), 60);
     return () => clearTimeout(t);
   }, []);
 
-  const goTo = (idx: number, dir: 'forward' | 'back' = 'forward') => {
-    if (transitioning || idx < 0 || idx >= slides.length) return;
+  useEffect(() => {
+    if (step === 3) {
+      const catName = CATEGORIES.find(c => c.id === selectedCategory)?.label || 'collectibles';
+      
+      const t1 = setTimeout(() => setLoadingText(`Loading ${catName} market prices...`), 800);
+      const t2 = setTimeout(() => setLoadingText(`Configuring your personal vault...`), 1600);
+      const t3 = setTimeout(() => {
+        goTo(4, 'forward');
+      }, 2600);
+      
+      return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+    }
+  }, [step, selectedCategory]);
+
+  const goTo = (newStep: number, dir: 'forward' | 'back' = 'forward') => {
+    if (transitioning) return;
     setTransitioning(true);
     setDirection(dir);
-    // Small pause so exit animation plays, then swap slide
     setTimeout(() => {
-      setSlideIdx(idx);
+      setStep(newStep);
       setTimeout(() => setTransitioning(false), 350);
     }, 180);
   };
 
-  const handleNext = () => {
-    if (slideIdx < slides.length - 1) {
-      goTo(slideIdx + 1, 'forward');
-    } else {
-      handleStart();
-    }
-  };
-
-  const handleBack = () => {
-    if (slideIdx > 0) goTo(slideIdx - 1, 'back');
-  };
-
-  const handleStart = () => {
+  const handleFinish = () => {
     try {
       localStorage.setItem('hellobrick_onboarding_finished', 'true');
-      appStateService.navigate(Screen.HOME);
+      if (selectedCategory) localStorage.setItem('hellobrick_pref_category', selectedCategory);
+      if (selectedGoal) localStorage.setItem('hellobrick_pref_goal', selectedGoal);
+      
+      if (onNavigate) {
+        onNavigate(Screen.SCANNER);
+      } else {
+        appStateService.navigate(Screen.SCANNER);
+      }
     } catch (e) {}
   };
 
-  // Swipe gestures
-  const onTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-  };
-
-  const onTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX.current === null) return;
-    const dx = e.changedTouches[0].clientX - touchStartX.current;
-    const dy = Math.abs(e.changedTouches[0].clientY - (touchStartY.current || 0));
-    if (Math.abs(dx) > 50 && dy < 80) {
-      if (dx < 0) handleNext();
-      else handleBack();
-    }
-    touchStartX.current = null;
-    touchStartY.current = null;
-  };
-
-  const slide = slides[slideIdx];
-  const isLast = slideIdx === slides.length - 1;
+  const currentCategory = CATEGORIES.find(c => c.id === selectedCategory);
+  const currentGoal = GOALS.find(c => c.id === selectedGoal);
 
   return (
-    <div
-      className="h-full w-full bg-[#111111] flex flex-col overflow-hidden relative select-none"
-      onTouchStart={onTouchStart}
-      onTouchEnd={onTouchEnd}
-      style={{ userSelect: 'none' }}
-    >
-      {/* Global CSS for the onboarding animations */}
+    <div className="h-full w-full bg-[#111111] flex flex-col overflow-hidden relative select-none">
       <style>{`
-        @keyframes ob-float-a {
-          0%, 100% { transform: translateY(0px) rotate(var(--ob-rot)) scale(1); }
-          50%       { transform: translateY(-14px) rotate(var(--ob-rot)) scale(1.02); }
-        }
-        @keyframes ob-float-b {
-          0%, 100% { transform: translateY(0px) rotate(var(--ob-rot)) scale(1); }
-          50%       { transform: translateY(-10px) rotate(var(--ob-rot)) scale(1.015); }
-        }
         @keyframes ob-slide-in-fwd {
           from { opacity: 0; transform: translateX(48px) scale(0.97); }
           to   { opacity: 1; transform: translateX(0) scale(1); }
@@ -149,70 +97,23 @@ export const OnboardingQuestionnaire: React.FC<OnboardingProps> = ({ onNavigate 
           from { opacity: 1; transform: translateX(0); }
           to   { opacity: 0; transform: translateX(48px); }
         }
-        @keyframes ob-pulse-ring {
-          0%   { transform: scale(0.8); opacity: 0.6; }
-          100% { transform: scale(2.4); opacity: 0; }
+        @keyframes pulse-soft {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
         }
-        @keyframes ob-shimmer {
-          0%   { background-position: -200% center; }
-          100% { background-position: 200% center; }
-        }
-        .ob-card-a { animation: ob-float-a 5.5s ease-in-out infinite; }
-        .ob-card-b { animation: ob-float-b 4.8s ease-in-out infinite; }
         .ob-content-in-fwd  { animation: ob-slide-in-fwd  0.35s cubic-bezier(0.25,0.46,0.45,0.94) both; }
         .ob-content-in-bwd  { animation: ob-slide-in-bwd  0.35s cubic-bezier(0.25,0.46,0.45,0.94) both; }
         .ob-content-out-fwd { animation: ob-slide-out-fwd 0.18s cubic-bezier(0.55,0,1,0.45) both; }
         .ob-content-out-bwd { animation: ob-slide-out-bwd 0.18s cubic-bezier(0.55,0,1,0.45) both; }
-        .ob-pulse-ring { animation: ob-pulse-ring 1.8s ease-out infinite; }
-        .ob-shimmer-btn {
-          background: linear-gradient(90deg, var(--btn-from) 0%, var(--btn-mid) 50%, var(--btn-from) 100%);
-          background-size: 200% auto;
-          animation: ob-shimmer 2.2s linear infinite;
-        }
-
-        /* 📱 RESPONSIVE HEIGHTS FOR SMALL VIEWPORTS */
-        @media (max-height: 740px) {
-          .ob-card-container {
-            height: 180px !important;
-            margin-top: 8px !important;
-          }
-          .ob-card-item {
-            width: calc(var(--card-size) * 0.8px) !important;
-          }
-          .ob-title-text {
-            font-size: 24px !important;
-            margin-bottom: 8px !important;
-          }
-          .ob-sub-text {
-            font-size: 13px !important;
-          }
-          .ob-cta-container {
-            padding-bottom: 12px !important;
-            margin-top: 12px !important;
-          }
-          .ob-cta-btn {
-            padding-top: 12px !important;
-            padding-bottom: 12px !important;
-            font-size: 14px !important;
-          }
-        }
+        .animate-pulse-soft { animation: pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
       `}</style>
 
-      {/* Radial glow behind everything — accent colour */}
-      <div
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] h-[400px] rounded-full pointer-events-none transition-all duration-700"
-        style={{
-          background: `radial-gradient(circle, ${slide.accent}22 0%, transparent 70%)`,
-          marginTop: '-80px',
-        }}
-      />
-
-      {/* ─── Header ─────────────────────────────────── */}
+      {/* Header */}
       <div className="relative z-20 pt-[max(env(safe-area-inset-top),2.5rem)] px-6 flex items-center justify-between">
         <Logo size="sm" light={true} />
-        {slideIdx < slides.length - 1 && (
+        {step < 3 && (
           <button
-            onClick={handleStart}
+            onClick={handleFinish}
             className="text-zinc-500 text-xs font-bold uppercase tracking-widest px-2 py-1 active:opacity-70 transition-opacity"
           >
             Skip
@@ -220,131 +121,181 @@ export const OnboardingQuestionnaire: React.FC<OnboardingProps> = ({ onNavigate 
         )}
       </div>
 
-      {/* ─── Floating Preview Cards ──────────────────── */}
-      <div className="relative z-10 h-[260px] w-full shrink-0 mt-4 overflow-visible ob-card-container">
-        {slide.cards.map((card, i) => {
-          const hasFailed = failedImages[`${slide.id}-${i}`];
-          let fallbackEmoji = '🧱';
-          if (card.label.includes('Falcon') || card.label.includes('AT-AT')) fallbackEmoji = '🚀';
-          else if (card.label.includes('Titanic')) fallbackEmoji = '🚢';
-          else if (card.label.includes('Future')) fallbackEmoji = '🚗';
-          else if (card.label.includes('Square') || card.label.includes('Bookshop')) fallbackEmoji = '🏢';
-          else if (card.label.includes('House')) fallbackEmoji = '🌳';
-          else if (card.label.includes('Castle')) fallbackEmoji = '🏰';
-
-          return (
-            <div
-              key={`${slide.id}-${i}`}
-              className={`absolute bg-[#1C1C1E] rounded-[22px] shadow-[0_20px_50px_rgba(0,0,0,0.7)] border border-white/8 overflow-hidden p-3 ob-card-item ${i === 0 ? 'ob-card-a' : 'ob-card-b'}`}
-              style={{
-                '--card-size': card.size,
-                width: 'calc(var(--card-size) * 1px)',
-                left: card.x,
-                top: card.y,
-                '--ob-rot': `${card.rot}deg`,
-                transform: `rotate(${card.rot}deg)`,
-                animationDelay: card.delay,
-              } as React.CSSProperties}
-            >
-              <div className="w-full aspect-square bg-[#2C2C2E] rounded-[14px] mb-2.5 overflow-hidden flex items-center justify-center p-2 relative">
-                {hasFailed ? (
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#2A2A2A] to-[#1A1A1A] flex flex-col items-center justify-center text-center p-1.5 animate-fade-in">
-                    <span className="text-3xl filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)] mb-1">{fallbackEmoji}</span>
-                    <span className="text-[7.5px] uppercase font-black tracking-widest" style={{ color: slide.accent }}>Vault Item</span>
-                  </div>
-                ) : (
-                  <img 
-                    src={card.img} 
-                    alt={card.label} 
-                    onError={() => setFailedImages(prev => ({ ...prev, [`${slide.id}-${i}`]: true }))}
-                    className="w-full h-full object-contain drop-shadow-xl" 
-                    loading="lazy" 
-                  />
-                )}
-              </div>
-              <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider text-center truncate">{card.label}</p>
-              <p className="text-center font-black text-base mt-0.5" style={{ color: slide.accent }}>{card.price}</p>
-            </div>
-          );
-        })}
-
-        {/* Pulsing accent dot behind cards */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-          <div className="ob-pulse-ring w-16 h-16 rounded-full border-2" style={{ borderColor: slide.accent + '66' }} />
-        </div>
-      </div>
-
-      {/* ─── Text Content ────────────────────────────── */}
-      <div className="flex-1 flex flex-col px-7 pt-6 z-20 relative overflow-hidden">
+      <div className="flex-1 flex flex-col px-7 pt-6 z-20 relative overflow-hidden pb-[max(env(safe-area-inset-bottom),2.5rem)]">
         <div
-          key={`text-${slideIdx}`}
-          className={
+          className={`flex-1 flex flex-col ${
             transitioning
               ? direction === 'forward' ? 'ob-content-out-fwd' : 'ob-content-out-bwd'
               : mounted
                 ? direction === 'forward' ? 'ob-content-in-fwd' : 'ob-content-in-bwd'
-                : ''
-          }
+                : 'opacity-0'
+          }`}
         >
-          {/* Page indicator dots */}
-          <div className="flex items-center gap-2 mb-5">
-            {slides.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => goTo(i, i > slideIdx ? 'forward' : 'back')}
-                className="transition-all duration-300 rounded-full"
-                style={{
-                  width: i === slideIdx ? 20 : 6,
-                  height: 6,
-                  background: i === slideIdx ? slide.accent : '#3A3A3C',
-                }}
-              />
-            ))}
-          </div>
+          {/* STEP 0: Value Proposition */}
+          {step === 0 && (
+            <div className="flex-1 flex flex-col justify-between">
+              <div>
+                <h1 className="text-[36px] font-black text-white leading-[1.1] tracking-tight mb-4 mt-8">
+                  Your Collection Is Worth Thousands
+                </h1>
+                <p className="text-zinc-400 text-[17px] font-medium leading-relaxed">
+                  Discover the true market value of every item you own — automatically.
+                </p>
+              </div>
 
-          <h1 className="text-[34px] font-black text-white leading-[1.1] tracking-tight mb-3 whitespace-pre-line ob-title-text">
-            {slide.headline}
-          </h1>
-          <p className="text-zinc-400 text-[16px] font-medium leading-relaxed ob-sub-text">
-            {slide.sub}
-          </p>
-        </div>
+              {/* Fake visual of value */}
+              <div className="relative h-[220px] w-full my-8 bg-[#1C1C1E] rounded-3xl border border-white/10 flex flex-col items-center justify-center overflow-hidden shadow-2xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-transparent opacity-50" />
+                <TrendingUp className="w-12 h-12 text-emerald-400 mb-3 drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]" />
+                <span className="text-zinc-500 font-bold uppercase tracking-widest text-xs mb-1">Total Vault Value</span>
+                <span className="text-4xl font-black text-white tracking-tighter">$14,295.00</span>
+                <div className="mt-3 bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-xs font-bold border border-emerald-500/30">
+                  +12.4% this year
+                </div>
+              </div>
 
-        {/* Spacer */}
-        <div className="flex-1" />
+              <div className="mt-auto pt-4 space-y-4">
+                <button
+                  onClick={() => goTo(1, 'forward')}
+                  className="w-full bg-emerald-500 text-white py-4 rounded-2xl font-black text-lg active:scale-[0.98] transition-transform shadow-[0_8px_30px_rgba(16,185,129,0.3)]"
+                >
+                  Continue
+                </button>
+                <button
+                  onClick={() => {
+                    if (onNavigate) onNavigate(Screen.EMAIL_LOGIN);
+                    else appStateService.navigate(Screen.EMAIL_LOGIN);
+                  }}
+                  className="w-full py-3 text-zinc-500 font-bold text-[14px] active:opacity-70 transition-opacity"
+                >
+                  Already have an account? <span className="text-white">Sign in</span>
+                </button>
+              </div>
+            </div>
+          )}
 
-        {/* ─── CTA Buttons ─── */}
-        <div className="pb-[max(env(safe-area-inset-bottom),2.5rem)] space-y-3 ob-cta-container">
-          {/* Primary CTA */}
-          <button
-            onClick={handleNext}
-            disabled={transitioning}
-            className="w-full py-5 rounded-[18px] font-black text-[17px] text-white active:scale-[0.97] transition-transform shadow-lg relative overflow-hidden ob-cta-btn"
-            style={{
-              background: slide.accent,
-              boxShadow: `0 8px 30px ${slide.accent}44`,
-              '--btn-from': slide.accent,
-              '--btn-mid': slide.accent + 'dd',
-            } as React.CSSProperties}
-          >
-            {isLast ? 'Get Started' : 'Continue'}
-          </button>
+          {/* STEP 1: Category Selection */}
+          {step === 1 && (
+            <div className="flex-1 flex flex-col">
+              <div className="mt-4 mb-8">
+                <span className="text-emerald-500 font-bold text-sm uppercase tracking-widest mb-2 block">Step 1 of 2</span>
+                <h1 className="text-[32px] font-black text-white leading-tight mb-2">What do you collect?</h1>
+                <p className="text-zinc-400 text-[16px]">We'll tailor your vault to your collection.</p>
+              </div>
 
-          {/* Back or Sign-in link */}
-          {slideIdx > 0 ? (
-            <button
-              onClick={handleBack}
-              className="w-full py-3 text-zinc-500 font-bold text-[13px] active:opacity-70 transition-opacity"
-            >
-              ← Back
-            </button>
-          ) : (
-            <button
-              onClick={() => appStateService.navigate(Screen.EMAIL_LOGIN)}
-              className="w-full py-3 text-zinc-500 font-bold text-[13px] active:opacity-70 transition-opacity"
-            >
-              Already have an account? <span className="text-white font-black">Sign in</span>
-            </button>
+              <div className="space-y-3 flex-1 overflow-y-auto no-scrollbar pb-4">
+                {CATEGORIES.map(cat => (
+                  <button
+                    key={cat.id}
+                    onClick={() => {
+                      setSelectedCategory(cat.id);
+                      setTimeout(() => goTo(2, 'forward'), 150);
+                    }}
+                    className={`w-full p-4 rounded-2xl border-2 flex items-center gap-4 transition-all text-left ${
+                      selectedCategory === cat.id 
+                        ? 'border-emerald-500 bg-emerald-500/10' 
+                        : 'border-[#2C2C2E] bg-[#1C1C1E] hover:border-[#3C3C3E]'
+                    }`}
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-black/50 flex items-center justify-center text-2xl border border-white/5">
+                      {cat.icon}
+                    </div>
+                    <span className="text-white font-bold text-lg flex-1">{cat.label}</span>
+                    <ChevronRight className={`w-5 h-5 ${selectedCategory === cat.id ? 'text-emerald-500' : 'text-zinc-600'}`} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* STEP 2: Goal Selection */}
+          {step === 2 && (
+            <div className="flex-1 flex flex-col">
+              <div className="mt-4 mb-8">
+                <span className="text-emerald-500 font-bold text-sm uppercase tracking-widest mb-2 block">Step 2 of 2</span>
+                <h1 className="text-[32px] font-black text-white leading-tight mb-2">What's your main goal?</h1>
+                <p className="text-zinc-400 text-[16px]">This helps us set up your dashboard.</p>
+              </div>
+
+              <div className="space-y-3 flex-1 overflow-y-auto no-scrollbar pb-4">
+                {GOALS.map(g => (
+                  <button
+                    key={g.id}
+                    onClick={() => {
+                      setSelectedGoal(g.id);
+                      setTimeout(() => goTo(3, 'forward'), 150);
+                    }}
+                    className={`w-full p-4 rounded-2xl border-2 flex items-center gap-4 transition-all text-left ${
+                      selectedGoal === g.id 
+                        ? 'border-emerald-500 bg-emerald-500/10' 
+                        : 'border-[#2C2C2E] bg-[#1C1C1E] hover:border-[#3C3C3E]'
+                    }`}
+                  >
+                    <div className={`w-12 h-12 rounded-xl bg-black/50 flex items-center justify-center border border-white/5 ${
+                      selectedGoal === g.id ? 'text-emerald-500' : 'text-zinc-400'
+                    }`}>
+                      {g.icon}
+                    </div>
+                    <span className="text-white font-bold text-lg flex-1">{g.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* STEP 3: Loading / Analyzing */}
+          {step === 3 && (
+            <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
+              <div className="relative w-24 h-24 mb-8">
+                <div className="absolute inset-0 border-4 border-zinc-800 rounded-full" />
+                <div className="absolute inset-0 border-4 border-emerald-500 rounded-full border-t-transparent animate-spin" />
+                <div className="absolute inset-0 flex items-center justify-center text-3xl">
+                  {currentCategory?.icon || '✨'}
+                </div>
+              </div>
+              <h2 className="text-2xl font-black text-white mb-3">Personalizing your vault</h2>
+              <p className="text-emerald-400 font-medium animate-pulse-soft">{loadingText}</p>
+            </div>
+          )}
+
+          {/* STEP 4: Ready / Activation Moment */}
+          {step === 4 && (
+            <div className="flex-1 flex flex-col justify-between pt-12 pb-4">
+              <div className="flex-1 flex flex-col items-center justify-center text-center">
+                <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mb-6 border border-emerald-500/40 relative">
+                  <div className="absolute inset-0 bg-emerald-500/20 rounded-full animate-ping opacity-50" />
+                  <CheckCircle2 className="w-10 h-10 text-emerald-400" />
+                </div>
+                
+                <h1 className="text-[34px] font-black text-white leading-tight mb-4">
+                  Your Vault is Ready
+                </h1>
+                
+                <p className="text-zinc-400 text-lg leading-relaxed max-w-[280px]">
+                  We've customized your experience for <span className="text-white font-bold">{currentCategory?.label || 'collectibles'}</span> to help you <span className="text-white font-bold">{currentGoal?.label.toLowerCase() || 'track your collection'}</span>.
+                </p>
+
+                <div className="mt-8 p-4 bg-[#1C1C1E] border border-white/10 rounded-2xl flex items-center gap-4 w-full max-w-[300px]">
+                  <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
+                    <Camera className="w-6 h-6 text-blue-400" />
+                  </div>
+                  <div className="text-left flex-1">
+                    <div className="text-white font-bold">Try it now</div>
+                    <div className="text-zinc-400 text-sm">Scan an item to see its value</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-8 w-full">
+                <button
+                  onClick={handleFinish}
+                  className="w-full bg-emerald-500 text-white py-4 rounded-2xl font-black text-lg active:scale-[0.98] transition-transform shadow-[0_8px_30px_rgba(16,185,129,0.3)] flex items-center justify-center gap-2"
+                >
+                  <Camera className="w-5 h-5" />
+                  Scan Your First Item
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </div>
