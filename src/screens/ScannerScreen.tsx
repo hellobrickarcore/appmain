@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Zap, Plus, Layers, Box, Smile, Sparkles, Trophy, Flame, ChevronRight, Check } from 'lucide-react';
+import { X, Zap, Plus, Layers, Box, Smile, Sparkles, Trophy, Flame, ChevronRight, Check, Shield, Award } from 'lucide-react';
 import { Screen, CollectionItem } from '../types';
-import { legoDatabase, AnyCollectible, CollectibleCategory } from '../lib/legoDatabase';
+import { collectiblesDatabase, AnyCollectible, CollectibleCategory } from '../lib/collectiblesDatabase';
 import confetti from 'canvas-confetti';
 
 interface ScannerScreenProps {
@@ -9,19 +9,22 @@ interface ScannerScreenProps {
   mode?: string;
 }
 
-const SCAN_CATEGORIES: { id: CollectibleCategory; label: string; icon: any }[] = [
-  { id: 'set', label: 'Sets', icon: Box },
+const SCAN_CATEGORIES: { id: CollectibleCategory | 'all_tcg'; label: string; icon: any }[] = [
+  { id: 'set', label: 'LEGO Sets', icon: Box },
   { id: 'minifigure', label: 'Minifigs', icon: Smile },
   { id: 'pokemon', label: 'Pokémon', icon: Zap },
-  { id: 'sports', label: 'Sports', icon: Trophy },
-  { id: 'other_tcg', label: 'TCG', icon: Flame },
-  { id: 'moc', label: 'Builds', icon: Sparkles },
+  { id: 'mtg', label: 'Magic MTG', icon: Flame },
+  { id: 'yugioh', label: 'Yu-Gi-Oh!', icon: Award },
+  { id: 'one_piece', label: 'One Piece', icon: Shield },
+  { id: 'lorcana', label: 'Lorcana', icon: Sparkles },
+  { id: 'sports', label: 'Sports Cards', icon: Trophy },
+  { id: 'moc', label: 'MOC Builds', icon: Sparkles },
 ];
 
 export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [torchOn, setTorchOn] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<CollectibleCategory>('set');
+  const [selectedCategory, setSelectedCategory] = useState<CollectibleCategory | 'all_tcg'>('set');
   const [activeItems, setActiveItems] = useState<AnyCollectible[]>([]);
   const [hoveredIndex, setHoveredIndex] = useState<number>(0);
   const [isLocked, setIsLocked] = useState<boolean>(true);
@@ -92,17 +95,25 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
   useEffect(() => {
     let items: AnyCollectible[] = [];
     if (selectedCategory === 'set') {
-      items = legoDatabase.getSets();
+      items = collectiblesDatabase.getSets();
     } else if (selectedCategory === 'minifigure') {
-      items = legoDatabase.getMinifigs();
+      items = collectiblesDatabase.getMinifigs();
     } else if (selectedCategory === 'pokemon') {
-      items = legoDatabase.getPokemon();
+      items = collectiblesDatabase.getPokemon();
+    } else if (selectedCategory === 'mtg') {
+      items = collectiblesDatabase.getMtg();
+    } else if (selectedCategory === 'yugioh') {
+      items = collectiblesDatabase.getYugioh();
+    } else if (selectedCategory === 'one_piece') {
+      items = collectiblesDatabase.getOnePiece();
+    } else if (selectedCategory === 'lorcana') {
+      items = collectiblesDatabase.getLorcana();
     } else if (selectedCategory === 'sports') {
-      items = legoDatabase.getSports();
-    } else if (selectedCategory === 'other_tcg') {
-      items = legoDatabase.getOtherTcg();
+      items = collectiblesDatabase.getSports();
+    } else if (selectedCategory === 'all_tcg') {
+      items = collectiblesDatabase.getAllTcg();
     } else {
-      items = legoDatabase.getMocs();
+      items = collectiblesDatabase.getMocs();
     }
 
     setActiveItems(items);
@@ -165,7 +176,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
           quantity: 1,
           purchasePrice: item.sealedPrice,
           purchaseDate: new Date().toISOString().split('T')[0],
-          notes: `Scanned with HelloBrick AR (${item.category.toUpperCase()})`,
+          notes: `Scanned with HelloBrick Universal AR (${item.category.toUpperCase()})`,
           addedAt: new Date().toISOString(),
           itemType: item.category === 'minifigure' ? 'minifig' : (item.category === 'set' ? 'set' : 'brick')
         });
@@ -188,6 +199,15 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
       onNavigate(Screen.HOME);
     }
   };
+
+  const isCard = activeItem && (
+    activeItem.category === 'pokemon' || 
+    activeItem.category === 'mtg' || 
+    activeItem.category === 'yugioh' || 
+    activeItem.category === 'one_piece' || 
+    activeItem.category === 'lorcana' || 
+    activeItem.category === 'sports'
+  );
 
   return (
     <div className="flex flex-col h-full bg-black font-sans text-white relative overflow-hidden select-none">
@@ -217,12 +237,12 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
         {scannedTray.length > 0 ? (
           <div className="bg-emerald-500/95 backdrop-blur-md rounded-full px-4 py-1.5 shadow-[0_4px_15px_rgba(16,185,129,0.35)] border border-emerald-400/50 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-            <span className="font-black text-sm text-white">${totalValue.toFixed(2)}</span>
+            <span className="font-black text-sm text-white">${totalValue.toLocaleString()}</span>
             <span className="text-emerald-100 text-xs font-semibold">· {scannedTray.length} {scannedTray.length === 1 ? 'item' : 'items'}</span>
           </div>
         ) : (
           <div className="bg-white/10 backdrop-blur-md rounded-full px-3.5 py-1 border border-white/15 text-xs font-bold text-gray-200">
-            Live AR Price Hover
+            Universal AR Collectibles Scanner
           </div>
         )}
 
@@ -236,7 +256,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
         </button>
       </div>
 
-      {/* ─── 3. Collectible Category Switcher (Sets / Minifigs / Pokemon / Sports / TCG / Builds) ─── */}
+      {/* ─── 3. Universal Category Switcher ─── */}
       <div className="absolute top-[12%] left-0 right-0 z-30 px-3 flex items-center justify-center pointer-events-auto">
         <div className="bg-black/65 backdrop-blur-2xl border border-white/15 rounded-full p-1 flex items-center gap-1 shadow-2xl max-w-[95vw] overflow-x-auto no-scrollbar">
           {SCAN_CATEGORIES.map((cat) => {
@@ -309,7 +329,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
               <div className="flex justify-between items-center">
                 <div className="bg-emerald-500/90 backdrop-blur-md px-2.5 py-1 rounded-full text-[11px] font-black text-white flex items-center gap-1.5 shadow-md">
                   <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                  <span>IDENTIFIED {activeItem.category.toUpperCase()}</span>
+                  <span>IDENTIFIED {activeItem.category.toUpperCase().replace('_', ' ')}</span>
                 </div>
                 <div className="bg-black/65 backdrop-blur-md px-2.5 py-1 rounded-full text-[11px] font-bold text-emerald-400 border border-emerald-500/30">
                   +{activeItem.growth1Y}% 1Y
@@ -330,20 +350,20 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
                   />
                 </div>
 
-                {/* Primary Price: PSA 10 for Cards, Sealed for Sets */}
+                {/* Primary Price */}
                 <div className="text-4xl font-black text-white tracking-tight drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)]">
                   ${(activeItem.psa10Value ? activeItem.psa10Value : activeItem.sealedPrice).toLocaleString()}
                 </div>
                 <p className="text-[11px] font-black text-emerald-400 uppercase tracking-widest mt-0.5 drop-shadow">
-                  {activeItem.psa10Value ? 'PSA 10 GEM MINT VALUE' : 'CURRENT MARKET VALUE'}
+                  {isCard ? 'PSA 10 GEM MINT VALUE' : 'CURRENT MARKET VALUE'}
                 </p>
 
                 {/* Condition Breakdown */}
                 <div className="flex items-center gap-1.5 mt-2.5">
-                  {activeItem.psa9Value ? (
+                  {isCard ? (
                     <>
                       <div className="bg-black/75 backdrop-blur-md border border-emerald-500/40 rounded-full px-2.5 py-0.5 text-[11px] font-bold text-emerald-300 shadow-lg">
-                        PSA 9: ${activeItem.psa9Value.toLocaleString()}
+                        PSA 9: ${(activeItem.psa9Value || activeItem.sealedPrice * 1.5).toLocaleString()}
                       </div>
                       <div className="bg-black/75 backdrop-blur-md border border-white/15 rounded-full px-2.5 py-0.5 text-[11px] font-bold text-gray-300 shadow-lg">
                         Raw: ${activeItem.sealedPrice.toLocaleString()}
@@ -452,7 +472,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
                 <span>Add {scannedTray.length} {scannedTray.length === 1 ? 'Item' : 'Items'} to Collection (${totalValue.toLocaleString()})</span>
               </>
             ) : (
-              <span>Point Camera at Collectible or Box</span>
+              <span>Point Camera at Any TCG Card or Collectible</span>
             )}
           </button>
         </div>

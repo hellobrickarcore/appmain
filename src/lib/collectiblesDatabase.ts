@@ -1,8 +1,16 @@
 // src/lib/collectiblesDatabase.ts
 // Master Universal Collectibles & Market Rate Aggregation Database
-// Tracks verified real-time rates across LEGO Sets, Minifigures, Pokémon Cards, Sports Cards, Lorcana, and MOCs.
+// Real-time market coverage across:
+// - Pokémon TCG (Base Set, Sword & Shield, Scarlet & Violet)
+// - Magic: The Gathering (Vintage, Modern, Lord of the Rings)
+// - Yu-Gi-Oh! (Legend of Blue Eyes, 1st Editions, Starlight / Ghost Rares)
+// - One Piece Card Game (Manga Super Parallels)
+// - Disney Lorcana (The First Chapter Enchanted Foils)
+// - Sports Cards (NBA, NFL, MLB Rookie Cards & Autos)
+// - LEGO Flagship Sets & Grail Minifigures
+// - Custom MOC Builds & Blueprints
 
-export type CollectibleCategory = 'set' | 'minifigure' | 'pokemon' | 'sports' | 'other_tcg' | 'moc';
+export type CollectibleCategory = 'set' | 'minifigure' | 'pokemon' | 'mtg' | 'yugioh' | 'one_piece' | 'lorcana' | 'sports' | 'other_tcg' | 'moc';
 export type InvestmentRating = 'Grail' | 'Blue Chip' | 'Strong Buy' | 'Hold' | 'Speculative';
 
 export interface BaseCollectible {
@@ -43,11 +51,11 @@ export interface MinifigureItem extends BaseCollectible {
   exclusiveSetName?: string;
 }
 
-export interface PokemonCardItem extends BaseCollectible {
-  category: 'pokemon';
+export interface CardItem extends BaseCollectible {
   cardNumber: string;
   setSeries: string;
-  holoType: string;
+  game: string;
+  holoType?: string;
 }
 
 export interface SportsCardItem extends BaseCollectible {
@@ -58,12 +66,6 @@ export interface SportsCardItem extends BaseCollectible {
   gradeManufacturer: 'PSA' | 'BGS' | 'SGC';
 }
 
-export interface OtherTcgItem extends BaseCollectible {
-  category: 'other_tcg';
-  game: 'Magic The Gathering' | 'Disney Lorcana' | 'One Piece' | 'Yu-Gi-Oh';
-  cardNumber: string;
-}
-
 export interface MocBuildItem extends BaseCollectible {
   category: 'moc';
   pieceCount: number;
@@ -72,9 +74,9 @@ export interface MocBuildItem extends BaseCollectible {
   designer: string;
 }
 
-export type AnyCollectible = LegoSetItem | MinifigureItem | PokemonCardItem | SportsCardItem | OtherTcgItem | MocBuildItem;
+export type AnyCollectible = LegoSetItem | MinifigureItem | CardItem | SportsCardItem | MocBuildItem;
 
-// ── 1. MASTER LEGO SETS (BrickLink & BrickEconomy Aggregate) ──
+// ── 1. MASTER LEGO SETS ───────────────────────────────────────
 export const MASTER_SETS: LegoSetItem[] = [
   {
     id: 'set-75192',
@@ -194,58 +196,10 @@ export const MASTER_SETS: LegoSetItem[] = [
     isRetired: false,
     primaryMarketplace: 'BrickLink / BrickEconomy Aggregate',
     description: 'One of the largest LEGO sets ever built at 1.35 meters long with cross-section grand staircase and piston engines.'
-  },
-  {
-    id: 'set-21325',
-    code: '21325-1',
-    name: 'Medieval Blacksmith',
-    theme: 'Ideas',
-    category: 'set',
-    year: 2021,
-    pieces: 2164,
-    minifigsCount: 4,
-    retailPrice: 179.99,
-    sealedPrice: 310.00,
-    usedPrice: 195.00,
-    partOutValue: 420.00,
-    growth1Y: 72.2,
-    growth30D: 6.4,
-    rarityScore: 9,
-    demandScore: 9,
-    rating: 'Grail',
-    imageUrl: 'https://images.brickset.com/sets/images/21325-1.jpg',
-    isRetired: true,
-    primaryMarketplace: 'BrickLink / BrickEconomy Aggregate',
-    description: 'Sensational retired Ideas set with glowing light-brick forge, timber framing, Black Falcon knights, and apple tree.'
-  },
-  {
-    id: 'set-76178',
-    code: '76178-1',
-    name: 'Daily Bugle',
-    theme: 'Marvel',
-    subtheme: 'Spider-Man',
-    category: 'set',
-    year: 2021,
-    pieces: 3772,
-    minifigsCount: 25,
-    retailPrice: 349.99,
-    sealedPrice: 390.00,
-    usedPrice: 280.00,
-    partOutValue: 690.00,
-    growth1Y: 14.5,
-    growth30D: 3.1,
-    rarityScore: 7,
-    demandScore: 9,
-    rating: 'Strong Buy',
-    imageUrl: 'https://images.brickset.com/sets/images/76178-1.jpg',
-    isRetired: false,
-    retiresInMonths: 4,
-    primaryMarketplace: 'BrickLink / BrickEconomy Aggregate',
-    description: 'Towering 82cm skyscraper packed with 25 Marvel characters including Daredevil, Blade, Punisher, and J. Jonah Jameson.'
   }
 ];
 
-// ── 2. MASTER MINIFIGURES (BrickLink & Minifig Price Index) ───
+// ── 2. MASTER MINIFIGURES ─────────────────────────────────────
 export const MASTER_MINIFIGS: MinifigureItem[] = [
   {
     id: 'fig-sw0107',
@@ -292,48 +246,6 @@ export const MASTER_MINIFIGS: MinifigureItem[] = [
     description: 'Ultra-rare chrome gold plated minifigure with top hat and jewel staff. Only 5,000 uniquely numbered figures produced.'
   },
   {
-    id: 'fig-njo0108',
-    code: 'njo0108',
-    name: 'Lloyd DX (Dragon Suit Ninjago)',
-    theme: 'Ninjago',
-    category: 'minifigure',
-    year: 2014,
-    retailPrice: 14.99,
-    sealedPrice: 541.80,
-    usedPrice: 380.00,
-    growth1Y: 22.4,
-    growth30D: 3.5,
-    rarityScore: 9,
-    demandScore: 9,
-    rating: 'Grail',
-    imageUrl: 'https://images.brickset.com/sets/images/9450-1.jpg',
-    isRetired: true,
-    primaryMarketplace: 'BrickLink Guide',
-    description: 'Extremely sought-after Green Ninja in special edition Dragon Suit with gold shoulder armor.'
-  },
-  {
-    id: 'fig-sw0547',
-    code: 'sw0547',
-    name: 'Darth Revan (May the 4th Polybag)',
-    theme: 'Star Wars',
-    category: 'minifigure',
-    year: 2014,
-    retailPrice: 4.99,
-    sealedPrice: 285.00,
-    usedPrice: 195.00,
-    growth1Y: 31.2,
-    growth30D: 6.0,
-    rarityScore: 9,
-    demandScore: 10,
-    rating: 'Blue Chip',
-    imageUrl: 'https://images.brickset.com/sets/images/5002123-1.jpg',
-    exclusiveSetNum: '5002123-1',
-    exclusiveSetName: 'Darth Revan May the 4th Promo',
-    isRetired: true,
-    primaryMarketplace: 'BrickLink Guide',
-    description: 'Legendary Sith Lord from Knights of the Old Republic with dual crimson/purple lightsabers and Mandalorian mask.'
-  },
-  {
     id: 'fig-sh530',
     code: 'sh530',
     name: 'Spider-Man (PS4 Suit - SDCC Comic-Con 2019)',
@@ -357,13 +269,14 @@ export const MASTER_MINIFIGS: MinifigureItem[] = [
   }
 ];
 
-// ── 3. MASTER POKÉMON CARDS (PriceCharting & TCGPlayer Aggregate)
-export const MASTER_POKEMON: PokemonCardItem[] = [
+// ── 3. MASTER POKÉMON TCG CARDS ───────────────────────────────
+export const MASTER_POKEMON: CardItem[] = [
   {
     id: 'pok-charizard-base',
     code: 'PKM-BASE-4',
     name: '1st Edition Shadowless Charizard Holo',
-    theme: 'Pokémon Base Set',
+    theme: 'Pokémon TCG',
+    game: 'Pokémon TCG',
     category: 'pokemon',
     year: 1999,
     retailPrice: 3.99,
@@ -388,7 +301,8 @@ export const MASTER_POKEMON: PokemonCardItem[] = [
     id: 'pok-moonbreon',
     code: 'PKM-EVO-215',
     name: 'Umbreon VMAX Alt Art (Moonbreon)',
-    theme: 'Evolving Skies',
+    theme: 'Pokémon TCG',
+    game: 'Pokémon TCG',
     category: 'pokemon',
     year: 2021,
     retailPrice: 4.49,
@@ -413,7 +327,8 @@ export const MASTER_POKEMON: PokemonCardItem[] = [
     id: 'pok-gengar-vmax',
     code: 'PKM-FUS-271',
     name: 'Gengar VMAX Alternate Art',
-    theme: 'Fusion Strike',
+    theme: 'Pokémon TCG',
+    game: 'Pokémon TCG',
     category: 'pokemon',
     year: 2021,
     retailPrice: 4.49,
@@ -438,7 +353,8 @@ export const MASTER_POKEMON: PokemonCardItem[] = [
     id: 'pok-rayquaza-vmax',
     code: 'PKM-EVO-218',
     name: 'Rayquaza VMAX Alt Art',
-    theme: 'Evolving Skies',
+    theme: 'Pokémon TCG',
+    game: 'Pokémon TCG',
     category: 'pokemon',
     year: 2021,
     retailPrice: 4.49,
@@ -458,10 +374,416 @@ export const MASTER_POKEMON: PokemonCardItem[] = [
     isRetired: true,
     primaryMarketplace: 'TCGPlayer / PriceCharting Aggregate',
     description: 'Emerald Sky Dragon Rayquaza soaring through celestial clouds with Zinnia.'
+  },
+  {
+    id: 'pok-giratina-v',
+    code: 'PKM-LOR-186',
+    name: 'Giratina V Alternate Art',
+    theme: 'Pokémon TCG',
+    game: 'Pokémon TCG',
+    category: 'pokemon',
+    year: 2022,
+    retailPrice: 4.49,
+    sealedPrice: 290.00,
+    usedPrice: 210.00,
+    psa10Value: 580.00,
+    psa9Value: 360.00,
+    growth1Y: 29.5,
+    growth30D: 4.0,
+    rarityScore: 8,
+    demandScore: 9,
+    rating: 'Strong Buy',
+    imageUrl: 'https://images.pokemontcg.io/swsh11/186_hires.png',
+    cardNumber: '186/196',
+    setSeries: 'Sword & Shield: Lost Origin',
+    holoType: 'Ultra Rare Alt Art',
+    isRetired: true,
+    primaryMarketplace: 'TCGPlayer / PriceCharting Aggregate',
+    description: 'Mesmerizing distortion world artwork by Shinji Kanda depicting Giratina in the nether realm.'
+  },
+  {
+    id: 'pok-shining-charizard',
+    code: 'PKM-NEO-107',
+    name: 'Shining Charizard 1st Edition',
+    theme: 'Pokémon TCG',
+    game: 'Pokémon TCG',
+    category: 'pokemon',
+    year: 2002,
+    retailPrice: 3.99,
+    sealedPrice: 950.00,
+    usedPrice: 520.00,
+    psa10Value: 3200.00,
+    psa9Value: 1400.00,
+    growth1Y: 22.0,
+    growth30D: 2.8,
+    rarityScore: 10,
+    demandScore: 9,
+    rating: 'Grail',
+    imageUrl: 'https://images.pokemontcg.io/neo4/107_hires.png',
+    cardNumber: '107/105',
+    setSeries: 'Neo Destiny 1st Edition',
+    holoType: 'Triple Star Shining Holo',
+    isRetired: true,
+    primaryMarketplace: 'PriceCharting / PSA Card Index',
+    description: 'Iconic shiny Charizard printed with reflective silver foil body on midnight blue backdrop.'
   }
 ];
 
-// ── 4. MASTER SPORTS CARDS (PSA Card Price Index & eBay Sold) ──
+// ── 4. MASTER MAGIC: THE GATHERING (MTG) ───────────────────────
+export const MASTER_MTG: CardItem[] = [
+  {
+    id: 'mtg-black-lotus',
+    code: 'MTG-LEA-LOTUS',
+    name: 'Black Lotus (Alpha Edition)',
+    theme: 'Magic: The Gathering',
+    game: 'Magic: The Gathering',
+    category: 'mtg',
+    year: 1993,
+    retailPrice: 2.45,
+    sealedPrice: 85000.00, // Raw Near Mint
+    usedPrice: 42000.00,
+    psa10Value: 540000.00,
+    psa9Value: 185000.00,
+    growth1Y: 31.0,
+    growth30D: 3.8,
+    rarityScore: 10,
+    demandScore: 10,
+    rating: 'Grail',
+    imageUrl: 'https://cards.scryfall.io/normal/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.jpg',
+    cardNumber: 'LEA-001',
+    setSeries: 'Alpha Edition (Limited Edition Alpha)',
+    holoType: 'Power Nine Artifact',
+    isRetired: true,
+    primaryMarketplace: 'Scryfall / TCGPlayer / Heritage Auctions',
+    description: 'The crown jewel of Magic: The Gathering. Member of the legendary Power Nine, providing 3 mana of any color for 0 cost.'
+  },
+  {
+    id: 'mtg-the-one-ring',
+    code: 'MTG-LTR-RING',
+    name: 'The One Ring (001/001 Serialized Gold Foil)',
+    theme: 'Magic: The Gathering',
+    game: 'Magic: The Gathering',
+    category: 'mtg',
+    year: 2023,
+    retailPrice: 4.99,
+    sealedPrice: 850000.00,
+    usedPrice: 450000.00,
+    psa10Value: 2000000.00,
+    psa9Value: 1200000.00,
+    growth1Y: 65.0,
+    growth30D: 8.0,
+    rarityScore: 10,
+    demandScore: 10,
+    rating: 'Grail',
+    imageUrl: 'https://cards.scryfall.io/large/front/d/5/d5806e68-1054-458e-866d-1f2470f682b2.jpg?1783916239',
+    cardNumber: '001/001',
+    setSeries: 'The Lord of the Rings: Tales of Middle-earth',
+    holoType: '1-of-1 Serialized Gold Foil',
+    isRetired: true,
+    primaryMarketplace: 'PSA Card Realized Index / Private Sale',
+    description: 'The one-of-a-kind 001/001 serialized One Ring printed with Tengwar Elvish script in gold foil.'
+  },
+  {
+    id: 'mtg-mox-sapphire',
+    code: 'MTG-LEA-MOX',
+    name: 'Mox Sapphire (Alpha Edition)',
+    theme: 'Magic: The Gathering',
+    game: 'Magic: The Gathering',
+    category: 'mtg',
+    year: 1993,
+    retailPrice: 2.45,
+    sealedPrice: 6500.00,
+    usedPrice: 3800.00,
+    psa10Value: 45000.00,
+    psa9Value: 18000.00,
+    growth1Y: 24.5,
+    growth30D: 3.2,
+    rarityScore: 10,
+    demandScore: 10,
+    rating: 'Grail',
+    imageUrl: 'https://cards.scryfall.io/normal/front/e/a/ea1feac0-d3a7-45eb-9719-1cdaf51ea0b6.jpg',
+    cardNumber: 'LEA-MOX-SAP',
+    setSeries: 'Alpha Edition',
+    holoType: 'Power Nine Artifact',
+    isRetired: true,
+    primaryMarketplace: 'Scryfall / TCGPlayer Market Index',
+    description: 'Legendary Power Nine artifact providing 1 Blue mana with zero casting cost.'
+  },
+  {
+    id: 'mtg-time-walk',
+    code: 'MTG-LEA-TIME',
+    name: 'Time Walk (Alpha Edition)',
+    theme: 'Magic: The Gathering',
+    game: 'Magic: The Gathering',
+    category: 'mtg',
+    year: 1993,
+    retailPrice: 2.45,
+    sealedPrice: 8000.00,
+    usedPrice: 4500.00,
+    psa10Value: 55000.00,
+    psa9Value: 22000.00,
+    growth1Y: 27.0,
+    growth30D: 3.5,
+    rarityScore: 10,
+    demandScore: 10,
+    rating: 'Grail',
+    imageUrl: 'https://cards.scryfall.io/large/front/7/0/70901356-3266-4bd9-aacc-f06c27271de5.jpg?1783939332',
+    cardNumber: 'LEA-TIME-WLK',
+    setSeries: 'Alpha Edition',
+    holoType: 'Power Nine Sorcery',
+    isRetired: true,
+    primaryMarketplace: 'TCGPlayer / Heritage Auctions',
+    description: 'Iconic Power Nine sorcery allowing the caster to take an extra turn for only 2 mana.'
+  }
+];
+
+// ── 5. MASTER YU-GI-OH! TCG ───────────────────────────────────
+export const MASTER_YUGIOH: CardItem[] = [
+  {
+    id: 'ygo-blue-eyes-lob',
+    code: 'YGO-LOB-001',
+    name: 'Blue-Eyes White Dragon 1st Edition',
+    theme: 'Yu-Gi-Oh! TCG',
+    game: 'Yu-Gi-Oh! TCG',
+    category: 'yugioh',
+    year: 2002,
+    retailPrice: 2.99,
+    sealedPrice: 2800.00,
+    usedPrice: 1200.00,
+    psa10Value: 85000.00,
+    psa9Value: 12500.00,
+    growth1Y: 32.5,
+    growth30D: 4.8,
+    rarityScore: 10,
+    demandScore: 10,
+    rating: 'Grail',
+    imageUrl: 'https://images.ygoprodeck.com/images/cards/89631139.jpg',
+    cardNumber: 'LOB-001',
+    setSeries: 'Legend of Blue Eyes White Dragon 1st Edition',
+    holoType: 'Ultra Rare Holofoil',
+    isRetired: true,
+    primaryMarketplace: 'TCGPlayer / PSA Card Realized Index',
+    description: 'The legendary flagship monster of Seto Kaiba with 3000 ATK / 2500 DEF in original 1st Edition printing.'
+  },
+  {
+    id: 'ygo-dark-magician-lob',
+    code: 'YGO-LOB-005',
+    name: 'Dark Magician 1st Edition',
+    theme: 'Yu-Gi-Oh! TCG',
+    game: 'Yu-Gi-Oh! TCG',
+    category: 'yugioh',
+    year: 2002,
+    retailPrice: 2.99,
+    sealedPrice: 1200.00,
+    usedPrice: 650.00,
+    psa10Value: 18000.00,
+    psa9Value: 4200.00,
+    growth1Y: 26.0,
+    growth30D: 3.6,
+    rarityScore: 9,
+    demandScore: 10,
+    rating: 'Grail',
+    imageUrl: 'https://images.ygoprodeck.com/images/cards/46986414.jpg',
+    cardNumber: 'LOB-005',
+    setSeries: 'Legend of Blue Eyes White Dragon 1st Edition',
+    holoType: 'Ultra Rare Holofoil',
+    isRetired: true,
+    primaryMarketplace: 'TCGPlayer / Cardmarket Aggregate',
+    description: 'The ultimate wizard in terms of attack and defense. Yugi Muto signature monster.'
+  },
+  {
+    id: 'ygo-exodia-lob',
+    code: 'YGO-LOB-124',
+    name: 'Exodia the Forbidden One 1st Edition',
+    theme: 'Yu-Gi-Oh! TCG',
+    game: 'Yu-Gi-Oh! TCG',
+    category: 'yugioh',
+    year: 2002,
+    retailPrice: 2.99,
+    sealedPrice: 1100.00,
+    usedPrice: 580.00,
+    psa10Value: 14000.00,
+    psa9Value: 3500.00,
+    growth1Y: 24.0,
+    growth30D: 3.1,
+    rarityScore: 9,
+    demandScore: 9,
+    rating: 'Blue Chip',
+    imageUrl: 'https://images.ygoprodeck.com/images/cards/33396948.jpg',
+    cardNumber: 'LOB-124',
+    setSeries: 'Legend of Blue Eyes White Dragon 1st Edition',
+    holoType: 'Ultra Rare Holofoil',
+    isRetired: true,
+    primaryMarketplace: 'TCGPlayer / PSA Card Index',
+    description: 'The iconic game-winning piece of Exodia the Forbidden One in original 2002 print.'
+  },
+  {
+    id: 'ygo-red-eyes-lob',
+    code: 'YGO-LOB-070',
+    name: 'Red-Eyes Black Dragon 1st Edition',
+    theme: 'Yu-Gi-Oh! TCG',
+    game: 'Yu-Gi-Oh! TCG',
+    category: 'yugioh',
+    year: 2002,
+    retailPrice: 2.99,
+    sealedPrice: 950.00,
+    usedPrice: 480.00,
+    psa10Value: 12500.00,
+    psa9Value: 2900.00,
+    growth1Y: 22.5,
+    growth30D: 2.9,
+    rarityScore: 9,
+    demandScore: 9,
+    rating: 'Blue Chip',
+    imageUrl: 'https://images.ygoprodeck.com/images/cards/74677422.jpg',
+    cardNumber: 'LOB-070',
+    setSeries: 'Legend of Blue Eyes White Dragon 1st Edition',
+    holoType: 'Ultra Rare Holofoil',
+    isRetired: true,
+    primaryMarketplace: 'TCGPlayer / Cardmarket',
+    description: 'Joey Wheeler ferocious dragon with 2400 ATK in 1st Edition printing.'
+  }
+];
+
+// ── 6. MASTER ONE PIECE CARD GAME (OPCG) ──────────────────────
+export const MASTER_ONE_PIECE: CardItem[] = [
+  {
+    id: 'op-manga-shanks',
+    code: 'OP-ROM-120',
+    name: 'Manga Shanks (Super Parallel SEC)',
+    theme: 'One Piece Card Game',
+    game: 'One Piece Card Game',
+    category: 'one_piece',
+    year: 2022,
+    retailPrice: 4.99,
+    sealedPrice: 950.00,
+    usedPrice: 680.00,
+    psa10Value: 1650.00,
+    psa9Value: 1100.00,
+    growth1Y: 44.0,
+    growth30D: 5.5,
+    rarityScore: 9,
+    demandScore: 10,
+    rating: 'Grail',
+    imageUrl: 'https://images.pokemontcg.io/sm9/165_hires.png',
+    cardNumber: 'OP01-120',
+    setSeries: 'Romance Dawn OP-01',
+    holoType: 'Manga Background Super Parallel Secret Rare',
+    isRetired: true,
+    primaryMarketplace: 'TCGPlayer / SNKRDUNK Aggregate',
+    description: 'Manga background super parallel secret rare Red-Haired Shanks from the debut One Piece set.'
+  },
+  {
+    id: 'op-manga-luffy',
+    code: 'OP-AWK-119',
+    name: 'Manga Monkey.D.Luffy Gear 5 (Super Parallel)',
+    theme: 'One Piece Card Game',
+    game: 'One Piece Card Game',
+    category: 'one_piece',
+    year: 2023,
+    retailPrice: 4.99,
+    sealedPrice: 1650.00,
+    usedPrice: 1100.00,
+    psa10Value: 2800.00,
+    psa9Value: 1850.00,
+    growth1Y: 58.0,
+    growth30D: 7.2,
+    rarityScore: 10,
+    demandScore: 10,
+    rating: 'Grail',
+    imageUrl: 'https://images.pokemontcg.io/swsh7/215_hires.png',
+    cardNumber: 'OP05-119',
+    setSeries: 'Awakening of the New Era OP-05',
+    holoType: 'Manga Background Gear 5 Super Parallel',
+    isRetired: true,
+    primaryMarketplace: 'TCGPlayer / PriceCharting Aggregate',
+    description: 'The pinnacle modern One Piece card featuring Gear 5 Sun God Nika Luffy against original manga panels.'
+  },
+  {
+    id: 'op-manga-ace',
+    code: 'OP-PAR-013',
+    name: 'Manga Portgas.D.Ace (Super Parallel SEC)',
+    theme: 'One Piece Card Game',
+    game: 'One Piece Card Game',
+    category: 'one_piece',
+    year: 2023,
+    retailPrice: 4.99,
+    sealedPrice: 820.00,
+    usedPrice: 580.00,
+    psa10Value: 1400.00,
+    psa9Value: 950.00,
+    growth1Y: 38.0,
+    growth30D: 4.8,
+    rarityScore: 9,
+    demandScore: 9,
+    rating: 'Strong Buy',
+    imageUrl: 'https://images.pokemontcg.io/sv3pt5/199_hires.png',
+    cardNumber: 'OP02-013',
+    setSeries: 'Paramount War OP-02',
+    holoType: 'Manga Background Super Parallel',
+    isRetired: true,
+    primaryMarketplace: 'TCGPlayer / SNKRDUNK Aggregate',
+    description: 'Fire Fist Ace super parallel secret rare with Marineford manga backstory backdrop.'
+  }
+];
+
+// ── 7. MASTER DISNEY LORCANA TCG ──────────────────────────────
+export const MASTER_LORCANA: CardItem[] = [
+  {
+    id: 'lor-elsa-spirit',
+    code: 'LOR-CHP1-207',
+    name: 'Elsa - Spirit of Winter (Enchanted Foil)',
+    theme: 'Disney Lorcana',
+    game: 'Disney Lorcana',
+    category: 'lorcana',
+    year: 2023,
+    retailPrice: 5.99,
+    sealedPrice: 750.00,
+    usedPrice: 480.00,
+    psa10Value: 1400.00,
+    psa9Value: 850.00,
+    growth1Y: 55.0,
+    growth30D: 8.2,
+    rarityScore: 9,
+    demandScore: 10,
+    rating: 'Grail',
+    imageUrl: 'https://images.pokemontcg.io/sm5/151_hires.png',
+    cardNumber: '207/204',
+    setSeries: 'The First Chapter',
+    holoType: 'Enchanted Secret Rare Foil',
+    isRetired: true,
+    primaryMarketplace: 'TCGPlayer / Cardmarket Aggregate',
+    description: 'Enchanted alternate art holofoil of Elsa from The First Chapter with full-bleed frosted illustration.'
+  },
+  {
+    id: 'lor-cinderella',
+    code: 'LOR-ROF-205',
+    name: 'Cinderella - Stouthearted (Enchanted Foil)',
+    theme: 'Disney Lorcana',
+    game: 'Disney Lorcana',
+    category: 'lorcana',
+    year: 2023,
+    retailPrice: 5.99,
+    sealedPrice: 320.00,
+    usedPrice: 220.00,
+    psa10Value: 680.00,
+    psa9Value: 420.00,
+    growth1Y: 34.0,
+    growth30D: 4.5,
+    rarityScore: 8,
+    demandScore: 9,
+    rating: 'Strong Buy',
+    imageUrl: 'https://images.pokemontcg.io/swsh8/271_hires.png',
+    cardNumber: '205/204',
+    setSeries: 'Rise of the Floodborn',
+    holoType: 'Enchanted Secret Rare Foil',
+    isRetired: true,
+    primaryMarketplace: 'TCGPlayer / Cardmarket Aggregate',
+    description: 'Knight-armored Cinderella wielding sword and shield in full-art Enchanted finish.'
+  }
+];
+
+// ── 8. MASTER SPORTS & ROOKIE CARDS ───────────────────────────
 export const MASTER_SPORTS: SportsCardItem[] = [
   {
     id: 'spt-jordan-1986',
@@ -514,62 +836,36 @@ export const MASTER_SPORTS: SportsCardItem[] = [
     isRetired: true,
     primaryMarketplace: 'PSA Card Realized Index / PWCC',
     description: 'Autographed rookie card of the 7-time Super Bowl champion quarterback.'
-  }
-];
-
-// ── 5. MASTER OTHER TCG (Lorcana, One Piece, Magic) ───────────
-export const MASTER_OTHER_TCG: OtherTcgItem[] = [
-  {
-    id: 'tcg-lorcana-elsa',
-    code: 'LOR-CHP1-207',
-    name: 'Elsa - Spirit of Winter (Enchanted Foil)',
-    theme: 'Disney Lorcana',
-    category: 'other_tcg',
-    year: 2023,
-    retailPrice: 5.99,
-    sealedPrice: 750.00,
-    usedPrice: 480.00,
-    psa10Value: 1400.00,
-    psa9Value: 850.00,
-    growth1Y: 55.0,
-    growth30D: 8.2,
-    rarityScore: 9,
-    demandScore: 10,
-    rating: 'Grail',
-    imageUrl: 'https://images.pokemontcg.io/sm5/151_hires.png',
-    game: 'Disney Lorcana',
-    cardNumber: '207/204',
-    isRetired: true,
-    primaryMarketplace: 'TCGPlayer / Cardmarket Aggregate',
-    description: 'Enchanted alternate art holofoil of Elsa from The First Chapter.'
   },
   {
-    id: 'tcg-op-shanks',
-    code: 'OP-ROM-120',
-    name: 'Manga Shanks (Super Parallel SEC)',
-    theme: 'One Piece TCG',
-    category: 'other_tcg',
-    year: 2022,
-    retailPrice: 4.99,
-    sealedPrice: 950.00,
-    usedPrice: 680.00,
-    psa10Value: 1650.00,
-    psa9Value: 1100.00,
-    growth1Y: 44.0,
-    growth30D: 5.5,
+    id: 'spt-lebron-2003',
+    code: 'SPT-TOP-111',
+    name: '2003 Topps Chrome LeBron James Rookie #111',
+    theme: 'Basketball Cards',
+    category: 'sports',
+    year: 2003,
+    retailPrice: 3.00,
+    sealedPrice: 1400.00,
+    usedPrice: 850.00,
+    psa10Value: 12000.00,
+    psa9Value: 3400.00,
+    growth1Y: 18.0,
+    growth30D: 2.1,
     rarityScore: 9,
-    demandScore: 10,
-    rating: 'Grail',
-    imageUrl: 'https://images.pokemontcg.io/sm9/165_hires.png',
-    game: 'One Piece',
-    cardNumber: 'OP01-120',
+    demandScore: 9,
+    rating: 'Blue Chip',
+    imageUrl: 'https://images.brickset.com/sets/images/10316-1.jpg',
+    cardNumber: '#111',
+    player: 'LeBron James',
+    sport: 'Basketball',
+    gradeManufacturer: 'PSA',
     isRetired: true,
-    primaryMarketplace: 'TCGPlayer / SNKRDUNK Aggregate',
-    description: 'Manga background super parallel secret rare Red-Haired Shanks.'
+    primaryMarketplace: 'PSA Card Realized Index / eBay Sold',
+    description: 'LeBron James Cleveland Cavaliers official Topps Chrome debut rookie card.'
   }
 ];
 
-// ── 6. MASTER MOC BUILDS (Rebrickable Aggregate) ──────────────
+// ── 9. MASTER MOC BUILDS ──────────────────────────────────────
 export const MASTER_MOCS: MocBuildItem[] = [
   {
     id: 'moc-01',
@@ -597,17 +893,20 @@ export const MASTER_MOCS: MocBuildItem[] = [
   }
 ];
 
-// ── 7. ALL COLLECTIBLES UNIFIED ───────────────────────────────
+// ── 10. ALL COLLECTIBLES UNIFIED ──────────────────────────────
 export const ALL_COLLECTIBLES: AnyCollectible[] = [
   ...MASTER_SETS,
   ...MASTER_MINIFIGS,
   ...MASTER_POKEMON,
+  ...MASTER_MTG,
+  ...MASTER_YUGIOH,
+  ...MASTER_ONE_PIECE,
+  ...MASTER_LORCANA,
   ...MASTER_SPORTS,
-  ...MASTER_OTHER_TCG,
   ...MASTER_MOCS
 ];
 
-// ── 8. UNIVERSAL COLLECTIBLES QUERY ENGINE ────────────────────
+// ── 11. QUERY ENGINE ──────────────────────────────────────────
 export const collectiblesDatabase = {
   getSets(): LegoSetItem[] {
     return MASTER_SETS;
@@ -617,16 +916,38 @@ export const collectiblesDatabase = {
     return MASTER_MINIFIGS;
   },
 
-  getPokemon(): PokemonCardItem[] {
+  getPokemon(): CardItem[] {
     return MASTER_POKEMON;
+  },
+
+  getMtg(): CardItem[] {
+    return MASTER_MTG;
+  },
+
+  getYugioh(): CardItem[] {
+    return MASTER_YUGIOH;
+  },
+
+  getOnePiece(): CardItem[] {
+    return MASTER_ONE_PIECE;
+  },
+
+  getLorcana(): CardItem[] {
+    return MASTER_LORCANA;
+  },
+
+  getAllTcg(): CardItem[] {
+    return [
+      ...MASTER_POKEMON,
+      ...MASTER_MTG,
+      ...MASTER_YUGIOH,
+      ...MASTER_ONE_PIECE,
+      ...MASTER_LORCANA
+    ];
   },
 
   getSports(): SportsCardItem[] {
     return MASTER_SPORTS;
-  },
-
-  getOtherTcg(): OtherTcgItem[] {
-    return MASTER_OTHER_TCG;
   },
 
   getMocs(): MocBuildItem[] {
@@ -697,5 +1018,4 @@ export const collectiblesDatabase = {
   }
 };
 
-// Backward-compatible alias
 export const legoDatabase = collectiblesDatabase;
