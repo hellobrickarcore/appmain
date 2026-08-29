@@ -193,6 +193,24 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
     }
   };
 
+  const toggleTorch = async () => {
+    const nextState = !torchOn;
+    setTorchOn(nextState);
+    if (videoRef.current && videoRef.current.srcObject) {
+      try {
+        const stream = videoRef.current.srcObject as MediaStream;
+        const track = stream.getVideoTracks()[0];
+        if (track && 'applyConstraints' in track) {
+          await (track as any).applyConstraints({
+            advanced: [{ torch: nextState }]
+          });
+        }
+      } catch (e) {
+        console.log('[Scanner] Torch toggle:', e);
+      }
+    }
+  };
+
   const isBulkMode = selectedCategory === 'bulk_minifig';
   const isCard = activeItem && (
     activeItem.category === 'pokemon' || 
@@ -242,7 +260,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
         )}
 
         <button 
-          onClick={() => setTorchOn(!torchOn)}
+          onClick={toggleTorch}
           className={`w-11 h-11 rounded-full backdrop-blur-xl border flex items-center justify-center active:scale-90 transition-all shadow-lg ${
             torchOn ? 'bg-amber-400 border-amber-300 text-black shadow-amber-400/30' : 'bg-black/50 border-white/15 text-white'
           }`}
