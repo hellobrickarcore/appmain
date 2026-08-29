@@ -37,7 +37,8 @@ export enum Screen {
   LEGO_MAP = 'LEGO_MAP',
   INSIGHTS = 'INSIGHTS',
   BROWSE = 'BROWSE',
-  ALERTS = 'ALERTS'
+  ALERTS = 'ALERTS',
+  SET_BINDER = 'SET_BINDER'
 }
 
 export type GameModeId = 'TARGET' | 'SPRINT' | 'MIRROR';

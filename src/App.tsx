@@ -24,6 +24,7 @@ import { LeaderboardScreen } from './screens/LeaderboardScreen';
 import { FeedScreen } from './screens/FeedScreen';
 import { CreatePostScreen } from './screens/CreatePostScreen';
 import { AlertsScreen } from './screens/AlertsScreen';
+import { SetBinderScreen } from './screens/SetBinderScreen';
 import { BottomNav } from './components/BottomNav';
 import { BootingScreen } from './components/BootingScreen';
 import { appStateService } from './services/appStateService';
@@ -39,6 +40,7 @@ const App: React.FC = () => {
     if (preview === 'browse') return Screen.BROWSE;
     if (preview === 'leaderboard') return Screen.LEADERBOARD;
     if (preview === 'detail') return Screen.SET_DETAIL;
+    if (preview === 'binder') return Screen.SET_BINDER;
     return Screen.HOME;
   };
 
@@ -308,6 +310,8 @@ const App: React.FC = () => {
         return <CreatePostScreen onNavigate={handleNavigate} />;
       case Screen.ALERTS:
         return <AlertsScreen onNavigate={handleNavigate} />;
+      case Screen.SET_BINDER:
+        return <SetBinderScreen setId={screenParams?.setId} onNavigate={handleNavigate} />;
       default:
         return <HomeScreen onNavigate={handleNavigate} />;
     }
