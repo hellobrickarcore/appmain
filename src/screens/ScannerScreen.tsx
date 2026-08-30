@@ -375,7 +375,8 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
   const addToTray = (item: DetectedItem) => {
     if (!item.matchedCollectible) return;
     setScannedTray(prev => {
-      if (prev.some(c => c.code === item.matchedCollectible!.code)) return prev;
+      const matchId = item.matchedCollectible!.code || item.matchedCollectible!.id;
+      if (prev.some(c => (c.code || c.id) === matchId)) return prev;
       return [...prev, item.matchedCollectible!];
     });
   };
@@ -391,30 +392,36 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
         current.push({
           id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
           userId: 'user-1',
-          setNum: item.code,
+          setNum: item.code || item.id,
           condition: 'sealed',
           quantity: 1,
-          purchasePrice: item.sealedPrice,
+          purchasePrice: item.sealedPrice || 0,
           purchaseDate: new Date().toISOString().split('T')[0],
-          notes: `Scanned with HelloBrick AR (${item.category.toUpperCase()})`,
+          notes: `Scanned with AR (${item.type?.toUpperCase() || 'UNKNOWN'})`,
           addedAt: new Date().toISOString(),
-          itemType: item.category === 'minifigure' ? 'minifig' : (item.category === 'set' ? 'set' : 'brick')
+          itemType: item.type === 'minifigure' ? 'minifig' : (item.type === 'pokemon' || item.type === 'mtg' ? 'card' : 'set')
         });
       });
 
       localStorage.setItem('hellobrick_collection_sets', JSON.stringify(current));
       window.dispatchEvent(new CustomEvent('hellobrick:collection-updated'));
+      
+      setShowSaveSuccess(true);
+      
+      // Async dynamic import for confetti to ensure it fires safely
+      import('canvas-confetti').then((confetti) => {
+        confetti.default({
+          particleCount: 150,
+          spread: 100,
+          origin: { y: 0.5 },
+          colors: ['#10B981', '#FF7A30', '#3B82F6', '#FFCE4A'],
+          zIndex: 9999
+        });
+      }).catch(e => console.error("Confetti load error", e));
 
-      confetti({
-        particleCount: 90,
-        spread: 70,
-        origin: { y: 0.8 },
-        colors: ['#10B981', '#FF7A30', '#3B82F6', '#FFCE4A']
-      });
-
-      setTimeout(() => onNavigate(Screen.HOME), 500);
+      setTimeout(() => onNavigate(Screen.COLLECTION), 1500);
     } catch {
-      onNavigate(Screen.HOME);
+      alert('Save failed');
     }
   };
 
