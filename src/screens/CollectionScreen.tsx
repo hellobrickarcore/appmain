@@ -52,14 +52,7 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
           try { items = JSON.parse(stored); } catch {}
         }
       }
-      if (!items || items.length === 0) {
-        items = [
-          { id: 'demo-1', setNum: '75192-1', condition: 'sealed', purchasePrice: 849.99, addedAt: new Date().toISOString() },
-          { id: 'demo-2', setNum: '10316-1', condition: 'used', purchasePrice: 440.00, addedAt: new Date().toISOString() },
-          { id: 'demo-3', setNum: '21325-1', condition: 'sealed', purchasePrice: 179.99, addedAt: new Date().toISOString() },
-        ];
-        localStorage.setItem('hellobrick_collection_sets', JSON.stringify(items));
-      }
+      if (!items) items = [];
       setCollection(items);
       const fetchedSets = mockSets;
       const valuations = new Map(Object.entries(mockValuations));

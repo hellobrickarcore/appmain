@@ -95,7 +95,10 @@ class AppStateService {
   // ── BOOT ──────────────────────────────────────────
   private boot() {
     const preview = typeof window !== 'undefined' ? localStorage.getItem('hellobrick_preview_screen') : null;
-    console.log('[AppState] Booting directly, preview =', preview);
+    const onboardingFinished = typeof window !== 'undefined' ? localStorage.getItem('hellobrick_onboarding_finished') === 'true' : false;
+    
+    console.log('[AppState] Booting directly, preview =', preview, 'onboarding =', onboardingFinished);
+    
     if (preview === 'scanner') {
       this.transition('scanner');
     } else if (preview === 'browse') {
@@ -104,6 +107,8 @@ class AppStateService {
       this.transition('home', { screen: Screen.IDEAS });
     } else if (preview === 'collection') {
       this.transition('home', { screen: Screen.COLLECTION });
+    } else if (!onboardingFinished) {
+      this.transition('onboarding');
     } else {
       this.transition('home');
     }

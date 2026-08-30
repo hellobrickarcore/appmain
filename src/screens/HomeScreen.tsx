@@ -75,19 +75,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
 
   const loadData = async () => {
     try {
-      let [col, fetchSets] = await Promise.all([getCollectionFromStorage(), getSets()]);
-      if (!col || col.length === 0) {
-        const demoItems = [
-          { id: 'demo-1', setNum: '75192-1', condition: 'sealed', purchasePrice: 849.99, addedAt: new Date().toISOString() },
-          { id: 'demo-2', setNum: '10316-1', condition: 'used', purchasePrice: 440.00, addedAt: new Date().toISOString() },
-          { id: 'demo-3', setNum: '21325-1', condition: 'sealed', purchasePrice: 179.99, addedAt: new Date().toISOString() },
-        ];
-        localStorage.setItem('hellobrick_collection_sets', JSON.stringify(demoItems));
-        col = demoItems;
-      }
-      setCollection(col);
+      const [col, fetchSets] = await Promise.all([getCollectionFromStorage(), getSets()]);
+      setCollection(col || []);
       setSets(fetchSets);
-    } catch (e) {}
+    } catch (e) {
+      console.error('Failed to load collection:', e);
+    }
   };
 
   useEffect(() => {
