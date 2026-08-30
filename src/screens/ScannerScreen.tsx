@@ -3,6 +3,7 @@ import { X, Zap, Plus, Layers, Box, Smile, Sparkles, Trophy, Flame, Check, Shiel
 import { Screen, CollectionItem } from '../types';
 import { collectiblesDatabase, AnyCollectible } from '../lib/collectiblesDatabase';
 import { detectBricks, DetectionStabilizer } from '../services/brickDetectionService';
+import { extractTextFromImage } from '../services/ocrService';
 import { FrameDetection } from '../types/detection';
 import confetti from 'canvas-confetti';
 
@@ -43,7 +44,8 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
   const stabilizerRef = useRef(new DetectionStabilizer());
   const scanLoopRef = useRef<number>(0);
   const frameIndexRef = useRef(0);
-  const sessionIdRef = useRef(`scan_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`);
+  const sessionIdRef = useRef(`session_${Math.random().toString(36).substring(2, 9)}`);
+  const isOcrRunningRef = useRef(false);
   const isScanningRef = useRef(false);
 
   const [torchOn, setTorchOn] = useState(false);
@@ -209,8 +211,73 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
 
           setDetectedItems(items);
         } else {
-          setScanStatus('scanning');
-          setDetectedItems([]);
+          // If YOLO detects nothing, try OCR fallback for TCG cards
+          const isTcg = ['pokemon', 'mtg', 'yugioh', 'sports', 'one_piece', 'lorcana', 'all'].includes(activeCategory);
+          
+          if (isTcg && !isOcrRunningRef.current && videoRef.current) {
+            isOcrRunningRef.current = true;
+            (async () => {
+              try {
+                const canvas = document.createElement('canvas');
+                canvas.width = videoRef.current!.videoWidth || 640;
+                canvas.height = videoRef.current!.videoHeight || 480;
+                const ctx = canvas.getContext('2d');
+                if (ctx && canvas.width > 0) {
+                  ctx.drawImage(videoRef.current!, 0, 0, canvas.width, canvas.height);
+                  const text = await extractTextFromImage(canvas);
+                  const lowerText = text.toLowerCase();
+                  
+                  let matchedItem = null;
+                  
+                  // Simple heuristic matcher for demo (sustainable since it uses no backend)
+                  if (lowerText.includes('umbreon') || lowerText.includes('vmax') || lowerText.includes('moonbreon')) {
+                     matchedItem = collectiblesDatabase.getPokemon().find(p => p.name.includes('Umbreon'));
+                  } else if (lowerText.includes('charizard')) {
+                     matchedItem = collectiblesDatabase.getPokemon().find(p => p.name.includes('Charizard'));
+                  } else if (lowerText.includes('blastoise')) {
+                     matchedItem = collectiblesDatabase.getPokemon().find(p => p.name.includes('Blastoise'));
+                  } else if (lowerText.includes('mewtwo')) {
+                     matchedItem = collectiblesDatabase.getPokemon().find(p => p.name.includes('Mewtwo'));
+                  } else if (lowerText.includes('pikachu') || lowerText.includes('illustrator')) {
+                     matchedItem = collectiblesDatabase.getPokemon().find(p => p.name.includes('Pikachu'));
+                  } else if (lowerText.includes('black lotus') || lowerText.includes('lotus')) {
+                     matchedItem = collectiblesDatabase.getMTG().find(m => m.name.includes('Black Lotus'));
+                  } else if (lowerText.includes('blue-eyes') || lowerText.includes('white dragon')) {
+                     matchedItem = collectiblesDatabase.getYugioh().find(y => y.name.includes('Blue-Eyes'));
+                  }
+                  
+                  if (matchedItem) {
+                     setDetectedItems([{
+                       id: 'ocr-' + Date.now(),
+                       bbox: { 
+                         xMin: canvas.width * 0.15, 
+                         yMin: canvas.height * 0.25, 
+                         xMax: canvas.width * 0.85, 
+                         yMax: canvas.height * 0.75 
+                       },
+                       label: matchedItem.name,
+                       confidence: 0.95,
+                       matchedCollectible: matchedItem,
+                       price: matchedItem.psa10Value || matchedItem.sealedPrice || 0,
+                       frameW: canvas.width,
+                       frameH: canvas.height
+                     }]);
+                     setScanStatus('detected');
+                  } else {
+                     setScanStatus('scanning');
+                     setDetectedItems(prev => prev.filter(p => !p.id.startsWith('ocr-')));
+                  }
+                }
+              } catch (e) {
+                console.error('OCR fallback failed:', e);
+              } finally {
+                setTimeout(() => { isOcrRunningRef.current = false; }, 2500); // 2.5s cooldown
+              }
+            })();
+          } else if (!isOcrRunningRef.current) {
+            setScanStatus('scanning');
+            setDetectedItems(prev => prev.filter(p => !p.id.startsWith('ocr-')));
+          }
         }
       } catch (err) {
         console.log('[Scanner] Detection cycle error:', err);
