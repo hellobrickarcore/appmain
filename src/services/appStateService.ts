@@ -78,13 +78,15 @@ class AppStateService {
   constructor() {
     if (typeof window !== 'undefined') {
       // 🚨 HARD VERSIONED PURGE: Force refresh community feed to remove old kids/fruit/generic data
-      const currentVersion = '1.7.0'; // Increment this to force a wipe
+      const currentVersion = '1.8.0'; // INCREMENTED to force a wipe of dummy data
       const storedVersion = localStorage.getItem('hellobrick_data_version');
       
       if (storedVersion !== currentVersion) {
-         console.log(`[AppState] Version mismatch (${storedVersion} vs ${currentVersion}). Purging community data...`);
+         console.log(`[AppState] Version mismatch (${storedVersion} vs ${currentVersion}). PURGING LEGACY DUMMY DATA...`);
          localStorage.removeItem('hellobrick_feed_posts');
          localStorage.removeItem('hellobrick_community_last_drip');
+         localStorage.removeItem('hellobrick_collection_sets'); // Nuke the injected dummy items
+         localStorage.removeItem('hellobrick_onboarding_finished'); // Nuke onboarding state to force the flow
          localStorage.setItem('hellobrick_data_version', currentVersion);
       }
       
