@@ -206,7 +206,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
               label,
               confidence: det.prediction?.identityConfidence || det.prediction?.detectorConfidence || 0,
               matchedCollectible: matched,
-              price: matched ? (matched.psa10Value || matched.sealedPrice) : 0,
+              price: matched ? ((matched.psa10Value || matched.sealedPrice) || 0) : 0,
               frameW: response.frameWidth,
               frameH: response.frameHeight,
             };
@@ -272,7 +272,8 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
                        id: `dyn_${Date.now()}`,
                        name: bestMatch.replace(/(pokemon|card|tcg)/gi, '').trim() || 'Unknown Card',
                        type: 'pokemon',
-                       marketPrice: Math.floor(Math.random() * 50) + 10,
+                       psa10Value: Math.floor(Math.random() * 50) + 10,
+                       sealedPrice: Math.floor(Math.random() * 50) + 10,
                        image: 'https://images.pokemontcg.io/base1/4.png', 
                        condition: 'raw'
                      } as any;
@@ -644,7 +645,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
                     />
                   </div>
                   <span className="text-[10px] font-black text-emerald-400 mt-1">
-                    ${(item.psa10Value || item.sealedPrice).toLocaleString()}
+                    ${((item.psa10Value || item.sealedPrice) || 0).toLocaleString()}
                   </span>
                 </div>
               ))}

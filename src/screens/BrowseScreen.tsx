@@ -180,7 +180,7 @@ export const BrowseScreen: React.FC<BrowseScreenProps> = ({ onNavigate }) => {
           {filteredItems.map((item) => {
             const isAdded = !!addedMap[item.code];
             const isWished = !!wishlistMap[item.code];
-            const price = item.psa10Value ? item.psa10Value : item.sealedPrice;
+            const price = item.psa10Value ? item.psa10Value : (item.sealedPrice || 0);
 
             return (
               <div
