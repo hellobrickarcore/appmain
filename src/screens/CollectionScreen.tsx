@@ -88,11 +88,11 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
         isRetired: dbItem.isRetired
       } : {
         id: `custom-${item.setNum}`,
-        name: `Collectible #${item.setNum}`,
+        name: (item as any).name || `Collectible #${item.setNum}`,
         setNum: item.setNum,
         retailPrice: item.purchasePrice || 49.99,
-        imageUrl: 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop',
-        theme: 'Custom',
+        imageUrl: (item as any).imageUrl || 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop',
+        theme: (item as any).itemType?.toUpperCase() || 'Custom',
         year: 2023,
         isRetired: false
       };
@@ -103,10 +103,11 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
         sealedChange30d: dbItem.growth30D,
         usedChange30d: dbItem.growth30D * 0.8
       } : {
-        sealedValue: (set.retailPrice || 99) * 1.2,
-        usedValue: (set.retailPrice || 99) * 0.8,
-        sealedChange30d: 3.5,
-        usedChange30d: 2.1
+        // DO NOT artificially inflate the price for custom dynamic items
+        sealedValue: item.purchasePrice || 0,
+        usedValue: (item.purchasePrice || 0) * 0.8,
+        sealedChange30d: 0,
+        usedChange30d: 0
       };
 
       const quantity = (item as any).quantity ?? 1;
@@ -369,7 +370,7 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                     {/* Image */}
                     <div className="w-full h-[90px] bg-[#F5F5F7] rounded-[14px] flex items-center justify-center overflow-hidden mb-3">
                       <img
-                        src={'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop'}
+                        src={item.set?.imageUrl || "https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop"}
                         alt={item.set.name}
                         className="w-full h-full object-contain p-2"
                         onError={e => {
@@ -428,7 +429,7 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                   >
                     <div className="w-12 h-12 bg-[#F5F5F7] rounded-xl overflow-hidden shrink-0 p-1">
                       <img
-                        src={'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop'}
+                        src={item.set?.imageUrl || "https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop"}
                         alt={item.set.name}
                         className="w-full h-full object-contain"
                         onError={e => {

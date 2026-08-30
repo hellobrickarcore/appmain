@@ -324,7 +324,9 @@ export interface CollectionItem {
   purchaseDate: string | null;
   notes: string;
   addedAt: string;
-  itemType: 'set' | 'minifig';
+  itemType: 'set' | 'minifig' | 'card' | 'brick';
+  imageUrl?: string;
+  name?: string;
 }
 
 export interface WishlistItem {
@@ -334,6 +336,8 @@ export interface WishlistItem {
   targetPrice: number | null;
   alertEnabled: boolean;
   addedAt: string;
-  itemType: 'set' | 'minifig';
+  itemType: 'set' | 'minifig' | 'card' | 'brick';
+  imageUrl?: string;
+  name?: string;
 }
 

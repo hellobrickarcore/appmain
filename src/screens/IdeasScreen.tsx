@@ -63,7 +63,9 @@ export const IdeasScreen: React.FC<IdeasScreenProps> = ({ onNavigate }) => {
   const savedIdeas = ideas.filter(idea => idea.isSaved);
 
   const IdeaCard = ({ idea, compact = false }: { idea: BuildIdea, compact?: boolean }) => (
-    <div className={`relative group rounded-2xl overflow-hidden bg-white border border-gray-200/80 shadow-sm transition-all duration-300 hover:shadow-md ${compact ? 'flex flex-row' : 'flex flex-col'}`}>
+    <div 
+      onClick={() => alert(`MOC Instructions for ${idea.name} are unlocked in the Premium Tier!`)}
+      className={`relative group rounded-2xl overflow-hidden bg-white border border-gray-200/80 shadow-sm transition-all duration-300 hover:shadow-md cursor-pointer ${compact ? 'flex flex-row' : 'flex flex-col'}`}>
       
       {/* Real LEGO Model Thumbnail */}
       <div className={`${compact ? 'w-24 h-24 shrink-0' : 'h-36 w-full'} bg-gray-50 relative flex items-center justify-center p-2 border-b border-gray-100 overflow-hidden`}>

@@ -276,18 +276,16 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
                      
                      if (combinedSearchString.includes('magic') || combinedSearchString.includes('mtg') || combinedSearchString.includes('gathering')) {
                         inferredType = 'mtg';
-                        placeholderImg = 'https://images.unsplash.com/photo-1606166325683-e6deb6979b0c?q=80&w=400&auto=format&fit=crop';
+                        placeholderImg = 'https://upload.wikimedia.org/wikipedia/en/a/aa/Magic_the_gathering_card_back.jpg';
                      } else if (combinedSearchString.includes('yugioh') || combinedSearchString.includes('yu-gi-oh')) {
                         inferredType = 'yugioh';
-                        placeholderImg = 'https://images.unsplash.com/photo-1620336655055-088d06e36bf0?q=80&w=400&auto=format&fit=crop';
                      } else if (combinedSearchString.includes('lego') || combinedSearchString.includes('brick')) {
                         inferredType = 'lego';
-                        placeholderImg = 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop';
                      }
 
                      matchedItem = {
                        id: `dyn_${Date.now()}`,
-                       name: bestMatch.replace(/(pokemon|card|tcg|magic|gathering|lego)/gi, '').trim() || 'Unknown Item',
+                       name: (bestMatch.replace(/(pokemon|card|tcg|magic|gathering|lego)/gi, '').trim() || 'Unknown Item') + (entities.length > 1 ? ` (${entities.slice(1, 3).join(' ')})` : ''),
                        type: inferredType,
                        psa10Value: Math.floor(Math.random() * 50) + 10,
                        sealedPrice: Math.floor(Math.random() * 50) + 10,
@@ -400,6 +398,8 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
           purchasePrice: item.sealedPrice || 0,
           purchaseDate: new Date().toISOString().split('T')[0],
           notes: `Scanned with AR (${item.type?.toUpperCase() || 'UNKNOWN'})`,
+          imageUrl: item.image,
+          name: item.name,
           addedAt: new Date().toISOString(),
           itemType: item.type === 'minifigure' ? 'minifig' : (item.type === 'pokemon' || item.type === 'mtg' ? 'card' : 'set')
         });
@@ -658,7 +658,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
                   <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-emerald-500 border border-white text-white flex items-center justify-center shadow">
                     <Check className="w-3 h-3" />
                   </div>
-                  <div className="w-12 h-12 bg-white/90 rounded-xl p-1 flex items-center justify-center overflow-hidden">
+                  <div className="w-14 h-14 bg-white/90 rounded-xl p-1 flex items-center justify-center overflow-hidden mb-1">
                     <img 
                       src={item.imageUrl} 
                       alt={item.name} 
@@ -668,7 +668,8 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
                       }}
                     />
                   </div>
-                  <span className="text-[10px] font-black text-emerald-400 mt-1">
+                  <span className="text-[10px] font-bold text-white text-center leading-tight line-clamp-2 w-full max-w-[80px] mb-0.5">{item.name}</span>
+                  <span className="text-[11px] font-black text-emerald-400">
                     ${((item.psa10Value || item.sealedPrice) || 0).toLocaleString()}
                   </span>
                 </div>
