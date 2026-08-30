@@ -9,15 +9,15 @@ interface OnboardingProps {
 }
 
 const WELCOME_CARDS = [
-  { img: 'https://images.pokemontcg.io/swsh7/215_hires.png', label: 'Umbreon VMAX', price: '$850', rot: -8, x: '5%', y: '10%', delay: '0s', size: 135 },
-  { img: 'https://cdn.rebrickable.com/media/sets/75192-1/1.jpg', label: 'Millennium Falcon', price: '$849', rot: 6, x: '48%', y: '15%', delay: '0.4s', size: 145 },
+  { img: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/197.png', label: 'Umbreon VMAX', price: '$850', rot: -8, x: '5%', y: '10%', delay: '0s', size: 135 },
+  { img: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/6.png', label: 'Charizard', price: '$1,200', rot: 6, x: '48%', y: '15%', delay: '0.4s', size: 145 },
 ];
 
 const CATEGORIES = [
-  { id: 'pokemon', label: 'Pokémon TCG', icon: '⚡', img: 'https://images.pokemontcg.io/base1/4_hires.png' },
-  { id: 'lego', label: 'LEGO Sets', icon: '🧱', img: 'https://cdn.rebrickable.com/media/sets/10300-1/1.jpg' },
-  { id: 'mtg', label: 'Magic TCG', icon: '🔥', img: 'https://cards.scryfall.io/large/front/c/7/c7147ca2-3140-4141-8fdc-1294627197b0.jpg' },
-  { id: 'yugioh', label: 'Yu-Gi-Oh!', icon: '👁️', img: 'https://images.ygoprodeck.com/images/cards/89631139.jpg' },
+  { id: 'pokemon', label: 'Pokémon TCG', icon: '⚡', img: 'https://images.unsplash.com/photo-1613771404784-3a5686aa2be3?q=80&w=800&auto=format&fit=crop' },
+  { id: 'lego', label: 'LEGO Sets', icon: '🧱', img: 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=800&auto=format&fit=crop' },
+  { id: 'mtg', label: 'Magic TCG', icon: '🔥', img: 'https://images.unsplash.com/photo-1606166325683-e6deb6979b0c?q=80&w=800&auto=format&fit=crop' },
+  { id: 'yugioh', label: 'Yu-Gi-Oh!', icon: '👁️', img: 'https://images.unsplash.com/photo-1620336655055-088d06e36bf0?q=80&w=800&auto=format&fit=crop' },
 ];
 
 const GOALS = [
@@ -45,11 +45,11 @@ export const OnboardingQuestionnaire: React.FC<OnboardingProps> = ({ onNavigate 
     if (step === 3) {
       const catName = CATEGORIES.find(c => c.id === selectedCategory)?.label || 'collectibles';
       
-      const t1 = setTimeout(() => setLoadingText(`Loading ${catName} market prices...`), 800);
-      const t2 = setTimeout(() => setLoadingText(`Configuring your personal vault...`), 1600);
+      const t1 = setTimeout(() => setLoadingText(`Loading ${catName} market prices...`), 400);
+      const t2 = setTimeout(() => setLoadingText(`Configuring your personal vault...`), 800);
       const t3 = setTimeout(() => {
         goTo(4, 'forward');
-      }, 2600);
+      }, 1200);
       
       return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
     }
@@ -184,7 +184,7 @@ export const OnboardingQuestionnaire: React.FC<OnboardingProps> = ({ onNavigate 
                     } as React.CSSProperties}
                   >
                     <div className="w-full aspect-square bg-[#2C2C2E] rounded-[14px] mb-2.5 overflow-hidden flex items-center justify-center p-2 relative">
-                      <img src={card.img} alt={card.label} className="w-full h-full object-contain drop-shadow-xl" loading="lazy" />
+                      <img referrerPolicy="no-referrer" src={card.img} alt={card.label} className="w-full h-full object-contain drop-shadow-xl" loading="lazy" />
                     </div>
                     <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider text-center truncate">{card.label}</p>
                     <p className="text-center font-black text-base mt-0.5 text-emerald-400">{card.price}</p>
@@ -240,7 +240,7 @@ export const OnboardingQuestionnaire: React.FC<OnboardingProps> = ({ onNavigate 
                         : 'border-[#2C2C2E] hover:border-white/20'
                     }`}
                   >
-                    <img src={cat.img} alt={cat.label} className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-screen" />
+                    <img referrerPolicy="no-referrer" src={cat.img} alt={cat.label} className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-screen" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
                     
                     {selectedCategory === cat.id && (
