@@ -276,11 +276,13 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
                      
                      if (combinedSearchString.includes('magic') || combinedSearchString.includes('mtg') || combinedSearchString.includes('gathering')) {
                         inferredType = 'mtg';
-                        placeholderImg = 'https://upload.wikimedia.org/wikipedia/en/a/aa/Magic_the_gathering_card_back.jpg';
+                        placeholderImg = 'https://images.unsplash.com/photo-1606166325683-e6deb6979b0c?q=80&w=400&auto=format&fit=crop';
                      } else if (combinedSearchString.includes('yugioh') || combinedSearchString.includes('yu-gi-oh')) {
                         inferredType = 'yugioh';
+                        placeholderImg = 'https://images.unsplash.com/photo-1620336655055-088d06e36bf0?q=80&w=400&auto=format&fit=crop';
                      } else if (combinedSearchString.includes('lego') || combinedSearchString.includes('brick')) {
                         inferredType = 'lego';
+                        placeholderImg = 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop';
                      }
 
                      matchedItem = {
@@ -662,7 +664,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
                       alt={item.name} 
                       className="max-h-full max-w-full object-contain"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://images.brickset.com/sets/images/75192-1.jpg';
+                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop';
                       }}
                     />
                   </div>

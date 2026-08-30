@@ -241,7 +241,7 @@ export const SetBinderScreen: React.FC<SetBinderScreenProps> = ({ onNavigate, se
                     alt={item.name}
                     className="max-h-full max-w-full object-contain filter drop-shadow-md rounded-md"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'https://images.brickset.com/sets/images/75192-1.jpg';
+                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop';
                     }}
                   />
                 </div>

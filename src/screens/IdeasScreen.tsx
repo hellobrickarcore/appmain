@@ -20,16 +20,16 @@ interface BuildIdea {
 }
 
 const MOCK_IDEAS: BuildIdea[] = [
-  { id: '1', name: 'Rocket Launch Center', difficulty: 'Medium', pieceCount: 145, matchPercentage: 87, imageUrl: 'https://images.brickset.com/sets/images/60351-1.jpg', isSaved: false, theme: 'Space' },
-  { id: '2', name: 'Micro Castle', difficulty: 'Hard', pieceCount: 320, matchPercentage: 65, imageUrl: 'https://images.brickset.com/sets/images/10305-1.jpg', isSaved: true, theme: 'Castle' },
-  { id: '3', name: 'Pocket Robot', difficulty: 'Easy', pieceCount: 45, matchPercentage: 98, imageUrl: 'https://images.brickset.com/sets/images/31115-1.jpg', isSaved: false, theme: 'Sci-Fi' },
-  { id: '4', name: 'Speedster Car', difficulty: 'Medium', pieceCount: 110, matchPercentage: 78, imageUrl: 'https://images.brickset.com/sets/images/76917-1.jpg', isSaved: false, theme: 'City' },
-  { id: '5', name: 'Bonsai Tree', difficulty: 'Hard', pieceCount: 450, matchPercentage: 42, imageUrl: 'https://images.brickset.com/sets/images/10281-1.jpg', isSaved: true, theme: 'Botanical' },
-  { id: '6', name: 'Pirate Raft', difficulty: 'Easy', pieceCount: 65, matchPercentage: 92, imageUrl: 'https://images.brickset.com/sets/images/21322-1.jpg', isSaved: false, theme: 'Pirates' },
-  { id: '7', name: 'Cyberpunk Speeder', difficulty: 'Medium', pieceCount: 180, matchPercentage: 71, imageUrl: 'https://images.brickset.com/sets/images/75300-1.jpg', isSaved: false, theme: 'Sci-Fi' },
-  { id: '8', name: 'Dragon Whelp', difficulty: 'Hard', pieceCount: 290, matchPercentage: 55, imageUrl: 'https://images.brickset.com/sets/images/21348-1.jpg', isSaved: false, theme: 'Fantasy' },
-  { id: '9', name: 'Lunar Rover', difficulty: 'Medium', pieceCount: 130, matchPercentage: 84, imageUrl: 'https://images.brickset.com/sets/images/60348-1.jpg', isSaved: false, theme: 'Space' },
-  { id: '10', name: 'Ice Cream Stand', difficulty: 'Easy', pieceCount: 85, matchPercentage: 95, imageUrl: 'https://images.brickset.com/sets/images/60314-1.jpg', isSaved: false, theme: 'City' },
+  { id: '1', name: 'Rocket Launch Center', difficulty: 'Medium', pieceCount: 145, matchPercentage: 87, imageUrl: 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop', isSaved: false, theme: 'Space' },
+  { id: '2', name: 'Micro Castle', difficulty: 'Hard', pieceCount: 320, matchPercentage: 65, imageUrl: 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop', isSaved: true, theme: 'Castle' },
+  { id: '3', name: 'Pocket Robot', difficulty: 'Easy', pieceCount: 45, matchPercentage: 98, imageUrl: 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop', isSaved: false, theme: 'Sci-Fi' },
+  { id: '4', name: 'Speedster Car', difficulty: 'Medium', pieceCount: 110, matchPercentage: 78, imageUrl: 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop', isSaved: false, theme: 'City' },
+  { id: '5', name: 'Bonsai Tree', difficulty: 'Hard', pieceCount: 450, matchPercentage: 42, imageUrl: 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop', isSaved: true, theme: 'Botanical' },
+  { id: '6', name: 'Pirate Raft', difficulty: 'Easy', pieceCount: 65, matchPercentage: 92, imageUrl: 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop', isSaved: false, theme: 'Pirates' },
+  { id: '7', name: 'Cyberpunk Speeder', difficulty: 'Medium', pieceCount: 180, matchPercentage: 71, imageUrl: 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop', isSaved: false, theme: 'Sci-Fi' },
+  { id: '8', name: 'Dragon Whelp', difficulty: 'Hard', pieceCount: 290, matchPercentage: 55, imageUrl: 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop', isSaved: false, theme: 'Fantasy' },
+  { id: '9', name: 'Lunar Rover', difficulty: 'Medium', pieceCount: 130, matchPercentage: 84, imageUrl: 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop', isSaved: false, theme: 'Space' },
+  { id: '10', name: 'Ice Cream Stand', difficulty: 'Easy', pieceCount: 85, matchPercentage: 95, imageUrl: 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop', isSaved: false, theme: 'City' },
 ];
 
 const DIFFICULTY_COLORS = {
@@ -72,7 +72,7 @@ export const IdeasScreen: React.FC<IdeasScreenProps> = ({ onNavigate }) => {
           alt={idea.name} 
           className="max-h-full max-w-full object-contain filter drop-shadow-sm group-hover:scale-105 transition-transform duration-300"
           onError={(e) => {
-            (e.target as HTMLImageElement).src = 'https://images.brickset.com/sets/images/10281-1.jpg';
+            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop';
           }}
         />
         {!compact && (

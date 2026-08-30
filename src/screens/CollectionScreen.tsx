@@ -91,7 +91,7 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
         name: `Collectible #${item.setNum}`,
         setNum: item.setNum,
         retailPrice: item.purchasePrice || 49.99,
-        imageUrl: `https://images.brickset.com/sets/images/${item.setNum.includes('-') ? item.setNum : item.setNum + '-1'}.jpg`,
+        imageUrl: 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop',
         theme: 'Custom',
         year: 2023,
         isRetired: false
@@ -369,7 +369,7 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                     {/* Image */}
                     <div className="w-full h-[90px] bg-[#F5F5F7] rounded-[14px] flex items-center justify-center overflow-hidden mb-3">
                       <img
-                        src={`https://images.brickset.com/sets/images/${item.set.setNum}.jpg`}
+                        src={'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop'}
                         alt={item.set.name}
                         className="w-full h-full object-contain p-2"
                         onError={e => {
@@ -428,7 +428,7 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                   >
                     <div className="w-12 h-12 bg-[#F5F5F7] rounded-xl overflow-hidden shrink-0 p-1">
                       <img
-                        src={`https://images.brickset.com/sets/images/${item.set.setNum}.jpg`}
+                        src={'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop'}
                         alt={item.set.name}
                         className="w-full h-full object-contain"
                         onError={e => {
