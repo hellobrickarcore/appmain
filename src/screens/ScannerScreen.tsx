@@ -215,7 +215,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
           setDetectedItems(items);
         } else {
           // If YOLO detects nothing, try OCR fallback for TCG cards
-          const isTcg = ['pokemon', 'mtg', 'yugioh', 'sports', 'one_piece', 'lorcana', 'all'].includes(activeCategory);
+          const isTcg = ['pokemon', 'mtg', 'yugioh', 'sports', 'one_piece', 'lorcana', 'all'].includes(selectedCategory);
           
           if (isTcg && !isOcrRunningRef.current && videoRef.current) {
             isOcrRunningRef.current = true;
