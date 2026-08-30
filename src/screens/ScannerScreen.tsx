@@ -265,16 +265,30 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
                     }
                   }
 
-                  // 2. GUARANTEED FALLBACK: If they scan a Japanese card not in our top list, generate it dynamically!
+                  // 2. GUARANTEED FALLBACK: If they scan a card not in our top list, generate it dynamically!
                   if (!matchedItem && bestMatch && bestMatch.trim() !== '') {
                      console.log('[Scanner] Dynamic Generation for:', bestMatch);
+                     
+                     // Infer type from Cloud Vision data
+                     let inferredType: 'pokemon' | 'mtg' | 'yugioh' | 'lego' = 'pokemon';
+                     let placeholderImg = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png'; // Pikachu placeholder
+                     
+                     if (combinedSearchString.includes('magic') || combinedSearchString.includes('mtg') || combinedSearchString.includes('gathering')) {
+                        inferredType = 'mtg';
+                        placeholderImg = 'https://upload.wikimedia.org/wikipedia/en/a/aa/Magic_the_gathering_card_back.jpg';
+                     } else if (combinedSearchString.includes('yugioh') || combinedSearchString.includes('yu-gi-oh')) {
+                        inferredType = 'yugioh';
+                     } else if (combinedSearchString.includes('lego') || combinedSearchString.includes('brick')) {
+                        inferredType = 'lego';
+                     }
+
                      matchedItem = {
                        id: `dyn_${Date.now()}`,
-                       name: bestMatch.replace(/(pokemon|card|tcg)/gi, '').trim() || 'Unknown Card',
-                       type: 'pokemon',
+                       name: bestMatch.replace(/(pokemon|card|tcg|magic|gathering|lego)/gi, '').trim() || 'Unknown Item',
+                       type: inferredType,
                        psa10Value: Math.floor(Math.random() * 50) + 10,
                        sealedPrice: Math.floor(Math.random() * 50) + 10,
-                       image: 'https://images.pokemontcg.io/base1/4.png', 
+                       image: placeholderImg, 
                        condition: 'raw'
                      } as any;
                   }

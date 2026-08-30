@@ -48,7 +48,12 @@ export const OnboardingQuestionnaire: React.FC<OnboardingProps> = ({ onNavigate 
       const t1 = setTimeout(() => setLoadingText(`Loading ${catName} market prices...`), 400);
       const t2 = setTimeout(() => setLoadingText(`Configuring your personal vault...`), 800);
       const t3 = setTimeout(() => {
-        goTo(4, 'forward');
+        setTransitioning(true);
+        setDirection('forward');
+        setTimeout(() => {
+          setStep(4);
+          setTimeout(() => setTransitioning(false), 350);
+        }, 180);
       }, 1200);
       
       return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
@@ -72,9 +77,9 @@ export const OnboardingQuestionnaire: React.FC<OnboardingProps> = ({ onNavigate 
       if (selectedGoal) localStorage.setItem('hellobrick_pref_goal', selectedGoal);
       
       if (onNavigate) {
-        onNavigate(Screen.SCANNER);
+        onNavigate(Screen.AUTH);
       } else {
-        appStateService.navigate(Screen.SCANNER);
+        appStateService.navigate(Screen.AUTH);
       }
     } catch (e) {}
   };
