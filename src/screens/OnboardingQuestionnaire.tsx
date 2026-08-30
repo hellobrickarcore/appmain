@@ -8,12 +8,16 @@ interface OnboardingProps {
   onNavigate?: (screen: Screen) => void;
 }
 
+const WELCOME_CARDS = [
+  { img: 'https://images.pokemontcg.io/swsh7/215_hires.png', label: 'Umbreon VMAX', price: '$850', rot: -8, x: '5%', y: '10%', delay: '0s', size: 135 },
+  { img: 'https://cdn.rebrickable.com/media/sets/75192-1/1.jpg', label: 'Millennium Falcon', price: '$849', rot: 6, x: '48%', y: '15%', delay: '0.4s', size: 145 },
+];
+
 const CATEGORIES = [
-  { id: 'pokemon', label: 'Pokémon TCG', icon: '⚡', color: '#F59E0B' },
-  { id: 'lego', label: 'LEGO Sets & Minifigs', icon: '🧱', color: '#10B981' },
-  { id: 'mtg', label: 'Magic: The Gathering', icon: '🔥', color: '#EF4444' },
-  { id: 'sports', label: 'Sports Cards', icon: '🏀', color: '#3B82F6' },
-  { id: 'all', label: 'A bit of everything', icon: '✨', color: '#8B5CF6' },
+  { id: 'pokemon', label: 'Pokémon TCG', icon: '⚡', img: 'https://images.pokemontcg.io/base1/4_hires.png' },
+  { id: 'lego', label: 'LEGO Sets', icon: '🧱', img: 'https://cdn.rebrickable.com/media/sets/10300-1/1.jpg' },
+  { id: 'mtg', label: 'Magic TCG', icon: '🔥', img: 'https://cards.scryfall.io/large/front/c/7/c7147ca2-3140-4141-8fdc-1294627197b0.jpg' },
+  { id: 'yugioh', label: 'Yu-Gi-Oh!', icon: '👁️', img: 'https://images.ygoprodeck.com/images/cards/89631139.jpg' },
 ];
 
 const GOALS = [
@@ -101,12 +105,32 @@ export const OnboardingQuestionnaire: React.FC<OnboardingProps> = ({ onNavigate 
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
         }
+        @keyframes ob-float-a {
+          0%, 100% { transform: translateY(0px) rotate(var(--ob-rot)) scale(1); }
+          50%       { transform: translateY(-14px) rotate(var(--ob-rot)) scale(1.02); }
+        }
+        @keyframes ob-float-b {
+          0%, 100% { transform: translateY(0px) rotate(var(--ob-rot)) scale(1); }
+          50%       { transform: translateY(-10px) rotate(var(--ob-rot)) scale(1.015); }
+        }
+        @keyframes ob-pulse-ring {
+          0%   { transform: scale(0.8); opacity: 0.6; }
+          100% { transform: scale(2.4); opacity: 0; }
+        }
         .ob-content-in-fwd  { animation: ob-slide-in-fwd  0.35s cubic-bezier(0.25,0.46,0.45,0.94) both; }
         .ob-content-in-bwd  { animation: ob-slide-in-bwd  0.35s cubic-bezier(0.25,0.46,0.45,0.94) both; }
         .ob-content-out-fwd { animation: ob-slide-out-fwd 0.18s cubic-bezier(0.55,0,1,0.45) both; }
         .ob-content-out-bwd { animation: ob-slide-out-bwd 0.18s cubic-bezier(0.55,0,1,0.45) both; }
         .animate-pulse-soft { animation: pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        
+        .ob-card-a { animation: ob-float-a 5.5s ease-in-out infinite; }
+        .ob-card-b { animation: ob-float-b 4.8s ease-in-out infinite; }
+        .ob-pulse-ring { animation: ob-pulse-ring 1.8s ease-out infinite; }
       `}</style>
+
+      {/* Radial glow background */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] h-[400px] rounded-full pointer-events-none transition-all duration-700"
+           style={{ background: 'radial-gradient(circle, rgba(16,185,129,0.15) 0%, transparent 70%)', marginTop: '-80px' }} />
 
       {/* Header */}
       <div className="relative z-20 pt-[max(env(safe-area-inset-top),2.5rem)] px-6 flex items-center justify-between">
@@ -131,11 +155,11 @@ export const OnboardingQuestionnaire: React.FC<OnboardingProps> = ({ onNavigate 
                 : 'opacity-0'
           }`}
         >
-          {/* STEP 0: Value Proposition */}
+          {/* STEP 0: Value Proposition with Floating Image Cards */}
           {step === 0 && (
             <div className="flex-1 flex flex-col justify-between">
               <div>
-                <h1 className="text-[36px] font-black text-white leading-[1.1] tracking-tight mb-4 mt-8">
+                <h1 className="text-[36px] font-black text-white leading-[1.1] tracking-tight mb-4 mt-2">
                   Your Collection Is Worth Thousands
                 </h1>
                 <p className="text-zinc-400 text-[17px] font-medium leading-relaxed">
@@ -143,14 +167,33 @@ export const OnboardingQuestionnaire: React.FC<OnboardingProps> = ({ onNavigate 
                 </p>
               </div>
 
-              {/* Fake visual of value */}
-              <div className="relative h-[220px] w-full my-8 bg-[#1C1C1E] rounded-3xl border border-white/10 flex flex-col items-center justify-center overflow-hidden shadow-2xl">
-                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-transparent opacity-50" />
-                <TrendingUp className="w-12 h-12 text-emerald-400 mb-3 drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]" />
-                <span className="text-zinc-500 font-bold uppercase tracking-widest text-xs mb-1">Total Vault Value</span>
-                <span className="text-4xl font-black text-white tracking-tighter">$14,295.00</span>
-                <div className="mt-3 bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-xs font-bold border border-emerald-500/30">
-                  +12.4% this year
+              {/* Animated Floating Image Cards */}
+              <div className="relative z-10 h-[260px] w-full shrink-0 mt-8 overflow-visible">
+                {WELCOME_CARDS.map((card, i) => (
+                  <div
+                    key={i}
+                    className={`absolute bg-[#1C1C1E] rounded-[22px] shadow-[0_20px_50px_rgba(0,0,0,0.8)] border border-white/10 overflow-hidden p-3 ${i === 0 ? 'ob-card-a z-20' : 'ob-card-b z-10'}`}
+                    style={{
+                      '--card-size': card.size,
+                      width: 'calc(var(--card-size) * 1px)',
+                      left: card.x,
+                      top: card.y,
+                      '--ob-rot': `${card.rot}deg`,
+                      transform: `rotate(${card.rot}deg)`,
+                      animationDelay: card.delay,
+                    } as React.CSSProperties}
+                  >
+                    <div className="w-full aspect-square bg-[#2C2C2E] rounded-[14px] mb-2.5 overflow-hidden flex items-center justify-center p-2 relative">
+                      <img src={card.img} alt={card.label} className="w-full h-full object-contain drop-shadow-xl" loading="lazy" />
+                    </div>
+                    <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider text-center truncate">{card.label}</p>
+                    <p className="text-center font-black text-base mt-0.5 text-emerald-400">{card.price}</p>
+                  </div>
+                ))}
+                
+                {/* Pulsing accent dot behind cards */}
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                  <div className="ob-pulse-ring w-16 h-16 rounded-full border-2 border-emerald-500/40" />
                 </div>
               </div>
 
@@ -174,34 +217,42 @@ export const OnboardingQuestionnaire: React.FC<OnboardingProps> = ({ onNavigate 
             </div>
           )}
 
-          {/* STEP 1: Category Selection */}
+          {/* STEP 1: Category Selection (Image Cards Grid) */}
           {step === 1 && (
             <div className="flex-1 flex flex-col">
-              <div className="mt-4 mb-8">
-                <span className="text-emerald-500 font-bold text-sm uppercase tracking-widest mb-2 block">Step 1 of 2</span>
+              <div className="mt-2 mb-6">
+                <span className="text-emerald-500 font-bold text-sm uppercase tracking-widest mb-1 block">Step 1 of 2</span>
                 <h1 className="text-[32px] font-black text-white leading-tight mb-2">What do you collect?</h1>
                 <p className="text-zinc-400 text-[16px]">We'll tailor your vault to your collection.</p>
               </div>
 
-              <div className="space-y-3 flex-1 overflow-y-auto no-scrollbar pb-4">
+              <div className="grid grid-cols-2 gap-3 flex-1 overflow-y-auto no-scrollbar pb-4 px-1">
                 {CATEGORIES.map(cat => (
                   <button
                     key={cat.id}
                     onClick={() => {
                       setSelectedCategory(cat.id);
-                      setTimeout(() => goTo(2, 'forward'), 150);
+                      setTimeout(() => goTo(2, 'forward'), 250);
                     }}
-                    className={`w-full p-4 rounded-2xl border-2 flex items-center gap-4 transition-all text-left ${
+                    className={`relative rounded-3xl overflow-hidden aspect-[4/5] border-2 transition-all duration-300 shadow-xl ${
                       selectedCategory === cat.id 
-                        ? 'border-emerald-500 bg-emerald-500/10' 
-                        : 'border-[#2C2C2E] bg-[#1C1C1E] hover:border-[#3C3C3E]'
+                        ? 'border-emerald-500 scale-[0.96] shadow-[0_0_20px_rgba(16,185,129,0.3)]' 
+                        : 'border-[#2C2C2E] hover:border-white/20'
                     }`}
                   >
-                    <div className="w-12 h-12 rounded-xl bg-black/50 flex items-center justify-center text-2xl border border-white/5">
-                      {cat.icon}
+                    <img src={cat.img} alt={cat.label} className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-screen" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+                    
+                    {selectedCategory === cat.id && (
+                      <div className="absolute top-3 right-3 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg">
+                        <CheckCircle2 className="w-4 h-4 text-white" />
+                      </div>
+                    )}
+                    
+                    <div className="absolute bottom-4 left-4 right-4 text-left">
+                      <div className="text-2xl mb-1 filter drop-shadow-md">{cat.icon}</div>
+                      <div className="text-white font-black text-lg leading-tight filter drop-shadow-md">{cat.label}</div>
                     </div>
-                    <span className="text-white font-bold text-lg flex-1">{cat.label}</span>
-                    <ChevronRight className={`w-5 h-5 ${selectedCategory === cat.id ? 'text-emerald-500' : 'text-zinc-600'}`} />
                   </button>
                 ))}
               </div>
@@ -211,8 +262,8 @@ export const OnboardingQuestionnaire: React.FC<OnboardingProps> = ({ onNavigate 
           {/* STEP 2: Goal Selection */}
           {step === 2 && (
             <div className="flex-1 flex flex-col">
-              <div className="mt-4 mb-8">
-                <span className="text-emerald-500 font-bold text-sm uppercase tracking-widest mb-2 block">Step 2 of 2</span>
+              <div className="mt-2 mb-6">
+                <span className="text-emerald-500 font-bold text-sm uppercase tracking-widest mb-1 block">Step 2 of 2</span>
                 <h1 className="text-[32px] font-black text-white leading-tight mb-2">What's your main goal?</h1>
                 <p className="text-zinc-400 text-[16px]">This helps us set up your dashboard.</p>
               </div>
@@ -223,9 +274,9 @@ export const OnboardingQuestionnaire: React.FC<OnboardingProps> = ({ onNavigate 
                     key={g.id}
                     onClick={() => {
                       setSelectedGoal(g.id);
-                      setTimeout(() => goTo(3, 'forward'), 150);
+                      setTimeout(() => goTo(3, 'forward'), 200);
                     }}
-                    className={`w-full p-4 rounded-2xl border-2 flex items-center gap-4 transition-all text-left ${
+                    className={`w-full p-5 rounded-[20px] border-2 flex items-center gap-4 transition-all text-left shadow-lg ${
                       selectedGoal === g.id 
                         ? 'border-emerald-500 bg-emerald-500/10' 
                         : 'border-[#2C2C2E] bg-[#1C1C1E] hover:border-[#3C3C3E]'
@@ -247,9 +298,9 @@ export const OnboardingQuestionnaire: React.FC<OnboardingProps> = ({ onNavigate 
           {step === 3 && (
             <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
               <div className="relative w-24 h-24 mb-8">
-                <div className="absolute inset-0 border-4 border-zinc-800 rounded-full" />
+                <div className="absolute inset-0 border-4 border-[#2C2C2E] rounded-full" />
                 <div className="absolute inset-0 border-4 border-emerald-500 rounded-full border-t-transparent animate-spin" />
-                <div className="absolute inset-0 flex items-center justify-center text-3xl">
+                <div className="absolute inset-0 flex items-center justify-center text-4xl filter drop-shadow-lg">
                   {currentCategory?.icon || '✨'}
                 </div>
               </div>
@@ -262,21 +313,21 @@ export const OnboardingQuestionnaire: React.FC<OnboardingProps> = ({ onNavigate 
           {step === 4 && (
             <div className="flex-1 flex flex-col justify-between pt-12 pb-4">
               <div className="flex-1 flex flex-col items-center justify-center text-center">
-                <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mb-6 border border-emerald-500/40 relative">
+                <div className="w-24 h-24 bg-emerald-500/20 rounded-full flex items-center justify-center mb-8 border border-emerald-500/40 relative">
                   <div className="absolute inset-0 bg-emerald-500/20 rounded-full animate-ping opacity-50" />
-                  <CheckCircle2 className="w-10 h-10 text-emerald-400" />
+                  <CheckCircle2 className="w-12 h-12 text-emerald-400" />
                 </div>
                 
                 <h1 className="text-[34px] font-black text-white leading-tight mb-4">
                   Your Vault is Ready
                 </h1>
                 
-                <p className="text-zinc-400 text-lg leading-relaxed max-w-[280px]">
+                <p className="text-zinc-400 text-[17px] leading-relaxed max-w-[280px]">
                   We've customized your experience for <span className="text-white font-bold">{currentCategory?.label || 'collectibles'}</span> to help you <span className="text-white font-bold">{currentGoal?.label.toLowerCase() || 'track your collection'}</span>.
                 </p>
 
-                <div className="mt-8 p-4 bg-[#1C1C1E] border border-white/10 rounded-2xl flex items-center gap-4 w-full max-w-[300px]">
-                  <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
+                <div className="mt-10 p-5 bg-[#1C1C1E] border border-white/10 rounded-2xl flex items-center gap-4 w-full max-w-[320px] shadow-2xl">
+                  <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center border border-blue-500/30">
                     <Camera className="w-6 h-6 text-blue-400" />
                   </div>
                   <div className="text-left flex-1">
