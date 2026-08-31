@@ -111,7 +111,7 @@ export const FeedScreen: React.FC<Props> = ({ onNavigate }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F5F7] text-gray-900 flex flex-col w-full overflow-hidden">
+    <div className="h-full bg-[#F5F5F7] text-gray-900 flex flex-col w-full overflow-hidden">
       {/* Header */}
       <div className="pt-[max(env(safe-area-inset-top),2.5rem)] px-4 pb-3 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-30 border-b border-gray-200">
         <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">

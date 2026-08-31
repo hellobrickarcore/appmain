@@ -46,7 +46,7 @@ export const CreatePostScreen: React.FC<Props> = ({ onNavigate }) => {
   );
 
   return (
-    <div className="min-h-screen bg-[#F5F5F7] text-gray-900 flex flex-col w-full z-50">
+    <div className="h-full bg-[#F5F5F7] text-gray-900 flex flex-col w-full z-50">
       {/* Header */}
       <div className="pt-[max(env(safe-area-inset-top),2.5rem)] px-4 pb-3 flex items-center justify-between bg-white border-b border-gray-200">
         <button 
@@ -65,7 +65,7 @@ export const CreatePostScreen: React.FC<Props> = ({ onNavigate }) => {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto pb-32">
         {/* Photo Upload Area */}
         <div 
           onClick={handleSimulateImageSelect}

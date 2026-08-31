@@ -75,7 +75,7 @@ export const WishlistScreen: React.FC<WishlistScreenProps> = ({ onNavigate }) =>
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F5F5F7] font-sans text-gray-900 relative overflow-hidden select-none">
+    <div className="flex flex-col h-full bg-[#F5F5F7] font-sans text-gray-900 relative overflow-hidden select-none">
       {/* Background radial highlight */}
       <div className="absolute top-0 left-0 right-0 h-[450px] bg-gradient-to-b from-[#C9A84C]/5 via-transparent to-transparent pointer-events-none" />
 

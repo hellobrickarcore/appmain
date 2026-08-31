@@ -28,7 +28,7 @@ const ACHIEVEMENTS = [
 
 export const QuestsScreen: React.FC<Props> = ({ onNavigate }) => {
   return (
-    <div className="min-h-screen bg-[#F5F5F7] text-gray-900 pt-[max(env(safe-area-inset-top),2.5rem)] pb-[max(env(safe-area-inset-bottom),6rem)] flex flex-col">
+    <div className="h-full bg-[#F5F5F7] text-gray-900 pt-[max(env(safe-area-inset-top),2.5rem)] pb-[max(env(safe-area-inset-bottom),6rem)] flex flex-col">
       {/* Header */}
       <div className="px-6 py-4 flex items-center justify-between border-b border-gray-200/50">
         <div className="flex items-center gap-4">
@@ -43,7 +43,7 @@ export const QuestsScreen: React.FC<Props> = ({ onNavigate }) => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
+      <div className="flex-1 overflow-y-auto px-6 pt-6 pb-32 space-y-8">
         {/* Daily Quests */}
         <section>
           <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">

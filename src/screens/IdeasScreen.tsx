@@ -128,7 +128,7 @@ export const IdeasScreen: React.FC<IdeasScreenProps> = ({ onNavigate }) => {
   );
 
   return (
-    <div className="min-h-screen bg-[#F5F5F7] pt-[max(env(safe-area-inset-top),2.5rem)] pb-[max(env(safe-area-inset-bottom),6rem)] text-gray-900 overflow-y-auto">
+    <div className="h-full bg-[#F5F5F7] pt-[max(env(safe-area-inset-top),2.5rem)] pb-[max(env(safe-area-inset-bottom),6rem)] text-gray-900 overflow-y-auto">
       
       {/* Header */}
       <div className="px-6 py-4 flex items-center justify-between sticky top-0 bg-[#F5F5F7]/80 backdrop-blur-xl z-20 border-b border-gray-200/50">

@@ -145,7 +145,7 @@ export const AlertsScreen: React.FC<AlertsScreenProps> = ({ onNavigate }) => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F5F5F7] text-gray-900 pt-[max(env(safe-area-inset-top),2.5rem)] pb-[max(env(safe-area-inset-bottom),6rem)]">
+    <div className="flex flex-col h-full bg-[#F5F5F7] text-gray-900 pt-[max(env(safe-area-inset-top),2.5rem)] pb-[max(env(safe-area-inset-bottom),6rem)]">
       {/* Header */}
       <div className="flex items-center px-4 py-3 border-b border-gray-200">
         <button
@@ -184,7 +184,7 @@ export const AlertsScreen: React.FC<AlertsScreenProps> = ({ onNavigate }) => {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto pb-32">
         {activeTab === 'alerts' ? (
           <div className="p-4 space-y-8">
             

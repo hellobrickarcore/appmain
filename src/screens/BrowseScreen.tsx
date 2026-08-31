@@ -90,7 +90,7 @@ export const BrowseScreen: React.FC<BrowseScreenProps> = ({ onNavigate }) => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F5F5F7] font-sans text-gray-900 overflow-y-auto pb-32 select-none">
+    <div className="flex flex-col h-full bg-[#F5F5F7] font-sans text-gray-900 overflow-y-auto pb-32 select-none">
       
       {/* ─── Top Sticky Header ─── */}
       <div className="px-5 pt-[max(env(safe-area-inset-top),2.5rem)] pb-3 sticky top-0 bg-[#F5F5F7]/90 backdrop-blur-xl z-20">

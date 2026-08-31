@@ -100,7 +100,7 @@ export const SetBinderScreen: React.FC<SetBinderScreenProps> = ({ onNavigate, se
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F5F5F7] font-sans text-gray-900 overflow-y-auto pb-32 select-none">
+    <div className="flex flex-col h-full bg-[#F5F5F7] font-sans text-gray-900 overflow-y-auto pb-32 select-none">
       
       {/* ─── 1. Top Header ─── */}
       <div className="px-5 pt-[max(env(safe-area-inset-top),2.5rem)] pb-3 flex items-center justify-between sticky top-0 bg-[#F5F5F7]/90 backdrop-blur-xl z-30">
