@@ -327,6 +327,10 @@ export interface CollectionItem {
   itemType: 'set' | 'minifig' | 'card' | 'brick';
   imageUrl?: string;
   name?: string;
+  theme?: string;
+  currentPrice?: number;
+  year?: number;
+  rarity?: string;
 }
 
 export interface WishlistItem {

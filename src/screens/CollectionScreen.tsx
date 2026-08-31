@@ -77,37 +77,26 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
     if (!collection.length) return [];
     return collection.map((item) => {
       const dbItem = legoDatabase.findById(item.setNum);
-      const set = dbItem ? {
-        id: dbItem.id,
-        name: dbItem.name,
-        setNum: dbItem.code,
-        retailPrice: dbItem.retailPrice,
-        imageUrl: dbItem.imageUrl,
-        theme: dbItem.theme,
-        year: dbItem.year,
-        isRetired: dbItem.isRetired
-      } : {
-        id: `custom-${item.setNum}`,
-        name: (item as any).name || `Collectible #${item.setNum}`,
-        setNum: item.setNum,
-        retailPrice: item.purchasePrice || 49.99,
-        imageUrl: (item as any).imageUrl || 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop',
-        theme: (item as any).itemType?.toUpperCase() || 'Custom',
-        year: 2023,
-        isRetired: false
+      const explicitName = (item as any).name;
+      const explicitImage = (item as any).imageUrl;
+      const explicitPrice = item.purchasePrice || (item as any).currentPrice || 0;
+
+      const set = {
+        id: (item as any).id || dbItem?.id || `custom-${item.setNum}`,
+        name: explicitName || dbItem?.name || `Collectible #${item.setNum}`,
+        setNum: item.setNum || dbItem?.code || 'N/A',
+        retailPrice: explicitPrice || dbItem?.retailPrice || 25,
+        imageUrl: explicitImage || dbItem?.imageUrl || 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop',
+        theme: (item as any).theme || dbItem?.theme || ((item as any).itemType === 'card' ? 'TCG' : 'Custom'),
+        year: (item as any).year || dbItem?.year || 2024,
+        isRetired: dbItem?.isRetired || false
       };
 
-      const val = dbItem ? {
-        sealedValue: dbItem.sealedPrice,
-        usedValue: dbItem.usedPrice,
-        sealedChange30d: dbItem.growth30D,
-        usedChange30d: dbItem.growth30D * 0.8
-      } : {
-        // DO NOT artificially inflate the price for custom dynamic items
-        sealedValue: item.purchasePrice || 0,
-        usedValue: (item.purchasePrice || 0) * 0.8,
-        sealedChange30d: 0,
-        usedChange30d: 0
+      const val = {
+        sealedValue: explicitPrice || dbItem?.sealedPrice || 0,
+        usedValue: Math.round((explicitPrice || dbItem?.usedPrice || 0) * 0.8),
+        sealedChange30d: dbItem?.growth30D || 0,
+        usedChange30d: (dbItem?.growth30D || 0) * 0.8
       };
 
       const quantity = (item as any).quantity ?? 1;
@@ -377,11 +366,7 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                           const el = e.currentTarget;
                           if (!el.dataset.fallback) { 
                             el.dataset.fallback = '1'; 
-                            el.src = `https://cdn.rebrickable.com/media/sets/${item.set.setNum}.jpg`; 
-                          }
-                          else if (el.dataset.fallback === '1') { 
-                            el.dataset.fallback = '2'; 
-                            el.src = item.set.imageUrl || ''; 
+                            el.src = 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop'; 
                           }
                         }}
                       />
@@ -391,7 +376,7 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                     <p className="text-gray-500 text-[10px] font-medium truncate mb-1 leading-tight">
                       #{item.set.setNum?.split('-')[0]} · {item.condition}
                     </p>
-                    <p className="text-gray-900 text-[12px] font-bold truncate mb-2">{item.set.name || `Set ${idx + 1}`}</p>
+                    <p className="text-gray-900 text-[12px] font-bold truncate mb-2">{item.set.name || `Item ${idx + 1}`}</p>
 
                     {/* Value + trend */}
                     <div className="flex items-center justify-between">
@@ -436,13 +421,13 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                           const el = e.currentTarget;
                           if (!el.dataset.fallback) {
                             el.dataset.fallback = '1';
-                            el.src = `https://cdn.rebrickable.com/media/sets/${item.set.setNum}.jpg`;
+                            el.src = 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop';
                           }
                         }}
                       />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-bold text-gray-900 truncate">{item.set.name || `Set ${idx + 1}`}</p>
+                      <p className="text-[13px] font-bold text-gray-900 truncate">{item.set.name || `Item ${idx + 1}`}</p>
                       <p className="text-[10px] text-gray-400 font-medium">#{item.set.setNum?.split('-')[0]} · {item.condition}</p>
                     </div>
                     <div className="text-right shrink-0">

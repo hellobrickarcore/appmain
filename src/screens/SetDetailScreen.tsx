@@ -13,30 +13,37 @@ interface SetDetailScreenProps {
 export const SetDetailScreen: React.FC<SetDetailScreenProps> = ({ onNavigate, setNum }) => {
   const activeCode = setNum || '75252-1';
   const item: AnyCollectible = useMemo(() => {
-    const dbMatch = collectiblesDatabase.findById(activeCode);
-    if (dbMatch) return dbMatch;
-    
     try {
       const stored = localStorage.getItem('hellobrick_collection_sets');
       if (stored) {
          const collection = JSON.parse(stored);
-         const custom = collection.find(c => c.setNum === activeCode || c.id === activeCode);
+         const custom = collection.find((c: any) => c.setNum === activeCode || c.id === activeCode || c.name === activeCode);
          if (custom) {
+            const price = custom.purchasePrice || (custom as any).currentPrice || 25;
             return {
                id: custom.id,
                code: custom.setNum,
-               name: custom.name || 'Custom Item',
-               theme: custom.itemType === 'card' ? 'TCG' : 'Custom',
-               year: 2024,
+               name: custom.name || 'Collectible Item',
+               theme: custom.theme || (custom.itemType === 'card' ? 'Pokémon TCG' : 'Custom'),
+               year: custom.year || 2024,
                pieces: 1,
                minifigs: 0,
-               retailPrice: custom.purchasePrice || 0,
+               retailPrice: price,
+               sealedPrice: price,
+               usedPrice: Math.round(price * 0.75),
+               psa10Value: Math.round(price * 2.5),
+               growth30D: 4.2,
+               rating: '4.9 ★',
                imageUrl: custom.imageUrl || 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop',
+               category: custom.itemType === 'card' ? 'pokemon' : 'set',
                type: custom.itemType === 'card' ? 'pokemon' : 'set'
             } as any;
          }
       }
     } catch (e) {}
+
+    const dbMatch = collectiblesDatabase.findById(activeCode);
+    if (dbMatch) return dbMatch;
 
     return collectiblesDatabase.getSets()[0];
   }, [activeCode]);

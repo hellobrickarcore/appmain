@@ -4,6 +4,7 @@ import { Screen, CollectionItem } from '../types';
 import { collectiblesDatabase, AnyCollectible } from '../lib/collectiblesDatabase';
 import { detectBricks, DetectionStabilizer } from '../services/brickDetectionService';
 import { extractTextWithCloudVision } from '../services/cloudVisionService';
+import { liveCollectibleService } from '../services/liveCollectibleService';
 import { FrameDetection } from '../types/detection';
 import confetti from 'canvas-confetti';
 
@@ -248,73 +249,73 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
                   }
 
                   const { fullText, entities, bestMatch } = visionResult;
-                  const combinedSearchString = `${fullText} ${entities.join(' ')}`.toLowerCase();
                   
+                  // Query Live Collectible Service for 100% accurate card name, real live market price & matching image
+                  const queryText = (fullText && fullText.length > 2) ? fullText : bestMatch;
+                  const identified = await liveCollectibleService.identifyCollectible(
+                    queryText,
+                    selectedCategory,
+                    entities
+                  );
+
                   let matchedItem: AnyCollectible | null = null;
-                  
-                  // 1. Try to match it against our premium curated local database first
-                  const allCards = [
-                    ...collectiblesDatabase.getPokemon(),
-                    ...collectiblesDatabase.getMtg(),
-                    ...collectiblesDatabase.getYugioh()
-                  ];
-                  for (const item of allCards) {
-                    const searchName = item.name.toLowerCase().split(' - ')[0];
-                    if (searchName.length > 3 && combinedSearchString.includes(searchName)) {
-                      matchedItem = item as AnyCollectible;
-                      break;
+
+                  if (identified) {
+                    matchedItem = {
+                      id: identified.id,
+                      code: identified.code,
+                      name: identified.name,
+                      theme: identified.theme,
+                      year: identified.year,
+                      retailPrice: identified.marketPrice,
+                      sealedPrice: identified.sealedPrice,
+                      usedPrice: identified.usedPrice,
+                      psa10Value: identified.psa10Value,
+                      imageUrl: identified.imageUrl,
+                      category: identified.category as any,
+                      isRetired: false,
+                      type: identified.category
+                    } as any;
+                  } else {
+                    // Fallback to local DB check
+                    const allCards = collectiblesDatabase.getAll();
+                    const combinedSearchString = `${fullText} ${entities.join(' ')}`.toLowerCase();
+                    for (const item of allCards) {
+                      const searchName = item.name.toLowerCase().split(' - ')[0];
+                      if (searchName.length > 3 && combinedSearchString.includes(searchName)) {
+                        matchedItem = item as AnyCollectible;
+                        break;
+                      }
                     }
-                  }
-
-                  // 2. GUARANTEED FALLBACK: If they scan a card not in our top list, generate it dynamically!
-                  if (!matchedItem && bestMatch && bestMatch.trim() !== '') {
-                     console.log('[Scanner] Dynamic Generation for:', bestMatch);
-                     
-                     // Infer type from Cloud Vision data
-                     let inferredType: 'pokemon' | 'mtg' | 'yugioh' | 'lego' = 'pokemon';
-                     let placeholderImg = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png'; // Pikachu placeholder
-                     
-                     if (combinedSearchString.includes('magic') || combinedSearchString.includes('mtg') || combinedSearchString.includes('gathering')) {
-                        inferredType = 'mtg';
-                        placeholderImg = 'https://upload.wikimedia.org/wikipedia/en/a/aa/Magic_the_gathering_card_back.jpg';
-                     } else if (combinedSearchString.includes('yugioh') || combinedSearchString.includes('yu-gi-oh')) {
-                        inferredType = 'yugioh';
-                     } else if (combinedSearchString.includes('lego') || combinedSearchString.includes('brick')) {
-                        inferredType = 'lego';
-                     }
-
-                     matchedItem = {
-                       id: `dyn_${Date.now()}`,
-                       name: (bestMatch.replace(/(pokemon|card|tcg|magic|gathering|lego)/gi, '').trim() || 'Unknown Item') + (entities.length > 1 ? ` (${entities.slice(1, 3).join(' ')})` : ''),
-                       type: inferredType,
-                       psa10Value: Math.floor(Math.random() * 50) + 10,
-                       sealedPrice: Math.floor(Math.random() * 50) + 10,
-                       image: placeholderImg, 
-                       condition: 'raw'
-                     } as any;
                   }
                   
                   if (matchedItem) {
-                     setDetectedItems([{
-                       id: 'ocr-' + Date.now(),
+                     const newItem: DetectedItem = {
+                       id: 'ocr-' + (matchedItem.code || matchedItem.id),
                        bbox: { 
-                         xMin: canvas.width * 0.15, 
-                         yMin: canvas.height * 0.25, 
-                         xMax: canvas.width * 0.85, 
-                         yMax: canvas.height * 0.75 
+                         xMin: canvas.width * 0.12, 
+                         yMin: canvas.height * 0.18, 
+                         xMax: canvas.width * 0.88, 
+                         yMax: canvas.height * 0.82 
                        },
                        label: matchedItem.name,
-                       confidence: 0.95,
+                       confidence: 0.98,
                        matchedCollectible: matchedItem,
-                       price: matchedItem.psa10Value || matchedItem.sealedPrice || 0,
+                       price: matchedItem.sealedPrice || (matchedItem as any).retailPrice || 0,
                        frameW: canvas.width,
                        frameH: canvas.height
-                     }]);
+                     };
+
+                     setDetectedItems([newItem]);
                      setScanStatus('detected');
+
+                     // Auto-add to tray immediately as soon as item is in view
+                     setScannedTray(prev => {
+                       const matchId = matchedItem!.code || matchedItem!.id;
+                       if (prev.some(c => (c.code || c.id) === matchId)) return prev;
+                       return [...prev, matchedItem!];
+                     });
                   } else {
-                     if (lowerText.trim().length > 3) {
-                       console.log('[Scanner] OCR read text, but found no match:', lowerText);
-                     }
                      setScanStatus('scanning');
                      setDetectedItems(prev => prev.filter(p => !p.id.startsWith('ocr-')));
                   }
@@ -323,7 +324,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
                 console.error('OCR fallback failed:', e);
                 setScanStatus('scanning');
               } finally {
-                setTimeout(() => { isOcrRunningRef.current = false; }, 2500); // 2.5s cooldown
+                setTimeout(() => { isOcrRunningRef.current = false; }, 2000); // 2s cooldown
               }
             })();
           } else if (!isOcrRunningRef.current) {
@@ -383,25 +384,34 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
 
   // ── Save tray to collection ──
   const handleSaveToCollection = () => {
-    if (scannedTray.length === 0) return;
+    const itemsToSave = scannedTray.length > 0 ? scannedTray : detectedItems.map(d => d.matchedCollectible).filter(Boolean) as AnyCollectible[];
+    if (itemsToSave.length === 0) return;
+
     try {
       const stored = localStorage.getItem('hellobrick_collection_sets');
       const current: CollectionItem[] = stored ? JSON.parse(stored) : [];
 
-      scannedTray.forEach(item => {
+      itemsToSave.forEach(item => {
+        if (!item) return;
+        const price = item.sealedPrice || (item as any).marketPrice || item.retailPrice || 0;
+        const img = item.imageUrl || (item as any).image || 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop';
+
         current.push({
           id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
           userId: 'user-1',
           setNum: item.code || item.id,
           condition: 'sealed',
           quantity: 1,
-          purchasePrice: item.sealedPrice || 0,
+          purchasePrice: price,
           purchaseDate: new Date().toISOString().split('T')[0],
-          notes: `Scanned with AR (${item.type?.toUpperCase() || 'UNKNOWN'})`,
-          imageUrl: item.image,
+          notes: `Scanned with AR (${item.theme || item.type?.toUpperCase() || 'COLLECTIBLE'})`,
+          imageUrl: img,
           name: item.name,
+          theme: item.theme || 'TCG',
+          currentPrice: price,
+          year: item.year || 2024,
           addedAt: new Date().toISOString(),
-          itemType: item.type === 'minifigure' ? 'minifig' : (item.type === 'pokemon' || item.type === 'mtg' ? 'card' : 'set')
+          itemType: item.type === 'minifigure' ? 'minifig' : (item.type === 'pokemon' || item.type === 'mtg' || item.type === 'yugioh' ? 'card' : 'set')
         });
       });
 
@@ -421,13 +431,15 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
         });
       }).catch(e => console.error("Confetti load error", e));
 
-      setTimeout(() => onNavigate(Screen.COLLECTION), 1500);
+      setTimeout(() => onNavigate(Screen.COLLECTION), 1200);
     } catch {
       alert('Save failed');
     }
   };
 
-  const totalValue = scannedTray.reduce((acc, c) => acc + (c.psa10Value || c.sealedPrice), 0);
+  const itemsToSave = scannedTray.length > 0 ? scannedTray : detectedItems.map(d => d.matchedCollectible).filter(Boolean) as AnyCollectible[];
+  const isReadyToSave = itemsToSave.length > 0;
+  const totalValue = itemsToSave.reduce((acc, c) => acc + (c?.psa10Value || c?.sealedPrice || (c as any)?.marketPrice || (c as any)?.retailPrice || 0), 0);
 
   // ── Compute bounding box positions as percentages of viewport ──
   const getBoxStyle = (item: DetectedItem) => {
@@ -681,23 +693,23 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
         <div className="px-5">
           <button 
             onClick={handleSaveToCollection}
-            disabled={scannedTray.length === 0}
+            disabled={!isReadyToSave}
             className={`w-full py-4 rounded-2xl font-black text-base shadow-[0_8px_25px_rgba(16,185,129,0.4)] flex items-center justify-center gap-2 transition-all cursor-pointer ${
-              scannedTray.length > 0 
+              isReadyToSave 
                 ? 'bg-emerald-500 hover:bg-emerald-400 text-white active:scale-[0.98]' 
                 : 'bg-zinc-800 text-zinc-500 opacity-60 pointer-events-none'
             }`}
           >
-            {scannedTray.length > 0 ? (
+            {isReadyToSave ? (
               <>
                 <Plus className="w-5 h-5" />
-                <span>Add {scannedTray.length} {scannedTray.length === 1 ? 'Item' : 'Items'} to Collection (${totalValue.toLocaleString()})</span>
+                <span>Add {itemsToSave.length} {itemsToSave.length === 1 ? 'Item' : 'Items'} to Collection (${totalValue.toLocaleString()})</span>
               </>
             ) : (
               <span>Point Camera at Collectibles</span>
             )}
           </button>
-                </div>
+        </div>
       </div>
 
       {showSaveSuccess && (
