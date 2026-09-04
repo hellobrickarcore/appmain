@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, Lock, Globe, Bell, Shield, FileText, Trash2, Camera, AlertTriangle, DollarSign, Volume2, Compass } from 'lucide-react';
+import { ChevronLeft, Lock, Globe, Bell, Shield, FileText, Trash2, Camera, AlertTriangle, DollarSign, Volume2, Compass, Check } from 'lucide-react';
 import { Screen } from '../types';
 import { notificationService } from '../services/notificationService';
 import { userSettingsService } from '../services/userSettingsService';
@@ -138,24 +138,24 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({ on
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#050A18] font-sans text-white relative overflow-hidden">
-      <div className="fixed top-0 left-0 right-0 h-64 bg-gradient-to-b from-blue-600/5 via-blue-500/0 to-transparent pointer-events-none z-0" />
-
+    <div className="flex flex-col h-full bg-[#F5F5F7] font-sans text-gray-900 relative overflow-hidden select-none">
+      
       {/* Header */}
-      <div className="relative z-[20] px-6 pt-[max(env(safe-area-inset-top),3.5rem)] pb-4 flex items-center justify-between border-b border-white/5 backdrop-blur-xl bg-[#050A18]/80 sticky top-0">
+      <div className="relative z-[20] px-6 pt-[max(env(safe-area-inset-top),2.8rem)] pb-3 flex items-center justify-between border-b border-gray-200 backdrop-blur-xl bg-[#F5F5F7]/90 sticky top-0">
         <button
           onClick={() => onNavigate(Screen.PROFILE)}
-          className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10 hover:bg-white/10 transition-colors"
+          className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center border border-gray-200 shadow-sm active:scale-95 transition-transform"
         >
-          <ChevronLeft className="w-5 h-5 text-slate-300" />
+          <ChevronLeft className="w-5 h-5 text-gray-700" />
         </button>
-        <h1 className="text-sm font-black text-white uppercase tracking-widest">Settings</h1>
+        <h1 className="text-sm font-black text-gray-900 uppercase tracking-widest">Settings</h1>
         <div className="w-10" />
       </div>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar pb-[max(env(safe-area-inset-bottom),220px)] relative z-10 transition-all touch-pan-y">
+      <div className="flex-1 overflow-y-auto no-scrollbar pb-[max(env(safe-area-inset-bottom),180px)] relative z-10">
+        
         {/* Profile Card */}
-        <div className="px-6 py-10 flex flex-col items-center">
+        <div className="px-6 py-8 flex flex-col items-center">
           <input
             ref={fileInputRef}
             type="file"
@@ -165,271 +165,264 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({ on
           />
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="relative"
+            className="relative cursor-pointer active:scale-95 transition-transform"
           >
-            <div className="w-24 h-24 relative group overflow-hidden rounded-[22px] border-2 border-white/10 shadow-xl bg-slate-800 flex items-center justify-center">
+            <div className="w-24 h-24 relative group overflow-hidden rounded-[26px] border border-gray-200 shadow-lg bg-white flex items-center justify-center">
               {profileImage ? (
                 <img src={profileImage} className="w-full h-full object-cover" alt="Profile" />
               ) : (
-                <div className="text-3xl font-black text-slate-500">{userId.charAt(0).toUpperCase()}</div>
+                <div className="text-3xl font-black text-gray-800">{profileName.charAt(0).toUpperCase()}</div>
               )}
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                 <Camera className="w-6 h-6 text-white" />
               </div>
             </div>
-            <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-orange-500 rounded-2xl flex items-center justify-center border-4 border-[#050A18]">
+            <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-emerald-500 rounded-2xl flex items-center justify-center border-2 border-white shadow">
               <Camera className="w-3.5 h-3.5 text-white" />
             </div>
           </button>
           
-          <div className="mt-6 w-full max-w-[240px] relative">
+          <div className="mt-5 w-full max-w-[240px] relative">
             <input 
               type="text"
               value={profileName}
               onChange={(e) => updateProfileName(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center font-black text-white focus:border-orange-500 transition-all outline-none"
+              className="w-full bg-white border border-gray-200/80 shadow-xs rounded-xl px-4 py-2.5 text-center font-black text-gray-900 focus:border-emerald-500 transition-all outline-none"
               placeholder="Your Name"
             />
             <div className="flex items-center justify-center gap-2 mt-2">
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">Tap to edit name</p>
-              {saveStatus === 'saving' && <div className="w-2 h-2 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />}
-              {saveStatus === 'saved' && <div className="text-green-500 text-[10px] font-black uppercase tracking-widest animate-in zoom-in-50">✓ Saved</div>}
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Tap to edit name</p>
+              {saveStatus === 'saving' && <div className="w-2 h-2 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />}
+              {saveStatus === 'saved' && <div className="text-emerald-600 text-[10px] font-black uppercase tracking-widest animate-in zoom-in-50">✓ Saved</div>}
             </div>
           </div>
-          <p className="mt-2 text-[10px] font-bold text-slate-600 uppercase tracking-widest">@{userId.substring(0, 12)}...</p>
+          <p className="mt-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest">ID: {userId.substring(0, 12)}</p>
         </div>
 
         {/* Settings Groups */}
-        <div className="px-6 space-y-8">
+        <div className="px-6 space-y-6">
           {/* GROUP: Preferences */}
-          <div className="space-y-4">
-            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">Account Preferences</h3>
-            <div className="bg-white/5 rounded-[32px] border border-white/5 overflow-hidden">
-              <div className="p-2 space-y-1">
-                <button 
-                  onClick={handlePrivacyToggle}
-                  className="w-full h-16 px-4 flex items-center justify-between hover:bg-white/5 transition-colors rounded-2xl"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-400">
-                      {isPrivate ? <Lock className="w-5 h-5" /> : <Globe className="w-5 h-5" />}
-                    </div>
-                    <div className="text-left">
-                      <p className="text-sm font-bold text-white">Privacy Mode</p>
-                      <p className="text-[10px] text-slate-400 font-medium">{isPrivate ? 'Only you can see profile' : 'Anyone can see your profile'}</p>
-                    </div>
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Preferences</h3>
+            <div className="bg-white rounded-[28px] border border-gray-200/80 shadow-sm overflow-hidden divide-y divide-gray-100">
+              
+              <button 
+                onClick={handlePrivacyToggle}
+                className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 border border-blue-100">
+                    {isPrivate ? <Lock className="w-5 h-5" /> : <Globe className="w-5 h-5" />}
                   </div>
-                  <div className={`w-12 h-6.5 rounded-full transition-all relative ${isPrivate ? 'bg-orange-500' : 'bg-white/10'}`}>
-                    <div className={`w-5 h-5 bg-white rounded-full absolute top-0.75 transition-all ${isPrivate ? 'left-[23px]' : 'left-[5px]'}`} />
+                  <div className="text-left">
+                    <p className="text-sm font-bold text-gray-900">Privacy Mode</p>
+                    <p className="text-[10px] text-gray-500 font-medium">{isPrivate ? 'Only you can see profile' : 'Public collector profile'}</p>
                   </div>
-                </button>
+                </div>
+                <div className={`w-12 h-6.5 rounded-full transition-all relative ${isPrivate ? 'bg-emerald-500' : 'bg-gray-200'}`}>
+                  <div className={`w-5 h-5 bg-white rounded-full absolute top-0.75 shadow transition-all ${isPrivate ? 'left-[23px]' : 'left-[5px]'}`} />
+                </div>
+              </button>
 
-                <button 
-                  onClick={handleNotificationToggle}
-                  className="w-full h-16 px-4 flex items-center justify-between hover:bg-white/5 transition-colors rounded-2xl"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-orange-500/10 rounded-xl flex items-center justify-center text-orange-400">
-                      <Bell className="w-5 h-5" />
-                    </div>
-                    <div className="text-left">
-                      <p className="text-sm font-bold text-white">Notifications</p>
-                      <p className="text-[10px] text-slate-400 font-medium">New drops & daily streaks</p>
-                    </div>
+              <button 
+                onClick={handleNotificationToggle}
+                className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 border border-emerald-100">
+                    <Bell className="w-5 h-5" />
                   </div>
-                  <div className={`w-12 h-6.5 rounded-full transition-all relative ${notificationsEnabled ? 'bg-orange-500' : 'bg-white/10'}`}>
-                    <div className={`w-5 h-5 bg-white rounded-full absolute top-0.75 transition-all ${notificationsEnabled ? 'left-[23px]' : 'left-[5px]'}`} />
+                  <div className="text-left">
+                    <p className="text-sm font-bold text-gray-900">Notifications</p>
+                    <p className="text-[10px] text-gray-500 font-medium">Price drops & market signals</p>
                   </div>
-                </button>
+                </div>
+                <div className={`w-12 h-6.5 rounded-full transition-all relative ${notificationsEnabled ? 'bg-emerald-500' : 'bg-gray-200'}`}>
+                  <div className={`w-5 h-5 bg-white rounded-full absolute top-0.75 shadow transition-all ${notificationsEnabled ? 'left-[23px]' : 'left-[5px]'}`} />
+                </div>
+              </button>
 
-                <button 
-                  onClick={() => {
-                    const newVal = !scanSound;
-                    setScanSound(newVal);
-                    localStorage.setItem('hellobrick_scan_sound', String(newVal));
-                  }}
-                  className="w-full h-16 px-4 flex items-center justify-between hover:bg-white/5 transition-colors rounded-2xl"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center text-purple-400">
-                      <Volume2 className="w-5 h-5" />
-                    </div>
-                    <div className="text-left">
-                      <p className="text-sm font-bold text-white">Scan Sound</p>
-                      <p className="text-[10px] text-slate-400 font-medium">Play a sound when sets are identified</p>
-                    </div>
+              <button 
+                onClick={() => {
+                  const newVal = !scanSound;
+                  setScanSound(newVal);
+                  localStorage.setItem('hellobrick_scan_sound', String(newVal));
+                }}
+                className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600 border border-purple-100">
+                    <Volume2 className="w-5 h-5" />
                   </div>
-                  <div className={`w-12 h-6.5 rounded-full transition-all relative ${scanSound ? 'bg-orange-500' : 'bg-white/10'}`}>
-                    <div className={`w-5 h-5 bg-white rounded-full absolute top-0.75 transition-all ${scanSound ? 'left-[23px]' : 'left-[5px]'}`} />
+                  <div className="text-left">
+                    <p className="text-sm font-bold text-gray-900">Scan Audio</p>
+                    <p className="text-[10px] text-gray-500 font-medium">Haptic chime on card match</p>
                   </div>
-                </button>
+                </div>
+                <div className={`w-12 h-6.5 rounded-full transition-all relative ${scanSound ? 'bg-emerald-500' : 'bg-gray-200'}`}>
+                  <div className={`w-5 h-5 bg-white rounded-full absolute top-0.75 shadow transition-all ${scanSound ? 'left-[23px]' : 'left-[5px]'}`} />
+                </div>
+              </button>
 
-                <button 
-                  onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
-                  className="w-full h-16 px-4 flex items-center justify-between hover:bg-white/5 transition-colors rounded-2xl"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-400">
-                      <DollarSign className="w-5 h-5" />
-                    </div>
-                    <div className="text-left">
-                      <p className="text-sm font-bold text-white">Currency</p>
-                      <p className="text-[10px] text-slate-400 font-medium">Display prices in your local currency</p>
-                    </div>
+              <button 
+                onClick={() => setShowCurrencyPicker(!showCurrencyPicker)}
+                className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 border border-emerald-100">
+                    <DollarSign className="w-5 h-5" />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-white">{currencies.find(c => c.code === currency)?.flag} {currency}</span>
-                    <ChevronLeft className="w-4 h-4 text-slate-600 rotate-180" />
+                  <div className="text-left">
+                    <p className="text-sm font-bold text-gray-900">Currency</p>
+                    <p className="text-[10px] text-gray-500 font-medium">Display prices in local currency</p>
                   </div>
-                </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-gray-900">{currencies.find(c => c.code === currency)?.flag} {currency}</span>
+                  <ChevronLeft className="w-4 h-4 text-gray-400 rotate-180" />
+                </div>
+              </button>
 
-                <button 
-                  onClick={() => {
-                    localStorage.removeItem('hellobrick_onboarding_finished');
-                    onNavigate(Screen.ONBOARDING_QUESTIONNAIRE);
-                  }}
-                  className="w-full h-16 px-4 flex items-center justify-between hover:bg-white/5 transition-colors rounded-2xl"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-400">
-                      <Compass className="w-5 h-5" />
-                    </div>
-                    <div className="text-left">
-                      <p className="text-sm font-bold text-white">Re-run App Tour</p>
-                      <p className="text-[10px] text-slate-400 font-medium">Review the interactive onboarding screens</p>
-                    </div>
+              <button 
+                onClick={() => {
+                  localStorage.removeItem('hellobrick_onboarding_finished');
+                  onNavigate(Screen.ONBOARDING_QUESTIONNAIRE);
+                }}
+                className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 border border-indigo-100">
+                    <Compass className="w-5 h-5" />
                   </div>
-                  <ChevronLeft className="w-4 h-4 text-slate-600 rotate-180" />
-                </button>
+                  <div className="text-left">
+                    <p className="text-sm font-bold text-gray-900">Re-run App Tour</p>
+                    <p className="text-[10px] text-gray-500 font-medium">Review onboarding overview</p>
+                  </div>
+                </div>
+                <ChevronLeft className="w-4 h-4 text-gray-400 rotate-180" />
+              </button>
 
-                {showCurrencyPicker && (
-                  <div className="bg-white/5 rounded-2xl border border-white/10 p-2 mx-2 mb-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="grid grid-cols-2 gap-1">
-                      {currencies.map(c => (
-                        <button
-                          key={c.code}
-                          onClick={() => handleCurrencyChange(c.code)}
-                          className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                            currency === c.code
-                              ? 'bg-emerald-500/20 border border-emerald-500/30'
-                              : 'hover:bg-white/5'
-                          }`}
-                        >
-                          <span className="text-lg">{c.flag}</span>
-                          <span className={`text-sm font-bold ${currency === c.code ? 'text-emerald-400' : 'text-white'}`}>{c.code}</span>
-                        </button>
-                      ))}
-                    </div>
+              {showCurrencyPicker && (
+                <div className="bg-gray-50 p-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {currencies.map(c => (
+                      <button
+                        key={c.code}
+                        onClick={() => handleCurrencyChange(c.code)}
+                        className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl transition-all cursor-pointer ${
+                          currency === c.code
+                            ? 'bg-emerald-50 border border-emerald-300 shadow-xs'
+                            : 'bg-white border border-gray-200 hover:bg-gray-100'
+                        }`}
+                      >
+                        <span className="text-base">{c.flag}</span>
+                        <span className={`text-xs font-bold ${currency === c.code ? 'text-emerald-700' : 'text-gray-800'}`}>{c.code}</span>
+                      </button>
+                    ))}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
 
           {/* GROUP: Support & Legal */}
-          <div className="space-y-4">
-            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">Support & Legal</h3>
-            <div className="bg-white/5 rounded-[32px] border border-white/5 overflow-hidden">
-              <div className="p-2 space-y-1">
-                {[
-                  { label: 'Privacy Policy', icon: <Shield className="w-5 h-5" />, color: 'text-indigo-400', bg: 'bg-indigo-500/10', url: 'https://hellobrick.app/privacy' },
-                  { label: 'Terms of Use (EULA)', icon: <FileText className="w-5 h-5" />, color: 'text-slate-400', bg: 'bg-white/5', url: 'https://hellobrick.app/terms' },
-                  { label: 'Contact Support', icon: <Globe className="w-5 h-5" />, color: 'text-emerald-400', bg: 'bg-emerald-500/10', url: 'mailto:support@hellobrick.app' },
-                ].map((item, i) => (
-                  <button 
-                    key={i} 
-                    onClick={() => item.url.startsWith('mailto') ? window.open(item.url) : openLegal(item.url)}
-                    className="w-full h-16 px-4 flex items-center justify-between hover:bg-white/5 transition-colors rounded-2xl"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 ${item.bg} rounded-xl flex items-center justify-center ${item.color}`}>
-                        {item.icon}
-                      </div>
-                      <p className="text-sm font-bold text-white">{item.label}</p>
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Support & Legal</h3>
+            <div className="bg-white rounded-[28px] border border-gray-200/80 shadow-sm overflow-hidden divide-y divide-gray-100">
+              {[
+                { label: 'Privacy Policy', icon: <Shield className="w-5 h-5" />, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100', url: 'https://hellobrick.app/privacy' },
+                { label: 'Terms of Use (EULA)', icon: <FileText className="w-5 h-5" />, color: 'text-gray-600', bg: 'bg-gray-50', border: 'border-gray-200', url: 'https://hellobrick.app/terms' },
+                { label: 'Contact Support', icon: <Globe className="w-5 h-5" />, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100', url: 'mailto:support@hellobrick.app' },
+              ].map((item, i) => (
+                <button 
+                  key={i} 
+                  onClick={() => item.url.startsWith('mailto') ? window.open(item.url) : openLegal(item.url)}
+                  className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`w-10 h-10 ${item.bg} border ${item.border} rounded-xl flex items-center justify-center ${item.color}`}>
+                      {item.icon}
                     </div>
-                    <ChevronLeft className="w-4 h-4 text-slate-600 rotate-180" />
-                  </button>
-                ))}
-              </div>
+                    <p className="text-sm font-bold text-gray-900">{item.label}</p>
+                  </div>
+                  <ChevronLeft className="w-4 h-4 text-gray-400 rotate-180" />
+                </button>
+              ))}
             </div>
           </div>
 
           {/* Logout Group */}
-          <div className="space-y-4">
-            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">Session</h3>
-            <div className="bg-white/5 rounded-[32px] border border-white/5 overflow-hidden">
-              <div className="p-2">
-                <button 
-                  onClick={handleLogout}
-                  className="w-full h-16 px-4 flex items-center gap-4 hover:bg-white/10 transition-colors rounded-2xl text-slate-300"
-                >
-                  <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
-                    <Trash2 className="w-5 h-5" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-sm font-bold">Log Out</p>
-                    <p className="text-[10px] text-slate-500 font-medium">Clear local session data</p>
-                  </div>
-                </button>
-              </div>
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">Session</h3>
+            <div className="bg-white rounded-[28px] border border-gray-200/80 shadow-sm overflow-hidden">
+              <button 
+                onClick={handleLogout}
+                className="w-full p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors cursor-pointer text-gray-700"
+              >
+                <div className="w-10 h-10 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-center text-gray-600">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-bold text-gray-900">Log Out</p>
+                  <p className="text-[10px] text-gray-500 font-medium">Clear local session data</p>
+                </div>
+              </button>
             </div>
           </div>
 
           {/* GROUP: Danger Zone */}
-          <div className="space-y-4">
-            <h3 className="text-[10px] font-black text-red-500/50 uppercase tracking-widest px-2">Important</h3>
-            <div className="bg-red-500/5 rounded-[32px] border border-red-500/10 overflow-hidden">
-              <div className="p-2">
-                <button 
-                  onClick={() => setShowDeleteModal(true)}
-                  className="w-full h-16 px-4 flex items-center gap-4 hover:bg-red-500/10 transition-colors rounded-2xl text-red-500"
-                >
-                  <div className="w-10 h-10 bg-red-500/10 rounded-xl flex items-center justify-center">
-                    <Trash2 className="w-5 h-5" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-sm font-bold">Delete Account</p>
-                    <p className="text-[10px] text-red-500/50 font-medium">This cannot be undone</p>
-                  </div>
-                </button>
-              </div>
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-black text-rose-500 uppercase tracking-widest px-2">Account Management</h3>
+            <div className="bg-white rounded-[28px] border border-rose-200 shadow-sm overflow-hidden">
+              <button 
+                onClick={() => setShowDeleteModal(true)}
+                className="w-full p-4 flex items-center gap-4 hover:bg-rose-50 transition-colors cursor-pointer text-rose-600"
+              >
+                <div className="w-10 h-10 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-center text-rose-600">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-bold text-rose-600">Delete Account</p>
+                  <p className="text-[10px] text-rose-400 font-medium">Permanently purge collection data</p>
+                </div>
+              </button>
             </div>
           </div>
         </div>
 
         <div className="mt-12 text-center pb-20">
-          <p className="text-[10px] font-black text-slate-700 tracking-[0.2em]">HelloBrick v1.4.0</p>
+          <p className="text-[10px] font-black text-gray-400 tracking-[0.2em]">HelloBrick v2.0.0</p>
         </div>
       </div>
 
       {/* Delete Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center px-4 pb-8">
-          <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={() => setShowDeleteModal(false)} />
-          <div className="bg-[#050A18] border border-red-500/20 w-full max-w-md rounded-[40px] p-8 relative z-10 animate-in slide-in-from-bottom-10 shadow-2xl">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowDeleteModal(false)} />
+          <div className="bg-white border border-gray-200 w-full max-w-md rounded-[36px] p-8 relative z-10 animate-in slide-in-from-bottom-10 shadow-2xl">
               <div className="flex flex-col items-center text-center">
-                  <div className="w-20 h-20 bg-red-500/10 rounded-[28px] flex items-center justify-center text-red-500 mb-6">
-                      <AlertTriangle className="w-10 h-10" />
+                  <div className="w-18 h-18 bg-rose-50 border border-rose-200 rounded-[24px] flex items-center justify-center text-rose-600 mb-5">
+                      <AlertTriangle className="w-9 h-9" />
                   </div>
-                  <h3 className="text-2xl font-black text-white mb-4">Are you sure?</h3>
-                  <p className="text-slate-400 text-sm mb-10 leading-relaxed">
-                    Deleting your account will permanently remove all your scanned bricks, XP, and history. 
-                    <span className="text-red-400 block mt-2 font-bold uppercase text-xs tracking-widest">This cannot be undone.</span>
+                  <h3 className="text-2xl font-black text-gray-900 mb-3">Are you sure?</h3>
+                  <p className="text-gray-500 text-sm mb-8 leading-relaxed">
+                    Deleting your account will permanently remove all your scanned assets, portfolio gains, and vault history. 
+                    <span className="text-rose-600 block mt-2 font-bold uppercase text-xs tracking-wider">This action cannot be undone.</span>
                   </p>
                   
                   <div className="w-full flex flex-col gap-3">
                     <button 
                       onClick={() => setShowDeleteModal(false)}
-                      className="w-full py-5 bg-white/5 text-white font-black rounded-3xl active:scale-95 transition-all text-sm uppercase tracking-widest"
+                      className="w-full py-4 bg-gray-100 text-gray-800 font-black rounded-2xl active:scale-95 transition-all text-xs uppercase tracking-wider cursor-pointer"
                     >
-                      Wait, cancel
+                      Cancel
                     </button>
                     <button 
                       onClick={handleDeleteAccount}
                       disabled={isDeleting}
-                      className="w-full h-14 bg-red-600 text-white font-black rounded-3xl shadow-xl active:scale-95 transition-all text-sm uppercase tracking-widest flex items-center justify-center"
+                      className="w-full py-4 bg-rose-600 text-white font-black rounded-2xl shadow-lg shadow-rose-600/20 active:scale-95 transition-all text-xs uppercase tracking-wider flex items-center justify-center cursor-pointer"
                     >
-                      {isDeleting ? 'Deleting...' : 'Delete everything'}
+                      {isDeleting ? 'Deleting...' : 'Delete Everything'}
                     </button>
                   </div>
               </div>

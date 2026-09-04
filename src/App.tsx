@@ -18,7 +18,7 @@ import { InsightsScreen } from './screens/InsightsScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { ProfileSettingsScreen } from './screens/ProfileSettingsScreen';
 import { BrowseScreen } from './screens/BrowseScreen';
-import { IdeasScreen } from './screens/IdeasScreen';
+import { CommunityScreen } from './screens/CommunityScreen';
 import { QuestsScreen } from './screens/QuestsScreen';
 import { LeaderboardScreen } from './screens/LeaderboardScreen';
 import { FeedScreen } from './screens/FeedScreen';
@@ -76,6 +76,22 @@ const App: React.FC = () => {
   const handleNavigate = (screen: Screen, params?: any) => {
     console.log(`🚀 Navigating to: ${screen}`, params);
     
+    // Check Hardwall & Persistent Paywall triggers for non-pro users (like Brickify)
+    const isPro = localStorage.getItem('hellobrick_is_pro') === 'true';
+    if (!isPro && screen !== Screen.SUBSCRIPTION && screen !== Screen.AUTH && screen !== Screen.ONBOARDING_QUESTIONNAIRE) {
+      const hw = subscriptionService.isHardwalled();
+      if (hw.hardwalled) {
+        appStateService.navigate(Screen.SUBSCRIPTION);
+        return;
+      }
+
+      // Check Brickify-style persistent paywall popup on high-value actions & frequent navigation
+      if (screen === Screen.INSIGHTS || screen === Screen.ALERTS || screen === Screen.SET_BINDER || subscriptionService.shouldShowPersistentPaywall()) {
+        appStateService.navigate(Screen.SUBSCRIPTION);
+        return;
+      }
+    }
+
     // Use the state machine for unified logic
     appStateService.navigate(screen, params);
   };
@@ -204,8 +220,18 @@ const App: React.FC = () => {
         localStorage.setItem('hellobrick_userId', session.user.id);
         localStorage.setItem('hellobrick_authenticated', 'true');
         subscriptionService.setUserId(session.user.id).catch(() => {});
-        // Refresh app state
-        appStateService.onAuthSuccess();
+
+        const isPro = localStorage.getItem('hellobrick_is_pro') === 'true';
+        const isReviewer = localStorage.getItem('hellobrick_is_reviewer') === 'true';
+
+        if (event === 'SIGNED_IN' && !isPro && !isReviewer) {
+          // Brand-new sign in → go to paywall
+          appStateService.onAuthSuccess();
+        } else {
+          // Returning user / session restore / already pro → go straight to home
+          localStorage.setItem('hellobrick_onboarding_finished', 'true');
+          appStateService.transition('home');
+        }
       } else if (event === 'SIGNED_OUT') {
         localStorage.removeItem('hellobrick_userId');
         localStorage.removeItem('hellobrick_authenticated');
@@ -298,8 +324,9 @@ const App: React.FC = () => {
         return <SetDetailScreen setNum={screenParams?.setNum} onNavigate={handleNavigate} />;
       case Screen.BROWSE:
         return <BrowseScreen onNavigate={handleNavigate} />;
+      case Screen.COMMUNITY:
       case Screen.IDEAS:
-        return <IdeasScreen onNavigate={handleNavigate} />;
+        return <CommunityScreen onNavigate={handleNavigate} />;
       case Screen.QUESTS:
         return <QuestsScreen onNavigate={handleNavigate} />;
       case Screen.LEADERBOARD:

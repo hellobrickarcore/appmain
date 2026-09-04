@@ -220,7 +220,7 @@ export const FeedScreen: React.FC<Props> = ({ onNavigate }) => {
 
       {/* Floating Action Button */}
       <button 
-        onClick={() => onNavigate(Screen.CreatePost)}
+        onClick={() => onNavigate(Screen.CREATE_POST)}
         className="absolute bottom-24 right-6 w-14 h-14 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/30 text-slate-950 transition-transform hover:scale-105 active:scale-95 z-40"
       >
         <Plus size={28} strokeWidth={2.5} />

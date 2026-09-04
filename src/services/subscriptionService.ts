@@ -274,6 +274,83 @@ class SubscriptionService {
     return Capacitor.getPlatform() === 'ios' ? 'ios' : 'other';
   }
 
+  /**
+   * Track first app install/launch time
+   */
+  getFirstLaunchTime(): number {
+    let launchTimeStr = localStorage.getItem('hellobrick_first_launch_time');
+    if (!launchTimeStr) {
+      launchTimeStr = Date.now().toString();
+      localStorage.setItem('hellobrick_first_launch_time', launchTimeStr);
+    }
+    return parseInt(launchTimeStr, 10);
+  }
+
+  /**
+   * Get total scans recorded
+   */
+  getScanCount(): number {
+    const countStr = localStorage.getItem('hellobrick_scan_count');
+    return countStr ? parseInt(countStr, 10) : 0;
+  }
+
+  /**
+   * Increment scan count
+   */
+  incrementScanCount(): number {
+    const next = this.getScanCount() + 1;
+    localStorage.setItem('hellobrick_scan_count', next.toString());
+    return next;
+  }
+
+  /**
+   * Check if user has hit the hardwall limit:
+   * 1. 3 Days of usage elapsed (72 hours)
+   * 2. Uploaded / performed more than 3 scans
+   */
+  isHardwalled(): { hardwalled: boolean; reason: 'days' | 'scans' | null; daysLeft: number; scansLeft: number } {
+    const isPro = localStorage.getItem('hellobrick_is_pro') === 'true';
+    if (isPro) {
+      return { hardwalled: false, reason: null, daysLeft: 999, scansLeft: 999 };
+    }
+
+    const firstLaunch = this.getFirstLaunchTime();
+    const elapsedMs = Date.now() - firstLaunch;
+    const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+    const daysLeft = Math.max(0, Math.ceil((THREE_DAYS_MS - elapsedMs) / (24 * 60 * 60 * 1000)));
+
+    const scanCount = this.getScanCount();
+    const scansLeft = Math.max(0, 3 - scanCount);
+
+    if (elapsedMs >= THREE_DAYS_MS) {
+      return { hardwalled: true, reason: 'days', daysLeft: 0, scansLeft };
+    }
+
+    if (scanCount >= 3) {
+      return { hardwalled: true, reason: 'scans', daysLeft, scansLeft: 0 };
+    }
+
+    return { hardwalled: false, reason: null, daysLeft, scansLeft };
+  }
+
+  /**
+   * Check if user should be shown a paywall on this navigation/action
+   */
+  shouldShowPersistentPaywall(): boolean {
+    const isPro = localStorage.getItem('hellobrick_is_pro') === 'true';
+    if (isPro) return false;
+
+    const { hardwalled } = this.isHardwalled();
+    if (hardwalled) return true;
+
+    // Track navigation count to persistently show paywall every 4 actions
+    const navCountStr = localStorage.getItem('hellobrick_nav_action_count') || '0';
+    const next = parseInt(navCountStr, 10) + 1;
+    localStorage.setItem('hellobrick_nav_action_count', next.toString());
+
+    return next % 4 === 0;
+  }
+
   isConfigured(): boolean {
     const platform = Capacitor.getPlatform() === 'ios' ? 'ios' : 'other';
     const apiKey = REVENUECAT_API_KEY[platform as keyof typeof REVENUECAT_API_KEY];

@@ -14,15 +14,8 @@ Thumbs.db
 *.tar
 *.gz
 
-# 2. Large Binary Models & Data (Too big for GitHub)
-server/models/
-server/data/
-server/runs/
-**/*.pt
-**/*.onnx
-**/*.pth
-**/*.weights
-**/*.h5
+# 2. Large Binary Models & Data
+# (Uncomment if files exceed GitHub 100MB limit)
 
 # 3. Native Build Artifacts (Reproducible)
 ios/Pods/

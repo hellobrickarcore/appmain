@@ -84,11 +84,11 @@ export const WishlistScreen: React.FC<WishlistScreenProps> = ({ onNavigate }) =>
         <div className="flex items-center gap-3">
           <button
             onClick={() => onNavigate(Screen.HOME)}
-            className="w-10 h-10 bg-gray-50 rounded-2xl flex items-center justify-center border border-gray-200 active:scale-90 transition-transform"
+            className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center border border-gray-200 shadow-sm active:scale-90 transition-transform"
           >
             <ArrowLeft className="w-5 h-5 text-gray-700" />
           </button>
-          <Logo size="sm" light={true} />
+          <Logo size="sm" light={false} />
         </div>
         <span className="text-[12px] font-black text-gray-400 uppercase tracking-[0.2em]">Wishlist</span>
       </div>
@@ -103,24 +103,24 @@ export const WishlistScreen: React.FC<WishlistScreenProps> = ({ onNavigate }) =>
               <div
                 key={item.id}
                 onClick={() => onNavigate(Screen.SET_DETAIL, { setNum: item.set.setNum })}
-                className="bg-[#161B26] border border-gray-200 rounded-3xl p-4 flex items-center justify-between shadow-xl cursor-pointer active:scale-[0.99] transition-all relative group overflow-hidden"
+                className="bg-white border border-gray-200/80 rounded-3xl p-4 flex items-center justify-between shadow-sm cursor-pointer active:scale-[0.99] transition-all relative group overflow-hidden"
               >
                 {/* Delete button (displays on hover/active) */}
                 <button
                   onClick={(e) => handleDelete(item.id, e)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-gray-900 border border-red-500/35 p-3 rounded-2xl transition-all z-20"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/35 p-3 rounded-2xl transition-all z-20"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
 
                 <div className="flex items-center gap-4 min-w-0 group-hover:mr-12 transition-all">
                   {/* Set Box Thumbnail */}
-                  <div className="w-12 h-12 bg-white border border-gray-200 rounded-2xl flex items-center justify-center overflow-hidden shrink-0">
+                  <div className="w-12 h-12 bg-[#F5F5F7] border border-gray-200 rounded-2xl flex items-center justify-center overflow-hidden shrink-0">
                     <img 
-                      src={`https://cdn.rebrickable.com/media/sets/${item.set.setNum}.jpg`}
+                      src={item.set.imageUrl || `https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop`}
                       alt={item.set.name}
                       onError={(e) => {
-                        e.currentTarget.src = `https://cdn.rebrickable.com/media/sets/${item.set.setNum}-1.jpg`;
+                        e.currentTarget.src = `https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop`;
                         e.currentTarget.onerror = null;
                       }}
                       className="w-9 h-9 object-contain"
@@ -135,7 +135,7 @@ export const WishlistScreen: React.FC<WishlistScreenProps> = ({ onNavigate }) =>
                     <span className="text-[8px] font-black text-gray-400 truncate block mt-0.5 max-w-[120px]">
                       {item.set.name}
                     </span>
-                    <span className="text-[7px] text-emerald-400 font-bold block mt-1 uppercase tracking-wider">
+                    <span className="text-[7px] text-emerald-500 font-bold block mt-1 uppercase tracking-wider">
                       7-Day Value
                     </span>
                   </div>
@@ -182,11 +182,11 @@ export const WishlistScreen: React.FC<WishlistScreenProps> = ({ onNavigate }) =>
           })}
 
           {filteredItems.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-20 px-8 text-center bg-[#161B26]/40 rounded-[32px] border border-dashed border-gray-200">
-              <Bell className="w-12 h-12 text-slate-700 mb-4" strokeWidth={1.5} />
-              <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest">No Wishlisted Bricks</h3>
-              <p className="text-xs text-slate-600 mt-2 font-bold leading-normal">
-                Set a buying target alert on retired LEGO sets. We will push a warning when market prices drop below it!
+            <div className="flex flex-col items-center justify-center py-20 px-8 text-center bg-white rounded-[32px] border border-dashed border-gray-200 shadow-sm">
+              <Bell className="w-12 h-12 text-gray-400 mb-4" strokeWidth={1.5} />
+              <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">No Wishlisted Items</h3>
+              <p className="text-xs text-gray-500 mt-2 font-medium leading-normal">
+                Set a buying target alert on retired sets or cards. We will notify you when market prices drop!
               </p>
             </div>
           )}

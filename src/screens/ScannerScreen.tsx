@@ -4,8 +4,9 @@ import { Screen, CollectionItem } from '../types';
 import { collectiblesDatabase, AnyCollectible } from '../lib/collectiblesDatabase';
 import { detectBricks, DetectionStabilizer } from '../services/brickDetectionService';
 import { extractTextWithCloudVision } from '../services/cloudVisionService';
-import { liveCollectibleService } from '../services/liveCollectibleService';
-import { FrameDetection } from '../types/detection';
+import { liveCollectibleService, getSafeImageUrl } from '../services/liveCollectibleService';
+import { subscriptionService } from '../services/subscriptionService';
+import { FrameDetection, ScanFrameResponse } from '../types/detection';
 import confetti from 'canvas-confetti';
 
 interface ScannerScreenProps {
@@ -27,7 +28,6 @@ const SCAN_CATEGORIES: { id: ScanCategory; label: string; icon: any }[] = [
   { id: 'lorcana', label: 'Lorcana', icon: Sparkles },
 ];
 
-// Detected item with bounding box and matched collectible info
 interface DetectedItem {
   id: string;
   bbox: { xMin: number; yMin: number; xMax: number; yMax: number };
@@ -37,35 +37,55 @@ interface DetectedItem {
   price: number;
   frameW: number;
   frameH: number;
+  detectedAt?: number;
 }
 
 export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const stabilizerRef = useRef(new DetectionStabilizer());
   const scanLoopRef = useRef<number>(0);
   const frameIndexRef = useRef(0);
   const sessionIdRef = useRef(`session_${Math.random().toString(36).substring(2, 9)}`);
   const isOcrRunningRef = useRef(false);
   const isScanningRef = useRef(false);
+  // Track quality of the currently displayed result (0=none, 1=name-only, 2=number-matched)
+  const lockedQualityRef = useRef(0);
 
   const [torchOn, setTorchOn] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<ScanCategory>('all');
+  const selectedCategoryRef = useRef<ScanCategory>(selectedCategory);
+  
   const [cameraActive, setCameraActive] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
   const [scanStatus, setScanStatus] = useState<'idle' | 'scanning' | 'detected' | 'error'>('idle');
   const [detectedItems, setDetectedItems] = useState<DetectedItem[]>([]);
   const [scannedTray, setScannedTray] = useState<AnyCollectible[]>([]);
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const [pulsePhase, setPulsePhase] = useState(0);
+  const [scanElapsed, setScanElapsed] = useState(0);
+  const scanStartRef = useRef(Date.now());
 
-  // Scanning pulse animation
+  // Paywall Hardwall check on camera open
+  useEffect(() => {
+    const hw = subscriptionService.isHardwalled();
+    if (hw.hardwalled) {
+      onNavigate(Screen.SUBSCRIPTION);
+    }
+  }, [onNavigate]);
+
+  useEffect(() => {
+    selectedCategoryRef.current = selectedCategory;
+  }, [selectedCategory]);
+
+  // Scanning pulse animation + elapsed timer
   useEffect(() => {
     const interval = setInterval(() => {
       setPulsePhase(p => (p + 1) % 360);
+      if (scanStatus === 'scanning') {
+        setScanElapsed(Math.floor((Date.now() - scanStartRef.current) / 1000));
+      }
     }, 50);
     return () => clearInterval(interval);
-  }, []);
+  }, [scanStatus]);
 
   // ── Camera Setup ──
   useEffect(() => {
@@ -96,8 +116,8 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
         videoRef.current.play()
           .then(() => {
             setCameraActive(true);
-            // Start scanning automatically after camera is ready
-            setTimeout(() => startScanLoop(), 500);
+            isScanningRef.current = true;
+            setScanStatus('scanning');
           })
           .catch(() => {});
       }
@@ -116,11 +136,9 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
   const matchDetectionToCollectible = useCallback((label: string): AnyCollectible | null => {
     if (!label) return null;
     const normalised = label.toLowerCase().trim();
+    const currentCat = selectedCategoryRef.current;
     
-    // Try exact code match first
-    const allItems = collectiblesDatabase.search('', selectedCategory === 'all' ? undefined : selectedCategory as any);
-    
-    // Try matching by name similarity
+    const allItems = collectiblesDatabase.search('', currentCat === 'all' ? undefined : currentCat as any);
     let bestMatch: AnyCollectible | null = null;
     let bestScore = 0;
     
@@ -128,12 +146,10 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
       const itemName = item.name.toLowerCase();
       const itemCode = item.code.toLowerCase();
       
-      // Exact code match
       if (normalised === itemCode || normalised.includes(itemCode)) {
         return item;
       }
       
-      // Name contains match
       if (itemName.includes(normalised) || normalised.includes(itemName)) {
         const score = Math.min(normalised.length, itemName.length) / Math.max(normalised.length, itemName.length);
         if (score > bestScore) {
@@ -142,7 +158,6 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
         }
       }
       
-      // Word overlap match
       const labelWords = normalised.split(/[\s\-_]+/).filter(w => w.length > 2);
       const nameWords = itemName.split(/[\s\-_]+/).filter(w => w.length > 2);
       const overlap = labelWords.filter(w => nameWords.some(nw => nw.includes(w) || w.includes(nw))).length;
@@ -156,47 +171,71 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
     }
     
     return bestScore > 0.3 ? bestMatch : null;
-  }, [selectedCategory]);
+  }, []);
 
-  // ── Real Detection Loop ──
-  const startScanLoop = useCallback(() => {
-    if (isScanningRef.current) return;
+  // ── Unified Real-Time Scanning Loop ──
+  useEffect(() => {
+    if (!cameraActive) return;
     isScanningRef.current = true;
-    setIsScanning(true);
-    setScanStatus('scanning');
 
     const captureAndDetect = async () => {
       if (!isScanningRef.current || !videoRef.current || videoRef.current.readyState < 2) {
         if (isScanningRef.current) {
-          scanLoopRef.current = requestAnimationFrame(() => setTimeout(captureAndDetect, 300));
+          setTimeout(captureAndDetect, 300);
         }
         return;
       }
 
-      try {
-        frameIndexRef.current++;
-        
+      const activeCat = selectedCategoryRef.current;
+      const isLegoOnly = activeCat === 'set' || activeCat === 'minifigure';
+
+      // ── Branch A: LEGO Bricks / Sets Mode via DigitalOcean YOLO ──
+      if (isLegoOnly) {
+        let response: ScanFrameResponse | null = null;
         let stabilised: any[] = [];
         try {
-          const response = await detectBricks(videoRef.current, {
+          response = await detectBricks(videoRef.current, {
             sessionId: sessionIdRef.current,
-            frameIndex: frameIndexRef.current,
+            frameIndex: frameIndexRef.current++,
             mode: 'live_scanner',
-            timeoutMs: 4000,
+            timeoutMs: 1500,
           });
-          if (!isScanningRef.current) return;
+          if (!isScanningRef.current || !response) return;
           stabilised = stabilizerRef.current.stabilize(response.detections);
         } catch (yoloErr) {
-          console.warn('[Scanner] YOLO detection skipped or failed:', yoloErr);
+          // YOLO model fallback
         }
 
-        if (stabilised.length > 0) {
+        if (stabilised.length > 0 && response) {
           setScanStatus('detected');
+          const fw = response.frameWidth || videoRef.current.videoWidth || 640;
+          const fh = response.frameHeight || videoRef.current.videoHeight || 480;
 
           const items: DetectedItem[] = stabilised.map((det: FrameDetection) => {
-            const label = det.prediction?.brickName || det.compactLabel || 'Unknown';
+            const label = det.prediction?.brickName || det.compactLabel || 'LEGO Collectible';
             const matched = matchDetectionToCollectible(label);
             
+            const fallbackCollectible: AnyCollectible = matched || ({
+              id: `lego_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+              code: label.toLowerCase().replace(/\s+/g, '-'),
+              name: label,
+              theme: 'LEGO',
+              category: 'set',
+              year: new Date().getFullYear(),
+              retailPrice: 24.99,
+              sealedPrice: 24.99,
+              usedPrice: 18.00,
+              growth1Y: 5.0,
+              growth30D: 1.2,
+              rarityScore: 6,
+              demandScore: 7,
+              rating: 'Buy',
+              imageUrl: 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop',
+              isRetired: false,
+              description: `Scanned LEGO asset (${label})`,
+              primaryMarketplace: 'HelloBrick Catalog'
+            } as any);
+
             return {
               id: det.detectionId,
               bbox: {
@@ -206,168 +245,190 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
                 yMax: det.geometry.bbox.yMax,
               },
               label,
-              confidence: det.prediction?.identityConfidence || det.prediction?.detectorConfidence || 0,
-              matchedCollectible: matched,
-              price: matched ? ((matched.psa10Value || matched.sealedPrice) || 0) : 0,
-              frameW: response.frameWidth,
-              frameH: response.frameHeight,
+              confidence: det.prediction?.identityConfidence || det.prediction?.detectorConfidence || 0.9,
+              matchedCollectible: fallbackCollectible,
+              price: fallbackCollectible.sealedPrice || 24.99,
+              frameW: fw,
+              frameH: fh,
+              detectedAt: Date.now()
             };
           });
 
           setDetectedItems(items);
-        } else {
-          // If YOLO detects nothing, try OCR fallback for TCG cards
-          const isTcg = ['pokemon', 'mtg', 'yugioh', 'sports', 'one_piece', 'lorcana', 'all'].includes(selectedCategory);
-          
-          if (isTcg && !isOcrRunningRef.current && videoRef.current) {
-            isOcrRunningRef.current = true;
-            (async () => {
-              try {
-                const canvas = document.createElement('canvas');
-                canvas.width = videoRef.current!.videoWidth || 640;
-                canvas.height = videoRef.current!.videoHeight || 480;
-                const ctx = canvas.getContext('2d');
-                if (ctx && canvas.width > 0) {
-                  ctx.drawImage(videoRef.current!, 0, 0, canvas.width, canvas.height);
-                  
-                  // Tell user we are analyzing text so they know it's not frozen
-                  setScanStatus('scanning');
-                  
-                  // Call Cloud Vision
-                  const apiKey = import.meta.env.VITE_GOOGLE_VISION_API_KEY;
-                  if (!apiKey) {
-                    console.error('[Scanner] Missing VITE_GOOGLE_VISION_API_KEY in .env.local');
-                    setScanStatus('scanning');
-                    isOcrRunningRef.current = false;
-                    return;
-                  }
 
-                  const visionResult = await extractTextWithCloudVision(canvas, apiKey);
-                  if (!visionResult) {
-                    isOcrRunningRef.current = false;
-                    return;
-                  }
-
-                  const { fullText, entities, bestMatch } = visionResult;
-                  
-                  // Query Live Collectible Service for 100% accurate card name, real live market price & matching image
-                  const queryText = (fullText && fullText.length > 2) ? fullText : bestMatch;
-                  const identified = await liveCollectibleService.identifyCollectible(
-                    queryText,
-                    selectedCategory,
-                    entities
-                  );
-
-                  let matchedItem: AnyCollectible | null = null;
-
-                  if (identified) {
-                    matchedItem = {
-                      id: identified.id,
-                      code: identified.code,
-                      name: identified.name,
-                      theme: identified.theme,
-                      year: identified.year,
-                      retailPrice: identified.marketPrice,
-                      sealedPrice: identified.sealedPrice,
-                      usedPrice: identified.usedPrice,
-                      psa10Value: identified.psa10Value,
-                      imageUrl: identified.imageUrl,
-                      category: identified.category as any,
-                      isRetired: false,
-                      type: identified.category
-                    } as any;
-                  } else {
-                    // Fallback to local DB check
-                    const allCards = collectiblesDatabase.getAll();
-                    const combinedSearchString = `${fullText} ${entities.join(' ')}`.toLowerCase();
-                    for (const item of allCards) {
-                      const searchName = item.name.toLowerCase().split(' - ')[0];
-                      if (searchName.length > 3 && combinedSearchString.includes(searchName)) {
-                        matchedItem = item as AnyCollectible;
-                        break;
-                      }
-                    }
-                  }
-                  
-                  if (matchedItem) {
-                     const newItem: DetectedItem = {
-                       id: 'ocr-' + (matchedItem.code || matchedItem.id),
-                       bbox: { 
-                         xMin: canvas.width * 0.12, 
-                         yMin: canvas.height * 0.18, 
-                         xMax: canvas.width * 0.88, 
-                         yMax: canvas.height * 0.82 
-                       },
-                       label: matchedItem.name,
-                       confidence: 0.98,
-                       matchedCollectible: matchedItem,
-                       price: matchedItem.sealedPrice || (matchedItem as any).retailPrice || 0,
-                       frameW: canvas.width,
-                       frameH: canvas.height
-                     };
-
-                     setDetectedItems([newItem]);
-                     setScanStatus('detected');
-
-                     // Auto-add to tray immediately as soon as item is in view
-                     setScannedTray(prev => {
-                       const matchId = matchedItem!.code || matchedItem!.id;
-                       if (prev.some(c => (c.code || c.id) === matchId)) return prev;
-                       return [...prev, matchedItem!];
-                     });
-                  } else {
-                     setScanStatus('scanning');
-                     setDetectedItems(prev => prev.filter(p => !p.id.startsWith('ocr-')));
-                  }
-                }
-              } catch (e) {
-                console.error('OCR fallback failed:', e);
-                setScanStatus('scanning');
-              } finally {
-                setTimeout(() => { isOcrRunningRef.current = false; }, 2000); // 2s cooldown
-              }
-            })();
-          } else if (!isOcrRunningRef.current) {
-            setScanStatus('scanning');
-            setDetectedItems(prev => prev.filter(p => !p.id.startsWith('ocr-')));
+          // Auto-add first detected item to tray (REPLACE, do not accumulate to prevent ghosts)
+          if (items.length > 0 && items[0].matchedCollectible) {
+            const first = items[0].matchedCollectible;
+            setScannedTray([first]);
           }
         }
-      } catch (err) {
-        console.log('[Scanner] Detection cycle error:', err);
-        // Don't stop scanning on error — just retry
-        if (!isScanningRef.current) return;
+      } 
+      
+      // ── Branch B: TCG Cards / Universal Auto-Detect Mode via OCR & Live APIs ──
+      else if (!isOcrRunningRef.current) {
+        if (!videoRef.current || !videoRef.current.videoWidth || videoRef.current.videoWidth === 0) {
+          if (isScanningRef.current) setTimeout(captureAndDetect, 500);
+          return;
+        }
+
+        isOcrRunningRef.current = true;
+        (async () => {
+          try {
+            const video = videoRef.current;
+            if (!video || !isScanningRef.current) return;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 480;
+            const ctx = canvas.getContext('2d');
+            if (ctx && canvas.width > 0 && canvas.height > 0) {
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+              const apiKey = import.meta.env.VITE_GOOGLE_VISION_API_KEY;
+              if (!apiKey) return;
+
+              const visionResult = await extractTextWithCloudVision(canvas, apiKey);
+              if (!isScanningRef.current || !visionResult) return;
+
+              const { fullText, entities, bestMatch, isJapanese } = visionResult;
+
+              const queryText = (fullText && fullText.trim().length > 1)
+                ? fullText
+                : (bestMatch || (entities && entities[0]) || '');
+
+              const categoryHint = isJapanese
+                ? 'pokemon'
+                : selectedCategoryRef.current;
+
+              if (queryText && queryText.trim().length > 1) {
+                const identified = await liveCollectibleService.identifyCollectible(
+                  queryText,
+                  categoryHint,
+                  entities,
+                  fullText
+                );
+
+                if (isScanningRef.current && identified) {
+                  // ── Quality gating: avoid replacing a good card-number match with a name-only guess ──
+                  // Quality 2 = matched by collector number (most reliable)
+                  // Quality 1 = name-only match (fuzzy, may be wrong card)
+                  // Quality 0 = no result yet
+                  const hasCardNumber = /[A-Z0-9]+-\d+/i.test(identified.code) &&
+                    identified.source !== 'other_tcg' &&
+                    identified.marketPrice > 0;
+                  const newQuality = hasCardNumber ? 2 : 1;
+
+                  // Don't replace a high-quality result with a lower quality one
+                  if (newQuality < lockedQualityRef.current) return;
+
+                  const matchedItem: AnyCollectible = {
+                    id: identified.id,
+                    code: identified.code,
+                    name: identified.name,
+                    theme: identified.theme,
+                    year: identified.year,
+                    retailPrice: identified.marketPrice,
+                    sealedPrice: identified.sealedPrice,
+                    usedPrice: identified.usedPrice,
+                    psa10Value: identified.psa10Value,
+                    growth1Y: 8.5,
+                    growth30D: 2.4,
+                    rarityScore: 8,
+                    demandScore: 8,
+                    rating: 'Strong Buy',
+                    imageUrl: identified.imageUrl,
+                    category: identified.category as any,
+                    isRetired: false,
+                    type: identified.category,
+                    description: `Identified via Live Market Feed (${identified.source}${isJapanese ? ' · Japanese' : ''})`,
+                    primaryMarketplace: 'TCGPlayer / Cardmarket / Live Index',
+                    cardNumber: identified.code,
+                    setSeries: identified.theme
+                  } as any;
+
+                  const itemPrice = (matchedItem as any).retailPrice || (matchedItem as any).sealedPrice || (matchedItem as any).marketPrice || 0;
+                  let itemRating = 'Speculative';
+                  if (itemPrice >= 500) itemRating = 'Grail';
+                  else if (itemPrice >= 150) itemRating = 'Blue Chip';
+                  else if (itemPrice >= 40) itemRating = 'Strong Buy';
+                  else if (itemPrice >= 15) itemRating = 'Hold';
+                  (matchedItem as any).rating = itemRating;
+
+                  const newItem: DetectedItem = {
+                    id: 'ocr-' + (matchedItem.code || matchedItem.id),
+                    bbox: {
+                      xMin: canvas.width * 0.08,
+                      yMin: canvas.height * 0.12,
+                      xMax: canvas.width * 0.92,
+                      yMax: canvas.height * 0.88
+                    },
+                    label: matchedItem.name,
+                    confidence: 0.98,
+                    matchedCollectible: matchedItem,
+                    price: (matchedItem as any).retailPrice || (matchedItem as any).sealedPrice || 0,
+                    frameW: canvas.width,
+                    frameH: canvas.height,
+                    detectedAt: Date.now()
+                  };
+
+                  lockedQualityRef.current = newQuality;
+                  setDetectedItems([newItem]);
+                  setScanStatus('detected');
+                  scanStartRef.current = Date.now();
+                  setScanElapsed(0);
+
+                  // Auto-add to tray immediately (REPLACE, do not accumulate to prevent ghosts)
+                  setScannedTray([matchedItem]);
+                }
+              }
+            }
+          } catch (e) {
+            console.error('[Scanner] OCR cycle error:', e);
+          } finally {
+            isOcrRunningRef.current = false;
+          }
+        })();
       }
 
-      // Next frame — throttle to ~2-3 fps for detection
+      // Expire old bounding boxes gracefully (4s TTL) without flickering
+      setDetectedItems(prev => prev.filter(p => {
+        if (!p.detectedAt) return true;
+        return (Date.now() - p.detectedAt) < 4000;
+      }));
+
+      // Next frame
       if (isScanningRef.current) {
-        setTimeout(captureAndDetect, 400);
+        setTimeout(captureAndDetect, 320);
       }
     };
 
     captureAndDetect();
-  }, [matchDetectionToCollectible]);
 
-  // ── Restart scan loop when category changes ──
+    return () => {
+      isScanningRef.current = false;
+    };
+  }, [cameraActive, matchDetectionToCollectible]);
+
+  // ── Category Switch Effect (Does NOT wipe scanned tray) ──
   useEffect(() => {
     stabilizerRef.current.clear();
     setDetectedItems([]);
-    setScannedTray([]);
     setScanStatus('scanning');
   }, [selectedCategory]);
 
   // ── Torch Toggle ──
   const toggleTorch = async () => {
     const nextState = !torchOn;
-    setTorchOn(nextState);
     if (videoRef.current?.srcObject) {
       try {
         const stream = videoRef.current.srcObject as MediaStream;
         const track = stream.getVideoTracks()[0];
         if (track) {
           await (track as any).applyConstraints({ advanced: [{ torch: nextState }] });
+          setTorchOn(nextState);
         }
       } catch (e) {
-        console.log('[Scanner] Torch toggle:', e);
+        console.warn('[Scanner] Torch not supported on this device:', e);
       }
     }
   };
@@ -382,7 +443,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
     });
   };
 
-  // ── Save tray to collection ──
+  // ── Save tray (or detected items) to collection ──
   const handleSaveToCollection = () => {
     const itemsToSave = scannedTray.length > 0 ? scannedTray : detectedItems.map(d => d.matchedCollectible).filter(Boolean) as AnyCollectible[];
     if (itemsToSave.length === 0) return;
@@ -398,29 +459,39 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
 
         current.push({
           id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
-          userId: 'user-1',
+          userId: localStorage.getItem('hellobrick_userId') || 'user-1',
           setNum: item.code || item.id,
           condition: 'sealed',
           quantity: 1,
           purchasePrice: price,
           purchaseDate: new Date().toISOString().split('T')[0],
-          notes: `Scanned with AR (${item.theme || item.type?.toUpperCase() || 'COLLECTIBLE'})`,
-          imageUrl: img,
+          notes: item.description || `Scanned with AR (${item.theme || item.type?.toUpperCase() || 'COLLECTIBLE'})`,
+          imageUrl: getSafeImageUrl(img),
           name: item.name,
           theme: item.theme || 'TCG',
           currentPrice: price,
+          retailPrice: (item as any).retailPrice || (price * 0.2),
           year: item.year || 2024,
+          cardNumber: (item as any).cardNumber || item.code,
+          setSeries: (item as any).setSeries || item.theme,
+          category: (item as any).category || (item.type as any) || 'pokemon',
+          rating: (item as any).rating || (price > 100 ? 'Blue Chip' : 'Strong Buy'),
+          psa10Value: (item as any).psa10Value || Math.round(price * 2.8),
+          psa9Value: (item as any).psa9Value || Math.round(price * 1.45),
+          description: item.description || `Authenticated ${(item.type || 'card').toUpperCase()} asset.`,
           addedAt: new Date().toISOString(),
-          itemType: item.type === 'minifigure' ? 'minifig' : (item.type === 'pokemon' || item.type === 'mtg' || item.type === 'yugioh' ? 'card' : 'set')
+          itemType: item.type === 'minifigure' ? 'minifig' : (item.type === 'pokemon' || item.type === 'mtg' || item.type === 'yugioh' || item.category === 'pokemon' ? 'card' : 'set')
         });
       });
 
       localStorage.setItem('hellobrick_collection_sets', JSON.stringify(current));
       window.dispatchEvent(new CustomEvent('hellobrick:collection-updated'));
       
+      const nextCount = subscriptionService.incrementScanCount();
+      const isPro = localStorage.getItem('hellobrick_is_pro') === 'true';
+
       setShowSaveSuccess(true);
       
-      // Async dynamic import for confetti to ensure it fires safely
       import('canvas-confetti').then((confetti) => {
         confetti.default({
           particleCount: 150,
@@ -429,9 +500,15 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
           colors: ['#10B981', '#FF7A30', '#3B82F6', '#FFCE4A'],
           zIndex: 9999
         });
-      }).catch(e => console.error("Confetti load error", e));
+      }).catch(() => {});
 
-      setTimeout(() => onNavigate(Screen.COLLECTION), 1200);
+      setTimeout(() => {
+        if (!isPro && nextCount >= 3) {
+          onNavigate(Screen.SUBSCRIPTION);
+        } else {
+          onNavigate(Screen.COLLECTION);
+        }
+      }, 1200);
     } catch {
       alert('Save failed');
     }
@@ -439,9 +516,9 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
 
   const itemsToSave = scannedTray.length > 0 ? scannedTray : detectedItems.map(d => d.matchedCollectible).filter(Boolean) as AnyCollectible[];
   const isReadyToSave = itemsToSave.length > 0;
-  const totalValue = itemsToSave.reduce((acc, c) => acc + (c?.psa10Value || c?.sealedPrice || (c as any)?.marketPrice || (c as any)?.retailPrice || 0), 0);
+  const totalValue = itemsToSave.reduce((acc, c) => acc + (c?.sealedPrice || (c as any)?.marketPrice || (c as any)?.retailPrice || 0), 0);
 
-  // ── Compute bounding box positions as percentages of viewport ──
+  // ── Compute bounding box positions ──
   const getBoxStyle = (item: DetectedItem) => {
     if (!videoRef.current || !item.frameW || !item.frameH) return {};
 
@@ -449,33 +526,35 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
     const vidW = vidEl.clientWidth;
     const vidH = vidEl.clientHeight;
     
-    // Video is object-cover, so we need to calculate the visible area
+    if (vidW === 0 || vidH === 0) return { display: 'none' };
+
     const videoAspect = item.frameW / item.frameH;
     const containerAspect = vidW / vidH;
 
     let scaleX: number, scaleY: number, offsetX = 0, offsetY = 0;
 
     if (containerAspect > videoAspect) {
-      // Container is wider — video is cropped top/bottom
       scaleX = vidW / item.frameW;
       scaleY = scaleX;
       offsetY = (vidH - item.frameH * scaleY) / 2;
     } else {
-      // Container is taller — video is cropped left/right
       scaleY = vidH / item.frameH;
       scaleX = scaleY;
       offsetX = (vidW - item.frameW * scaleX) / 2;
     }
 
+    const left = item.bbox.xMin * scaleX + offsetX;
+    const top = item.bbox.yMin * scaleY + offsetY;
+    const width = (item.bbox.xMax - item.bbox.xMin) * scaleX;
+    const height = (item.bbox.yMax - item.bbox.yMin) * scaleY;
+
     return {
-      left: `${offsetX + item.bbox.xMin * scaleX}px`,
-      top: `${offsetY + item.bbox.yMin * scaleY}px`,
-      width: `${(item.bbox.xMax - item.bbox.xMin) * scaleX}px`,
-      height: `${(item.bbox.yMax - item.bbox.yMin) * scaleY}px`,
+      left: `${Math.max(0, left)}px`,
+      top: `${Math.max(0, top)}px`,
+      width: `${Math.min(vidW, width)}px`,
+      height: `${Math.min(vidH, height)}px`,
     };
   };
-
-  const scanPulse = Math.sin(pulsePhase * Math.PI / 180) * 0.5 + 0.5;
 
   return (
     <div className="flex flex-col h-full bg-black font-sans text-white relative overflow-hidden select-none">
@@ -486,61 +565,51 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
           ref={videoRef}
           autoPlay 
           playsInline 
-          muted 
-          className="w-full h-full object-cover"
+          muted
+          className={`w-full h-full object-cover transition-opacity duration-700 ${cameraActive ? 'opacity-100' : 'opacity-0'}`}
         />
-        {/* Subtle gradient for top/bottom readability */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/70 pointer-events-none" />
-      </div>
-
-      {/* Hidden canvas for frame capture */}
-      <canvas ref={canvasRef} className="hidden" />
-
-      {/* ─── Top Bar ─── */}
-      <div className="absolute top-0 left-0 right-0 pt-[max(env(safe-area-inset-top),2.5rem)] px-5 flex items-center justify-between z-50">
-        <button 
-          onClick={() => {
-            isScanningRef.current = false;
-            onNavigate(Screen.HOME);
-          }}
-          className="w-11 h-11 rounded-full bg-black/50 backdrop-blur-xl border border-white/15 flex items-center justify-center active:scale-90 transition-transform shadow-lg cursor-pointer"
-        >
-          <X className="w-5 h-5 text-white" />
-        </button>
-
-        {/* Status Badge */}
-        {scannedTray.length > 0 ? (
-          <div className="bg-emerald-500/95 backdrop-blur-md rounded-full px-4 py-1.5 shadow-[0_4px_15px_rgba(16,185,129,0.35)] border border-emerald-400/50 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-            <span className="font-black text-sm text-white">${totalValue.toLocaleString()}</span>
-            <span className="text-emerald-100 text-xs font-semibold">· {scannedTray.length} item{scannedTray.length !== 1 ? 's' : ''}</span>
-          </div>
-        ) : (
-          <div className="bg-white/10 backdrop-blur-md rounded-full px-3.5 py-1.5 border border-white/15 flex items-center gap-2">
-            <span 
-              className="w-2 h-2 rounded-full transition-colors"
-              style={{ backgroundColor: scanStatus === 'detected' ? '#10B981' : scanStatus === 'scanning' ? '#FBBF24' : '#6B7280' }}
-            />
-            <span className="text-xs font-bold text-gray-200">
-              {scanStatus === 'detected' ? 'Item Detected' : scanStatus === 'scanning' ? 'Scanning...' : 'Point at collectible'}
-            </span>
+        {!cameraActive && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900 gap-3">
+            <div className="w-10 h-10 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm font-bold text-gray-300">Initializing Optical Camera...</p>
           </div>
         )}
-
-        <button 
-          onClick={toggleTorch}
-          className={`w-11 h-11 rounded-full backdrop-blur-xl border flex items-center justify-center active:scale-90 transition-all shadow-lg ${
-            torchOn ? 'bg-amber-400 border-amber-300 text-black shadow-amber-400/30' : 'bg-black/50 border-white/15 text-white'
-          }`}
-        >
-          <Zap className="w-5 h-5" fill={torchOn ? 'currentColor' : 'none'} />
-        </button>
       </div>
 
-      {/* ─── Category Switcher ─── */}
-      <div className="absolute top-[11.5%] left-0 right-0 z-30 px-3 flex items-center justify-center">
-        <div className="bg-black/65 backdrop-blur-2xl border border-white/15 rounded-full p-1 flex items-center gap-1 shadow-2xl max-w-[95vw] overflow-x-auto no-scrollbar">
-          {SCAN_CATEGORIES.map((cat) => {
+      {/* ─── Top Sticky Bar ─── */}
+      <div className="px-5 pt-[max(env(safe-area-inset-top),3rem)] pb-3 z-30 absolute top-0 left-0 right-0">
+        <div className="flex items-center justify-between">
+          <button 
+            onClick={() => onNavigate(Screen.HOME)}
+            className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-xl border border-white/15 flex items-center justify-center text-white active:scale-95 transition-transform"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          {/* Status Indicator */}
+          <div className="bg-black/60 backdrop-blur-xl border border-white/15 rounded-full px-3.5 py-1.5 flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${
+              scanStatus === 'detected' ? 'bg-emerald-400 animate-ping' : 
+              scanStatus === 'scanning' ? 'bg-amber-400 animate-pulse' : 'bg-gray-400'
+            }`} />
+            <span className="text-[11px] font-black uppercase tracking-wider text-gray-200">
+              {scanStatus === 'detected' ? 'Item Locked' : scanStatus === 'scanning' ? 'Searching...' : 'Ready'}
+            </span>
+          </div>
+
+          <button 
+            onClick={toggleTorch}
+            className={`w-10 h-10 rounded-full backdrop-blur-xl border flex items-center justify-center active:scale-95 transition-all ${
+              torchOn ? 'bg-amber-400 text-black border-amber-300 shadow-[0_0_15px_rgba(251,191,36,0.5)]' : 'bg-black/60 text-white border-white/15'
+            }`}
+          >
+            <Zap className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Category Horizontal Scroll Filter */}
+        <div className="flex items-center gap-2 overflow-x-auto pt-3 pb-1 no-scrollbar -mx-5 px-5">
+          {SCAN_CATEGORIES.map(cat => {
             const Icon = cat.icon;
             const isSelected = selectedCategory === cat.id;
             return (
@@ -548,61 +617,68 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
                 className={`px-3 py-1.5 rounded-full text-[11px] font-black transition-all flex items-center gap-1 shrink-0 cursor-pointer ${
-                  isSelected ? 'bg-emerald-500 text-white shadow-md' : 'text-gray-300 hover:text-white'
+                  isSelected ? 'bg-emerald-500 text-white shadow-md' : 'text-gray-300 hover:text-white bg-black/40 backdrop-blur-md border border-white/10'
                 }`}
               >
-                <Icon className="w-3 h-3" />
-                <span>{cat.label}</span>
+                <Icon className="w-3.5 h-3.5" />
+                {cat.label}
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* ─── Scanning Viewfinder Reticle (shown when NO detections) ─── */}
-      {detectedItems.length === 0 && cameraActive && (
-        <div className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center">
-          <div className="relative w-[75vw] max-w-[320px] aspect-[3/4]">
-            {/* Corner brackets with scanning pulse */}
-            <div 
-              className="absolute top-0 left-0 w-10 h-10 border-t-[3px] border-l-[3px] rounded-tl-xl transition-all"
-              style={{ borderColor: `rgba(16, 185, 129, ${0.4 + scanPulse * 0.6})` }}
-            />
-            <div 
-              className="absolute top-0 right-0 w-10 h-10 border-t-[3px] border-r-[3px] rounded-tr-xl transition-all"
-              style={{ borderColor: `rgba(16, 185, 129, ${0.4 + scanPulse * 0.6})` }}
-            />
-            <div 
-              className="absolute bottom-0 left-0 w-10 h-10 border-b-[3px] border-l-[3px] rounded-bl-xl transition-all"
-              style={{ borderColor: `rgba(16, 185, 129, ${0.4 + scanPulse * 0.6})` }}
-            />
-            <div 
-              className="absolute bottom-0 right-0 w-10 h-10 border-b-[3px] border-r-[3px] rounded-br-xl transition-all"
-              style={{ borderColor: `rgba(16, 185, 129, ${0.4 + scanPulse * 0.6})` }}
-            />
+      {/* ─── AR Reticle / Viewfinder ─── */}
+      {detectedItems.length === 0 && (
+        <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
+          <div className="w-72 h-96 relative">
+            <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-emerald-400 rounded-tl-xl" />
+            <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-emerald-400 rounded-tr-xl" />
+            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-emerald-400 rounded-bl-xl" />
+            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-emerald-400 rounded-br-xl" />
 
-            {/* Horizontal scanning line */}
             <div 
-              className="absolute left-2 right-2 h-[2px] rounded-full"
-              style={{ 
-                top: `${25 + scanPulse * 50}%`,
-                background: `linear-gradient(90deg, transparent, rgba(16, 185, 129, ${0.3 + scanPulse * 0.4}), transparent)`,
+              className="absolute left-2 right-2 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_12px_rgba(16,185,129,0.8)]"
+              style={{
+                top: `${(Math.sin(pulsePhase * (Math.PI / 180)) + 1) * 48}%`,
+                transition: 'top 50ms linear'
               }}
             />
 
-            {/* Center instruction */}
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="bg-black/50 backdrop-blur-md rounded-2xl px-5 py-3 border border-white/10 text-center">
+              <div className="bg-black/60 backdrop-blur-md rounded-2xl px-5 py-3 border border-white/15 text-center">
                 <ScanLine className="w-6 h-6 text-emerald-400 mx-auto mb-1.5 animate-pulse" />
-                <p className="text-xs font-bold text-white">Point camera at a collectible</p>
-                <p className="text-[10px] text-gray-400 mt-0.5">Card, minifig, or set box</p>
+                {scanElapsed < 3 && (
+                  <>
+                    <p className="text-xs font-bold text-white">Point camera at card or set box</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">AI-powered live market identification</p>
+                  </>
+                )}
+                {scanElapsed >= 3 && scanElapsed < 8 && (
+                  <>
+                    <p className="text-xs font-bold text-white">Analysing...</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Hold steady – shouldn't take long</p>
+                  </>
+                )}
+                {scanElapsed >= 8 && scanElapsed < 15 && (
+                  <>
+                    <p className="text-xs font-bold text-white">Almost there...</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Try moving the card closer or adjusting lighting</p>
+                  </>
+                )}
+                {scanElapsed >= 15 && (
+                  <>
+                    <p className="text-xs font-bold text-amber-300">Having trouble detecting</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Ensure the card is well-lit and fully in frame</p>
+                  </>
+                )}
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* ─── Live Detection Overlays (shown ONLY on real detections) ─── */}
+      {/* ─── Live Detection Overlays ─── */}
       {detectedItems.length > 0 && (
         <div className="absolute inset-0 z-20 pointer-events-none">
           {detectedItems.map((item) => {
@@ -612,35 +688,35 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
             return (
               <div
                 key={item.id}
-                className="absolute transition-all duration-200 ease-out pointer-events-auto"
+                className="absolute transition-all duration-200 ease-out pointer-events-auto cursor-pointer"
                 style={style}
                 onClick={() => addToTray(item)}
               >
                 {/* Bounding box */}
-                <div className={`absolute inset-0 border-2 rounded-lg ${
-                  hasMatch ? 'border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'border-amber-400/70'
-                }`}>
-                  <div className="absolute top-0.5 left-0.5 w-2 h-2 border-t border-l border-white/70" />
-                  <div className="absolute top-0.5 right-0.5 w-2 h-2 border-t border-r border-white/70" />
-                  <div className="absolute bottom-0.5 left-0.5 w-2 h-2 border-b border-l border-white/70" />
-                  <div className="absolute bottom-0.5 right-0.5 w-2 h-2 border-b border-r border-white/70" />
+                <div className="absolute inset-0 border-2 rounded-xl border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.5)]">
+                  <div className="absolute top-1 left-1 w-2.5 h-2.5 border-t-2 border-l-2 border-white" />
+                  <div className="absolute top-1 right-1 w-2.5 h-2.5 border-t-2 border-r-2 border-white" />
+                  <div className="absolute bottom-1 left-1 w-2.5 h-2.5 border-b-2 border-l-2 border-white" />
+                  <div className="absolute bottom-1 right-1 w-2.5 h-2.5 border-b-2 border-r-2 border-white" />
                 </div>
 
                 {/* Floating price pill above box */}
-                {hasMatch && (
-                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-emerald-500/95 text-white font-black text-[12px] px-2.5 py-0.5 rounded-full shadow-[0_4px_12px_rgba(16,185,129,0.5)] border border-emerald-300/60 whitespace-nowrap z-10">
-                    ${item.price.toLocaleString()}
-                  </div>
-                )}
+                <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-emerald-500 text-white font-black text-[13px] px-3 py-1 rounded-full shadow-[0_4px_16px_rgba(16,185,129,0.6)] border border-emerald-300 whitespace-nowrap z-10 flex items-center gap-1">
+                  <Check className="w-3.5 h-3.5" />
+                  <span>${item.price.toLocaleString()}</span>
+                </div>
 
-                {/* Label below box */}
-                <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap z-10">
-                  <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded ${
-                    hasMatch ? 'bg-black/80 text-emerald-300' : 'bg-black/60 text-amber-300'
-                  }`}>
-                    {hasMatch ? item.matchedCollectible!.name.substring(0, 20) : item.label.substring(0, 20)}
-                    {item.confidence > 0.5 && ` · ${Math.round(item.confidence * 100)}%`}
-                  </span>
+                {/* Label pill below box — name + ARD card number */}
+                <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-0.5">
+                  <div className="bg-black/85 backdrop-blur-md text-emerald-300 font-bold text-[11px] px-3 py-1 rounded-xl shadow-lg border border-white/20 whitespace-nowrap max-w-[260px] truncate">
+                    {hasMatch ? item.matchedCollectible!.name : item.label}
+                  </div>
+                  {hasMatch && (item.matchedCollectible as any).cardNumber && (
+                    <div className="bg-indigo-900/90 backdrop-blur-md text-indigo-300 font-mono text-[10px] px-2 py-0.5 rounded-lg border border-indigo-500/40 whitespace-nowrap">
+                      {(item.matchedCollectible as any).cardNumber}
+                      {(item.matchedCollectible as any).setSeries ? ` · ${(item.matchedCollectible as any).setSeries}` : ''}
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -648,7 +724,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
         </div>
       )}
 
-      {/* ─── Bottom Tray & Action ─── */}
+      {/* ─── Bottom Action Bar & Scanned Tray ─── */}
       <div className="absolute bottom-0 left-0 right-0 z-40 pb-[max(env(safe-area-inset-bottom),2rem)] bg-gradient-to-t from-black via-black/95 to-transparent pt-4">
         
         {scannedTray.length > 0 && (
@@ -658,18 +734,48 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onNavigate }) => {
                 <Layers className="w-3.5 h-3.5 text-emerald-400" />
                 Added Items ({scannedTray.length})
               </span>
-              <span className="text-xs font-bold text-emerald-400">${totalValue.toLocaleString()} total</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-emerald-400">${totalValue.toLocaleString()} total</span>
+                <button
+                  onClick={() => {
+                    lockedQualityRef.current = 0;
+                    setScannedTray([]);
+                    setDetectedItems([]);
+                    setScanStatus('scanning');
+                    scanStartRef.current = Date.now();
+                    setScanElapsed(0);
+                  }}
+                  className="text-[10px] font-bold text-amber-400 border border-amber-400/40 rounded-full px-2 py-0.5 active:scale-95 transition-transform"
+                >
+                  Rescan All
+                </button>
+              </div>
             </div>
 
             <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
               {scannedTray.map((item) => (
                 <div 
                   key={item.id} 
-                  className="relative flex flex-col items-center bg-white/10 backdrop-blur-xl border border-emerald-400/40 rounded-2xl p-1.5 min-w-[70px] shrink-0 shadow-lg"
+                  className="relative flex flex-col items-center bg-white/10 backdrop-blur-xl border border-emerald-400/40 rounded-2xl p-1.5 min-w-[80px] shrink-0 shadow-lg"
                 >
-                  <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-emerald-500 border border-white text-white flex items-center justify-center shadow">
-                    <Check className="w-3 h-3" />
-                  </div>
+                  {/* Dismiss button — tap to remove this card and resume scanning */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setScannedTray(prev => prev.filter(t => t.id !== item.id));
+                      setDetectedItems(prev => prev.filter(d => d.matchedCollectible?.id !== item.id));
+                      if (scannedTray.length <= 1) {
+                        lockedQualityRef.current = 0; // allow fresh scan
+                        setScanStatus('scanning');
+                        scanStartRef.current = Date.now();
+                        setScanElapsed(0);
+                      }
+                    }}
+                    className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 border border-white text-white flex items-center justify-center shadow active:scale-90 transition-transform z-10"
+                    title="Remove & rescan"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
                   <div className="w-14 h-14 bg-white/90 rounded-xl p-1 flex items-center justify-center overflow-hidden mb-1">
                     <img 
                       src={item.imageUrl} 

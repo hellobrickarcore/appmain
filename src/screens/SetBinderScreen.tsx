@@ -72,17 +72,23 @@ export const SetBinderScreen: React.FC<SetBinderScreenProps> = ({ onNavigate, se
           return next;
         });
       } else {
+        const price = item.sealedPrice || (item as any).marketPrice || item.retailPrice || 25;
         current.push({
           id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
           userId: 'user-1',
           setNum: item.code,
           condition: 'sealed',
           quantity: 1,
-          purchasePrice: item.sealedPrice,
+          purchasePrice: price,
+          currentPrice: price,
+          name: item.name,
+          imageUrl: item.imageUrl,
+          theme: item.theme,
+          year: item.year,
           purchaseDate: new Date().toISOString().split('T')[0],
           notes: `Collected in Master Binder (${expansionSet.name})`,
           addedAt: new Date().toISOString(),
-          itemType: item.category === 'minifigure' ? 'minifig' : (item.category === 'set' ? 'set' : 'brick')
+          itemType: item.category === 'minifigure' ? 'minifig' : (item.category === 'set' ? 'set' : 'card')
         });
         setOwnedCodes(prev => ({ ...prev, [item.code]: true }));
 

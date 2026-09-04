@@ -72,6 +72,10 @@ export default defineConfig(({ mode }) => {
           manualChunks: undefined // Let Vite handle it naturally
         }
       }
+    },
+    test: {
+      environment: 'jsdom',
+      globals: true
     }
   };
 });

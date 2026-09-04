@@ -54,10 +54,10 @@ const RETIRING_SOON = [
 
 // Curated market top movers shown in collector view
 const POPULAR_MARKET_MOVERS = [
-  { setNum: '75192-1', name: 'Millennium Falcon UCS', theme: 'Star Wars', retailPrice: 849.99, marketValue: 940.00, gain: '+18.4%', imageUrl: 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop' },
-  { setNum: '10316-1', name: 'Rivendell', theme: 'Icons', retailPrice: 499.99, marketValue: 580.00, gain: '+24.1%', imageUrl: 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop' },
-  { setNum: '21325-1', name: 'Medieval Blacksmith', theme: 'Ideas', retailPrice: 179.99, marketValue: 310.00, gain: '+72.2%', imageUrl: 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop' },
-  { setNum: '10294-1', name: 'Titanic', theme: 'Icons', retailPrice: 679.99, marketValue: 790.00, gain: '+16.2%', imageUrl: 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop' },
+  { setNum: '75192-1', name: 'Millennium Falcon UCS', theme: 'Star Wars', retailPrice: 849.99, marketValue: 940.00, gain: '+18.4%', imageUrl: 'https://img.bricklink.com/ItemImage/SN/0/75192-1.png' },
+  { setNum: '10316-1', name: 'Rivendell', theme: 'Icons', retailPrice: 499.99, marketValue: 580.00, gain: '+24.1%', imageUrl: 'https://img.bricklink.com/ItemImage/SN/0/10316-1.png' },
+  { setNum: '21325-1', name: 'Medieval Blacksmith', theme: 'Ideas', retailPrice: 179.99, marketValue: 310.00, gain: '+72.2%', imageUrl: 'https://img.bricklink.com/ItemImage/SN/0/21325-1.png' },
+  { setNum: '10294-1', name: 'Titanic', theme: 'Icons', retailPrice: 679.99, marketValue: 790.00, gain: '+16.2%', imageUrl: 'https://img.bricklink.com/ItemImage/SN/0/10294-1.png' },
 ];
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
@@ -102,13 +102,18 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
   const calculatedTotalValue = useMemo(() => {
     if (collection.length === 0) return 0;
     return collection.reduce((sum, item) => {
-      const dbItem = legoDatabase.findById(item.setNum);
       const qty = (item as any).quantity ?? 1;
+      // Always prefer saved price from the scanner over database
+      const savedPrice = (item as any).currentPrice || item.purchasePrice;
+      if (savedPrice) {
+        return sum + (savedPrice * qty);
+      }
+      const dbItem = legoDatabase.findById(item.setNum);
       if (dbItem) {
         const val = item.condition === 'sealed' ? dbItem.sealedPrice : dbItem.usedPrice;
         return sum + (val * qty);
       }
-      return sum + ((item.purchasePrice || 89.99) * qty);
+      return sum + (89.99 * qty);
     }, 0);
   }, [collection]);
 
@@ -128,12 +133,44 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
     return POPULAR_MARKET_MOVERS;
   }, [collection, sets]);
 
+  // Real Stats calculation based on user's actual items
+  const totalPieces = useMemo(() => {
+    return collection.reduce((acc, item) => {
+      const dbItem = legoDatabase.findById(item.setNum);
+      const pieces = (item as any).pieces || dbItem?.pieces || 0;
+      const qty = (item as any).quantity ?? 1;
+      return acc + (pieces * qty);
+    }, 0);
+  }, [collection]);
+
+  const totalMinifigs = useMemo(() => {
+    return collection.reduce((acc, item) => {
+      const dbItem = legoDatabase.findById(item.setNum);
+      const figs = (item as any).minifigsCount || (item as any).minifigs || dbItem?.minifigsCount || (item.itemType === 'minifig' ? 1 : 0);
+      const qty = (item as any).quantity ?? 1;
+      return acc + (figs * qty);
+    }, 0);
+  }, [collection]);
+
+  const totalCost = useMemo(() => {
+    return collection.reduce((acc, item) => {
+      const cost = item.purchasePrice || 0;
+      const qty = (item as any).quantity ?? 1;
+      return acc + (cost * qty);
+    }, 0);
+  }, [collection]);
+
+  const roiPct = useMemo(() => {
+    if (totalCost <= 0 || calculatedTotalValue <= 0) return 0;
+    return ((calculatedTotalValue - totalCost) / totalCost) * 100;
+  }, [calculatedTotalValue, totalCost]);
+
   // Stats row
   const stats = [
-    { label: 'Sets', value: collection.length > 0 ? collection.length.toString() : '0', icon: '📦' },
-    { label: 'Minifigs', value: collection.length > 0 ? `${collection.length * 4}` : '0', icon: '🧑' },
-    { label: 'Pieces', value: collection.length > 0 ? `${(collection.length * 842).toLocaleString()}` : '0', icon: '🧱' },
-    { label: 'Avg Return', value: collection.length > 0 ? '+24.5%' : '+18.2%', icon: '📈' },
+    { label: 'Items', value: collection.length > 0 ? collection.length.toString() : '0', icon: '📦' },
+    { label: 'Minifigs', value: totalMinifigs > 0 ? totalMinifigs.toString() : '—', icon: '🧑' },
+    { label: 'Pieces', value: totalPieces > 0 ? totalPieces.toLocaleString() : '—', icon: '🧱' },
+    { label: 'ROI', value: roiPct !== 0 ? `${roiPct >= 0 ? '+' : ''}${roiPct.toFixed(1)}%` : '—', icon: '📈' },
   ];
 
   return (
@@ -164,12 +201,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
       <div className="home-r0 px-5 pt-[max(env(safe-area-inset-top),2.5rem)] pb-2 flex items-center justify-between z-10 shrink-0">
         <div className="flex items-center gap-2">
           <Logo size="sm" light={false} />
-          <button
-            onClick={() => onNavigate(Screen.SUBSCRIPTION)}
-            className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shadow-sm"
-          >
-            PRO
-          </button>
+          {localStorage.getItem('hellobrick_is_pro') === 'true' ? (
+            <span className="bg-gradient-to-r from-amber-400 to-amber-500 text-black text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shadow-xs">
+              PRO
+            </span>
+          ) : (
+            <button
+              onClick={() => onNavigate(Screen.SUBSCRIPTION)}
+              className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full shadow-xs flex items-center gap-1 active:scale-95 transition-transform"
+            >
+              <Zap className="w-2.5 h-2.5 fill-white" />
+              UPGRADE
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -209,7 +253,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
         >
           <Search className="w-4 h-4 text-emerald-500 shrink-0" />
           <span className="text-[13px] font-medium text-gray-400 flex-1 truncate">
-            Search 20,000+ sets, minifigs, MOCs...
+            Search 20,000+ sets, minifigs, Pokémon, MTG...
           </span>
           <span className="text-[10px] font-black bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-lg border border-emerald-200/60">
             BROWSE
@@ -244,7 +288,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
           {mounted && (
             <div className="home-r1">
               <div className="flex items-center justify-between mb-1">
-                <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em]">PORTFOLIO VALUE</p>
+                <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em]">DASHBOARD VAULT</p>
                 <div className="flex items-center gap-1">
                   {TIME_FILTERS.map(tf => (
                     <button
@@ -286,7 +330,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onNavigate }) => {
                     onClick={loadDemoPortfolio}
                     className="ml-auto text-[10px] font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full active:scale-95 transition-transform"
                   >
-                    + Try Demo Portfolio
+                    + Try Starter Vault
                   </button>
                 )}
               </div>

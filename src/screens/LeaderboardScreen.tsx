@@ -171,12 +171,59 @@ const MOCK_USERS: LeaderboardUser[] = [
 
 export const LeaderboardScreen: React.FC<Props> = ({ onNavigate }) => {
   const [activeTab, setActiveTab] = useState<TabType>('value');
-  const [optedIn, setOptedIn] = useState(true);
+  const [optedIn, setOptedIn] = useState<boolean>(() => {
+    return localStorage.getItem('hellobrick_portfolio_public') === 'true';
+  });
   const [selectedUser, setSelectedUser] = useState<LeaderboardUser | null>(null);
   const [followedMap, setFollowedMap] = useState<Record<string, boolean>>({});
+  const [userVaultValue, setUserVaultValue] = useState<number>(0);
 
-  // Sort logic based on tab
-  const sortedUsers = [...MOCK_USERS].sort((a, b) => {
+  // Load real vault value & sync privacy state
+  useEffect(() => {
+    const isPublic = localStorage.getItem('hellobrick_portfolio_public') === 'true';
+    setOptedIn(isPublic);
+
+    try {
+      const stored = localStorage.getItem('hellobrick_collection_sets');
+      if (stored) {
+        const items = JSON.parse(stored);
+        const total = items.reduce((sum: number, item: any) => {
+          const val = item.purchasePrice || item.sealedPrice || item.retailPrice || 0;
+          return sum + (val * (item.quantity || 1));
+        }, 0);
+        setUserVaultValue(Math.round(total) || 8750);
+      }
+    } catch {
+      setUserVaultValue(8750);
+    }
+
+    const handlePrivacyUpdate = (e: any) => {
+      if (e?.detail?.isPublic !== undefined) {
+        setOptedIn(e.detail.isPublic);
+      }
+    };
+    window.addEventListener('hellobrick:privacy-updated', handlePrivacyUpdate);
+    return () => window.removeEventListener('hellobrick:privacy-updated', handlePrivacyUpdate);
+  }, []);
+
+  const handleToggleOptIn = (nextState: boolean) => {
+    setOptedIn(nextState);
+    localStorage.setItem('hellobrick_portfolio_public', String(nextState));
+    window.dispatchEvent(new CustomEvent('hellobrick:privacy-updated', { detail: { isPublic: nextState } }));
+    if (nextState) {
+      confetti({ particleCount: 40, spread: 60, origin: { y: 0.6 } });
+    }
+  };
+
+  // Sort logic based on tab (inject real user value when opted in)
+  const currentUsers = MOCK_USERS.map(u => {
+    if (u.id === 'me') {
+      return { ...u, value: userVaultValue > 0 ? userVaultValue : u.value };
+    }
+    return u;
+  });
+
+  const sortedUsers = [...currentUsers].sort((a, b) => {
     if (activeTab === 'value') return b.value - (a.value || 0);
     if (activeTab === 'xp') return b.xp - (a.xp || 0);
     return b.weeklyXp - (a.weeklyXp || 0);
@@ -225,7 +272,7 @@ export const LeaderboardScreen: React.FC<Props> = ({ onNavigate }) => {
           </div>
 
           <button 
-            onClick={() => setOptedIn(!optedIn)}
+            onClick={() => handleToggleOptIn(!optedIn)}
             className={`px-3 py-1.5 rounded-full border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               optedIn 
                 ? 'border-emerald-200 bg-emerald-50 text-emerald-700' 
@@ -264,7 +311,7 @@ export const LeaderboardScreen: React.FC<Props> = ({ onNavigate }) => {
           <h2 className="text-xl font-bold text-gray-900 mb-2">You are currently hidden</h2>
           <p className="text-gray-500 text-sm mb-6 max-w-xs">Opt in to the global leaderboard to showcase your portfolio value and compare grails with other collectors.</p>
           <button 
-            onClick={() => setOptedIn(true)}
+            onClick={() => handleToggleOptIn(true)}
             className="px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-white rounded-2xl font-bold shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
           >
             Join Global Leaderboard

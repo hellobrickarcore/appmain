@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Layers, Scan, Search, Sparkles } from 'lucide-react';
+import { Home, Layers, Scan, Search, Users } from 'lucide-react';
 import { Screen } from '../types';
 
 interface BottomNavProps {
@@ -26,10 +26,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentScreen, onNavigate 
     <div className="fixed bottom-0 left-0 right-0 z-[99999] px-3 pb-[max(env(safe-area-inset-bottom),0.8rem)]">
       <div className="bg-white/95 backdrop-blur-2xl border border-gray-200/80 shadow-[0_10px_35px_rgba(0,0,0,0.08)] rounded-full px-2 py-2 flex items-center justify-between w-full max-w-[420px] mx-auto relative">
         
-        {/* Portfolio / Home */}
+        {/* Dashboard / Home */}
         <button onClick={() => onNavigate(Screen.HOME)} className="flex flex-col items-center justify-center w-14 group active:scale-95 transition-transform">
           <Home className={getIconClass(Screen.HOME)} />
-          <span className={getLabelClass(Screen.HOME)}>Portfolio</span>
+          <span className={getLabelClass(Screen.HOME)}>Dashboard</span>
         </button>
         
         {/* Collection */}
@@ -54,10 +54,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentScreen, onNavigate 
           <span className={getLabelClass(Screen.BROWSE)}>Browse</span>
         </button>
 
-        {/* Ideas / What Can I Build */}
-        <button onClick={() => onNavigate(Screen.IDEAS)} className="flex flex-col items-center justify-center w-14 group active:scale-95 transition-transform">
-          <Sparkles className={getIconClass(Screen.IDEAS)} />
-          <span className={getLabelClass(Screen.IDEAS)}>Ideas</span>
+        {/* Community / Network */}
+        <button onClick={() => onNavigate(Screen.COMMUNITY)} className="flex flex-col items-center justify-center w-14 group active:scale-95 transition-transform">
+          <Users className={getIconClass(Screen.COMMUNITY)} />
+          <span className={getLabelClass(Screen.COMMUNITY)}>Community</span>
         </button>
       </div>
     </div>

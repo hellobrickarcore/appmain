@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Star, Loader2, Check, Fingerprint, Zap, TrendingUp, Shield, Infinity } from 'lucide-react';
+import { X, Star, Loader2, Check, Fingerprint, Zap, TrendingUp, Shield, Infinity, AlertTriangle, Lock } from 'lucide-react';
 import { subscriptionService } from '../services/subscriptionService';
+import { PurchasesOffering } from '@revenuecat/purchases-capacitor';
 import { Logo } from '../components/Logo';
-import { appStateService } from '../services/appStateService';
 import confetti from 'canvas-confetti';
 
 interface SubscriptionScreenProps {
@@ -17,13 +17,55 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [mounted, setMounted] = useState(false);
+  
+  // RevenueCat live offerings state
+  const [offerings, setOfferings] = useState<PurchasesOffering | null>(null);
+  const [annualPriceString, setAnnualPriceString] = useState('$24.99');
+  const [monthlyPriceString, setMonthlyPriceString] = useState('$3.49');
+  const [perMonthAnnualString, setPerMonthAnnualString] = useState('$2.08');
+  const [hardwallInfo, setHardwallInfo] = useState<{ hardwalled: boolean; reason: 'days' | 'scans' | null; daysLeft: number; scansLeft: number }>({
+    hardwalled: false,
+    reason: null,
+    daysLeft: 3,
+    scansLeft: 3
+  });
 
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 60);
+
+    // 1. Check Hardwall Limit (3 days or >3 scans)
+    const hw = subscriptionService.isHardwalled();
+    setHardwallInfo(hw);
+
+    // 2. Fetch live RevenueCat offerings
+    subscriptionService.getOfferings().then((currentOfferings) => {
+      if (currentOfferings) {
+        setOfferings(currentOfferings);
+        const annualPkg = currentOfferings.availablePackages?.find(p => p.packageType === 'ANNUAL') || currentOfferings.annual;
+        const monthlyPkg = currentOfferings.availablePackages?.find(p => p.packageType === 'MONTHLY') || currentOfferings.monthly;
+
+        if (annualPkg?.product) {
+          setAnnualPriceString(annualPkg.product.priceString);
+          const perMonth = annualPkg.product.price / 12;
+          setPerMonthAnnualString(`$${perMonth.toFixed(2)}`);
+        }
+        if (monthlyPkg?.product) {
+          setMonthlyPriceString(monthlyPkg.product.priceString);
+        }
+      }
+    }).catch(err => {
+      console.warn('RevenueCat offerings fetch failed, using defaults:', err);
+    });
+
     return () => clearTimeout(t);
   }, []);
 
   const attemptDismiss = () => {
+    // If hardwalled, never allow dismissal
+    if (hardwallInfo.hardwalled) {
+      return;
+    }
+
     if (!showClosingOffer) {
       setShowClosingOffer(true);
     } else {
@@ -43,17 +85,18 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
         return;
       }
 
-      console.log('💎 Fetching real offerings...');
-      const offerings = await subscriptionService.getOfferings();
+      console.log('💎 Purchasing RevenueCat package...');
+      const currentOfferings = offerings || await subscriptionService.getOfferings();
 
-      if (offerings && offerings.availablePackages.length > 0) {
+      if (currentOfferings && currentOfferings.availablePackages?.length > 0) {
         const pkg = billingCycle === 'annual'
-          ? offerings.availablePackages.find(p => p.packageType === 'ANNUAL') || offerings.availablePackages[0]
-          : offerings.availablePackages.find(p => p.packageType === 'MONTHLY') || offerings.availablePackages[0];
+          ? currentOfferings.availablePackages.find(p => p.packageType === 'ANNUAL') || currentOfferings.annual || currentOfferings.availablePackages[0]
+          : currentOfferings.availablePackages.find(p => p.packageType === 'MONTHLY') || currentOfferings.monthly || currentOfferings.availablePackages[0];
+        
         await subscriptionService.purchasePackage(pkg);
         onNavigate(true);
       } else {
-        console.warn('⚠️ No real offerings found. Falling back to Mock Simulation.');
+        console.warn('⚠️ No active RevenueCat package found. Showing fallback sheet.');
         setShowSheet(true);
       }
     } catch (err: any) {
@@ -96,7 +139,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
       if (localStorage.getItem('hellobrick_is_pro') === 'true') {
         onNavigate(true);
       } else {
-        alert('No previous purchases found.');
+        alert('No previous active purchases found for this Apple ID.');
       }
     } catch (err: any) {
       console.error('Restore failed:', err);
@@ -107,16 +150,16 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
   };
 
   const plans = [
-    { id: 'monthly' as const, label: 'Monthly', price: '$6.99', period: '/month', badge: null },
-    { id: 'annual' as const, label: 'Annual', price: '$49.99', period: '/year', badge: 'SAVE 40%' },
+    { id: 'monthly' as const, label: 'Monthly', price: `${monthlyPriceString}/mo`, period: '/month', badge: null },
+    { id: 'annual' as const, label: 'Annual', price: `${annualPriceString}/yr (${perMonthAnnualString}/mo)`, period: '/year', badge: 'SAVE 40%' },
   ];
 
   const features = [
-    { icon: Zap, label: 'Unlimited AI Scans', sub: 'Scan sets, minifigs & bulk piles', color: 'text-[#FFD600]', bg: 'bg-[#FFD600]/10' },
-    { icon: TrendingUp, label: 'Real-Time Valuations', sub: 'Live market prices for every set', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-    { icon: Shield, label: 'Cloud Collection Sync', sub: 'Never lose your collection data', color: 'text-blue-400', bg: 'bg-blue-500/10' },
-    { icon: Infinity, label: '100% Ad-Free', sub: 'Clean experience, zero interruptions', color: 'text-[#FF7A30]', bg: 'bg-[#FF7A30]/10' },
-    { icon: Star, label: 'Price History Charts', sub: '1D / 1W / 1M / 1Y / All timeframes', color: 'text-purple-400', bg: 'bg-purple-500/10' },
+    { icon: Zap, label: 'Unlimited AI Scans', sub: 'Scan sets, minifigs, Pokémon & MTG cards', color: 'text-[#FFD600]', bg: 'bg-[#FFD600]/10' },
+    { icon: TrendingUp, label: 'Real-Time Market Prices', sub: 'Live TCGPlayer, Cardmarket & BrickLink values', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+    { icon: Shield, label: 'Cloud Vault Sync', sub: 'Never lose your collection data', color: 'text-blue-400', bg: 'bg-blue-500/10' },
+    { icon: Infinity, label: '100% Ad-Free Experience', sub: 'Instant scanning with zero interruptions', color: 'text-[#FF7A30]', bg: 'bg-[#FF7A30]/10' },
+    { icon: Star, label: 'Historical Value Charts', sub: 'Track 1D / 1W / 1M / 1Y price growth', color: 'text-purple-400', bg: 'bg-purple-500/10' },
   ];
 
   return (
@@ -149,33 +192,52 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[300px] h-[300px] rounded-full pointer-events-none"
         style={{ background: 'radial-gradient(circle, #FF7A3015 0%, transparent 65%)', marginTop: '-40px' }} />
 
-      {/* Skip button */}
-      <button
-        onClick={attemptDismiss}
-        className="absolute top-[max(env(safe-area-inset-top),20px)] right-5 z-30 w-8 h-8 bg-white/8 rounded-full flex items-center justify-center border border-white/10 active:scale-90 transition-transform"
-      >
-        <X className="w-4 h-4 text-zinc-400" />
-      </button>
+      {/* Skip button — HIDDEN when user is hardwalled (3 days or >3 scans) */}
+      {!hardwallInfo.hardwalled && (
+        <button
+          onClick={attemptDismiss}
+          className="absolute top-[max(env(safe-area-inset-top),20px)] right-5 z-30 w-8 h-8 bg-white/8 rounded-full flex items-center justify-center border border-white/10 active:scale-90 transition-transform"
+        >
+          <X className="w-4 h-4 text-zinc-400" />
+        </button>
+      )}
 
       {/* ─── Scrollable content ─── */}
       <div className="flex-1 overflow-y-auto no-scrollbar pb-36">
 
         {/* Hero */}
         {mounted && (
-          <div className="sub-hero flex flex-col items-center pt-[max(env(safe-area-inset-top),3.5rem)] pb-6 px-6">
-            <Logo size="lg" showText={false} className="mb-5" />
+          <div className="sub-hero flex flex-col items-center pt-[max(env(safe-area-inset-top),3rem)] pb-4 px-6">
+            <Logo size="lg" showText={false} className="mb-4" />
+            
+            {/* Hardwall Warning Pill */}
+            {hardwallInfo.hardwalled ? (
+              <div className="bg-red-500/15 border border-red-500/30 text-red-400 rounded-full px-3.5 py-1 mb-3 flex items-center gap-1.5 text-xs font-black animate-pulse">
+                <Lock className="w-3.5 h-3.5 text-red-400" />
+                <span>
+                  {hardwallInfo.reason === 'days' 
+                    ? 'Free 3-Day Access Expired · Unlock Pro' 
+                    : '3 Free Scans Reached · Unlock Pro'}
+                </span>
+              </div>
+            ) : (
+              <span className="bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 rounded-full px-3 py-0.5 mb-2 text-[11px] font-black uppercase tracking-wider">
+                {hardwallInfo.scansLeft} free scans remaining · {hardwallInfo.daysLeft}d left
+              </span>
+            )}
+
             <h1 className="text-[26px] font-black text-center tracking-tight leading-tight">
               Unlock <span className="text-[#FFD600]">HelloBrick</span> Pro
             </h1>
             <p className="text-zinc-400 text-[13px] font-semibold text-center mt-1">
-              First 14 days free — cancel anytime
+              Unlimited scanning, live valuations & cloud portfolio
             </p>
           </div>
         )}
 
         {/* ─── Plan Toggle ─── */}
         {mounted && (
-          <div className="sub-r0 px-6 mb-6">
+          <div className="sub-r0 px-6 mb-5">
             <div className="bg-[#1C1C1E] p-1 rounded-2xl flex gap-1 border border-white/6">
               {plans.map(plan => (
                 <button
@@ -206,16 +268,16 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
           </div>
         )}
 
-        {/* ─── Features ─── */}
+        {/* ─── Features List ─── */}
         {mounted && (
-          <div className="sub-r1 px-6 space-y-3 mb-6">
+          <div className="sub-r2 px-6 space-y-2.5 mb-6">
             {features.map((f, i) => (
-              <div key={i} className="flex items-center gap-4 bg-[#1C1C1E] rounded-2xl px-4 py-3.5 border border-white/6">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${f.bg}`}>
-                  <f.icon className={`w-5 h-5 ${f.color}`} />
+              <div key={i} className="flex items-center gap-3.5 bg-[#1C1C1E] rounded-2xl px-4 py-3 border border-white/6">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${f.bg}`}>
+                  <f.icon className={`w-4 h-4 ${f.color}`} />
                 </div>
                 <div>
-                  <p className="text-[14px] font-black text-white">{f.label}</p>
+                  <p className="text-[13px] font-black text-white">{f.label}</p>
                   <p className="text-[11px] text-zinc-500 font-medium">{f.sub}</p>
                 </div>
                 <Check className="w-4 h-4 text-emerald-400 ml-auto shrink-0" strokeWidth={3} />
@@ -224,15 +286,15 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
           </div>
         )}
 
-        {/* Social proof */}
+        {/* Social Proof */}
         {mounted && (
           <div className="sub-r2 px-6 mb-4">
-            <div className="bg-[#1C1C1E] rounded-2xl px-4 py-4 border border-white/6 flex items-center gap-4">
+            <div className="bg-[#1C1C1E] rounded-2xl px-4 py-3.5 border border-white/6 flex items-center gap-3.5">
               <div className="flex -space-x-2 shrink-0">
                 {['#FF7A30', '#FFD600', '#10B981', '#6366F1'].map((c, i) => (
-                  <div key={i} className="w-8 h-8 rounded-full border-2 border-[#1C1C1E] flex items-center justify-center text-xs font-black"
+                  <div key={i} className="w-7 h-7 rounded-full border-2 border-[#1C1C1E] flex items-center justify-center text-[10px] font-black"
                     style={{ background: c }}>
-                    {['A', 'B', 'C', 'D'][i]}
+                    {['M', 'E', 'K', 'D'][i]}
                   </div>
                 ))}
               </div>
@@ -241,7 +303,7 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
                   {[...Array(5)].map((_, i) => <Star key={i} className="w-3 h-3 text-[#FFD600] fill-[#FFD600]" />)}
                 </div>
                 <p className="text-[11px] text-zinc-400 font-medium mt-0.5">
-                  Joined by 12,000+ LEGO collectors
+                  Joined by 1,420+ collectors & card traders
                 </p>
               </div>
             </div>
@@ -257,37 +319,43 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
             disabled={loading}
             className="w-full bg-[#FFD600] text-[#111111] py-4 rounded-2xl font-black text-[17px] shadow-[0_8px_30px_rgba(255,214,0,0.3)] active:scale-[0.97] transition-all flex items-center justify-center gap-2 mb-3"
           >
-            {loading
-              ? <Loader2 className="w-5 h-5 animate-spin" />
-              : <>Try for $0.00 · 14 Days Free</>}
+            {loading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <span>Unlock Unlimited Pro Access</span>
+            )}
           </button>
 
           <div className="flex items-center justify-center gap-4 mb-2">
-            <button onClick={handleRestore} className="text-zinc-600 font-bold text-[10px] uppercase tracking-widest hover:text-zinc-400 transition-colors">
+            <button onClick={handleRestore} className="text-zinc-500 font-bold text-[10px] uppercase tracking-widest hover:text-zinc-300 transition-colors">
               Restore Purchase
             </button>
-            <div className="w-1 h-1 bg-zinc-700 rounded-full" />
-            <button onClick={attemptDismiss} className="text-zinc-600 font-bold text-[10px] uppercase tracking-widest hover:text-zinc-400 transition-colors">
-              Skip
-            </button>
+            {!hardwallInfo.hardwalled && (
+              <>
+                <div className="w-1 h-1 bg-zinc-700 rounded-full" />
+                <button onClick={attemptDismiss} className="text-zinc-500 font-bold text-[10px] uppercase tracking-widest hover:text-zinc-300 transition-colors">
+                  Skip
+                </button>
+              </>
+            )}
           </div>
 
           <div className="flex items-center justify-center gap-4">
             <button onClick={() => window.open('https://hellobrick.app/terms', '_blank')}
-              className="text-zinc-700 text-[10px] font-bold hover:text-zinc-500 transition-colors">
-              Terms
+              className="text-zinc-600 text-[10px] font-bold hover:text-zinc-400 transition-colors">
+              Terms of Use
             </button>
             <div className="w-1 h-1 bg-zinc-800 rounded-full" />
             <button onClick={() => window.open('https://hellobrick.app/privacy', '_blank')}
-              className="text-zinc-700 text-[10px] font-bold hover:text-zinc-500 transition-colors">
-              Privacy
+              className="text-zinc-600 text-[10px] font-bold hover:text-zinc-400 transition-colors">
+              Privacy Policy
             </button>
           </div>
         </div>
       )}
 
-      {/* ─── Exit Intent / Closing Offer ─── */}
-      {showClosingOffer && !showSheet && (
+      {/* ─── Exit Intent / Closing Offer (Only shown if NOT hardwalled) ─── */}
+      {showClosingOffer && !showSheet && !hardwallInfo.hardwalled && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
           <div className="relative w-full max-w-sm bg-[#1C1C1E] rounded-[32px] p-6 text-center shadow-2xl border border-white/10 overflow-hidden">
@@ -301,8 +369,8 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
             </p>
             <div className="bg-[#111111] rounded-2xl p-4 mb-6 border border-white/8">
               <div className="flex justify-between items-center mb-1">
-                <span className="text-zinc-500 font-bold line-through text-sm">$49.99</span>
-                <span className="text-white font-black text-2xl">$44.99<span className="text-sm text-zinc-400">/yr</span></span>
+                <span className="text-zinc-500 font-bold line-through text-sm">{annualPriceString}</span>
+                <span className="text-white font-black text-2xl">$22.49<span className="text-sm text-zinc-400">/yr</span></span>
               </div>
               <p className="text-left text-xs text-zinc-500 font-medium">Billed annually. Cancel anytime.</p>
             </div>
@@ -339,20 +407,24 @@ export const SubscriptionScreen: React.FC<SubscriptionScreenProps> = ({ onNaviga
                 <p className="text-zinc-500 text-[13px] capitalize">{billingCycle} Subscription</p>
               </div>
               <div className="text-right">
-                <p className="font-black text-[17px] text-white">$0.00</p>
+                <p className="font-black text-[17px] text-white">
+                  {billingCycle === 'annual' ? annualPriceString : monthlyPriceString}
+                </p>
                 <p className="text-zinc-500 text-[11px] font-bold uppercase tracking-tight">
-                  First 14 Days
+                  Auto-Renews
                 </p>
               </div>
             </div>
             <div className="space-y-3 mb-8">
               <div className="flex justify-between items-center py-3 border-b border-white/8">
                 <span className="text-zinc-500 font-medium">Account</span>
-                <span className="text-[#FF7A30] font-semibold">Reviewer Access</span>
+                <span className="text-[#FF7A30] font-semibold">Pro Subscription</span>
               </div>
               <div className="flex justify-between items-center py-1">
                 <span className="text-zinc-500 font-medium">Total</span>
-                <span className="text-white font-black text-xl">$0.00</span>
+                <span className="text-white font-black text-xl">
+                  {billingCycle === 'annual' ? annualPriceString : monthlyPriceString}
+                </span>
               </div>
             </div>
             <button

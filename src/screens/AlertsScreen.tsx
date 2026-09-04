@@ -149,7 +149,7 @@ export const AlertsScreen: React.FC<AlertsScreenProps> = ({ onNavigate }) => {
       {/* Header */}
       <div className="flex items-center px-4 py-3 border-b border-gray-200">
         <button
-          onClick={() => onNavigate(Screen.Home)}
+          onClick={() => onNavigate(Screen.HOME)}
           className="p-2 -ml-2 rounded-full hover:bg-gray-50 transition-colors"
         >
           <ChevronLeft className="w-6 h-6 text-gray-700" />
@@ -158,46 +158,44 @@ export const AlertsScreen: React.FC<AlertsScreenProps> = ({ onNavigate }) => {
       </div>
 
       {/* Tabs */}
-      <div className="flex p-4 gap-2 border-b border-gray-200/50">
+      <div className="flex border-b border-gray-200 px-4">
         <button
           onClick={() => setActiveTab('alerts')}
-          className={`flex-1 py-2 px-4 rounded-lg font-medium text-sm transition-colors ${
-            activeTab === 'alerts' 
-              ? 'bg-gray-50 text-gray-900' 
-              : 'text-gray-500 hover:bg-gray-50/50'
+          className={`py-3 px-4 text-sm font-semibold border-b-2 transition-colors ${
+            activeTab === 'alerts'
+              ? 'border-emerald-500 text-emerald-500'
+              : 'border-transparent text-gray-500 hover:text-gray-900'
           }`}
         >
-          My Alerts
+          Active Alerts ({activeAlerts.filter(a => a.active).length})
         </button>
         <button
           onClick={() => setActiveTab('history')}
-          className={`flex-1 py-2 px-4 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
-            activeTab === 'history' 
-              ? 'bg-gray-50 text-gray-900' 
-              : 'text-gray-500 hover:bg-gray-50/50'
+          className={`py-3 px-4 text-sm font-semibold border-b-2 transition-colors ${
+            activeTab === 'history'
+              ? 'border-emerald-500 text-emerald-500'
+              : 'border-transparent text-gray-500 hover:text-gray-900'
           }`}
         >
-          History
-          <span className="bg-emerald-500 text-gray-900 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-            1
-          </span>
+          Notification History
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto pb-32">
         {activeTab === 'alerts' ? (
-          <div className="p-4 space-y-8">
+          <div className="p-4 space-y-6">
             
             {/* Create New Alert Section */}
-            <section>
-              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+            <div>
+              <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">
                 Create New Alert
               </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {alertTypes.map(type => (
                   <button
                     key={type.id}
-                    className={`flex items-start gap-4 p-4 rounded-xl border ${type.borderColor} bg-gray-500 ${type.hoverBorder} transition-all text-left group`}
+                    onClick={() => setActiveTab('alerts')}
+                    className={`flex items-start gap-4 p-4 rounded-xl border border-gray-200/80 bg-white ${type.hoverBorder} transition-all text-left group shadow-xs active:scale-[0.98]`}
                   >
                     <div className="p-2 rounded-lg bg-[#F5F5F7] border border-gray-200 group-hover:scale-110 transition-transform">
                       {type.icon}
@@ -209,7 +207,7 @@ export const AlertsScreen: React.FC<AlertsScreenProps> = ({ onNavigate }) => {
                   </button>
                 ))}
               </div>
-            </section>
+            </div>
 
             {/* Active Alerts Section */}
             <section>

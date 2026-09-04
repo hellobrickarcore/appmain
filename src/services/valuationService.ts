@@ -95,26 +95,42 @@ export const valuationService = {
         const parsed = JSON.parse(stored) as CollectionItem[];
         let totalNew = 0;
         let totalUsed = 0;
+        let totalCost = 0;
 
         parsed.forEach(item => {
           const qty = item.quantity ?? 1;
           const dbItem = legoDatabase.findById(item.setNum);
-          if (dbItem) {
+          // CRITICAL: Always prefer the explicitly saved price (from scanner).
+          // Only fall back to database if no saved price exists.
+          const savedPrice = (item as any).currentPrice || item.purchasePrice;
+          if (savedPrice) {
+            totalNew += savedPrice * qty;
+            totalUsed += Math.round(savedPrice * 0.75) * qty;
+            totalCost += (item.purchasePrice || savedPrice) * qty;
+          } else if (dbItem) {
             totalNew += dbItem.sealedPrice * qty;
             totalUsed += dbItem.usedPrice * qty;
+            totalCost += (item.purchasePrice || dbItem.retailPrice || dbItem.sealedPrice * 0.8) * qty;
           } else {
-            const price = item.purchasePrice || 89.99;
+            const price = 49.99;
             totalNew += price * qty;
-            totalUsed += (price * 0.7) * qty;
+            totalUsed += Math.round(price * 0.75) * qty;
+            totalCost += price * qty;
           }
         });
+
+        const activeValuation = totalNew;
+        const dynamicRoi = totalCost > 0 ? Math.round(((activeValuation - totalCost) / totalCost) * 1000) / 10 : 0.0;
+
+        const allItems = [...collectiblesDatabase.getAll()];
+        const topMovers = allItems.sort((a, b) => (b.growth30D || 0) - (a.growth30D || 0)).slice(0, 3);
 
         return {
           totalValueNew: Math.round(totalNew * 100) / 100,
           totalValueUsed: Math.round(totalUsed * 100) / 100,
           totalSets: parsed.length,
-          roiPercentage: parsed.length > 0 ? 18.4 : 0.00,
-          topMovers: legoDatabase.getSets().slice(0, 3)
+          roiPercentage: dynamicRoi,
+          topMovers: topMovers as any
         };
       }
     } catch (e) {}

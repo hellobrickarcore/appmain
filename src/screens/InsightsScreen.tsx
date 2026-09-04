@@ -127,7 +127,7 @@ export const InsightsScreen: React.FC<InsightsScreenProps> = ({ onNavigate }) =>
     <div className="flex flex-col h-full bg-[#F5F5F7] font-sans text-gray-900 overflow-hidden">
       {/* ─── Header ─── */}
       <div className="px-6 pt-[max(env(safe-area-inset-top),2.8rem)] pb-3 flex items-center justify-between shrink-0 z-10 border-b border-gray-200 bg-[#F5F5F7]/90 backdrop-blur-md">
-        <Logo size="sm" light={true} />
+        <Logo size="sm" light={false} />
         <span className="text-[12px] font-black text-gray-400 uppercase tracking-[0.2em]">Data</span>
       </div>
 

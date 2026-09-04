@@ -30,7 +30,7 @@ export const CreatePostScreen: React.FC<Props> = ({ onNavigate }) => {
 
   const handlePost = () => {
     // Submit post logic
-    onNavigate(Screen.Feed);
+    onNavigate(Screen.FEED);
   };
 
   const toggleTag = (set: typeof MOCK_COLLECTION_SETS[0]) => {
@@ -50,7 +50,7 @@ export const CreatePostScreen: React.FC<Props> = ({ onNavigate }) => {
       {/* Header */}
       <div className="pt-[max(env(safe-area-inset-top),2.5rem)] px-4 pb-3 flex items-center justify-between bg-white border-b border-gray-200">
         <button 
-          onClick={() => onNavigate(Screen.Feed)}
+          onClick={() => onNavigate(Screen.FEED)}
           className="p-2 -ml-2 rounded-full hover:bg-gray-50 text-gray-700 transition-colors"
         >
           <ChevronLeft size={24} />

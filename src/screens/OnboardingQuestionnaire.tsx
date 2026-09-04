@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Screen } from '../types';
 import { appStateService } from '../services/appStateService';
 import { Logo } from '../components/Logo';
+import { liveCollectibleService } from '../services/liveCollectibleService';
 import { ChevronRight, CheckCircle2, TrendingUp, Star, Camera } from 'lucide-react';
 
 interface OnboardingProps {
@@ -9,14 +10,14 @@ interface OnboardingProps {
 }
 
 const WELCOME_CARDS = [
-  { img: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/197.png', label: 'Umbreon VMAX', price: '$850', rot: -8, x: '5%', y: '10%', delay: '0s', size: 135 },
-  { img: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/6.png', label: 'Charizard', price: '$1,200', rot: 6, x: '48%', y: '15%', delay: '0.4s', size: 145 },
+  { img: 'https://images.pokemontcg.io/swsh7/215_hires.png', label: 'Umbreon VMAX', price: '$850', rot: -8, x: '5%', y: '10%', delay: '0s', size: 135 },
+  { img: 'https://images.pokemontcg.io/base1/4_hires.png', label: 'Charizard 1st Ed', price: '$4,500', rot: 6, x: '48%', y: '15%', delay: '0.4s', size: 145 },
 ];
 
 const CATEGORIES = [
   { id: 'pokemon', label: 'Pokémon TCG', icon: '⚡', img: 'https://images.unsplash.com/photo-1613771404784-3a5686aa2be3?q=80&w=800&auto=format&fit=crop' },
   { id: 'lego', label: 'LEGO Sets', icon: '🧱', img: 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=800&auto=format&fit=crop' },
-  { id: 'mtg', label: 'Magic TCG', icon: '🔥', img: 'https://images.unsplash.com/photo-1606166325683-e6deb6979b0c?q=80&w=800&auto=format&fit=crop' },
+  { id: 'mtg', label: 'Magic TCG', icon: '🔥', img: 'https://cards.scryfall.io/art_crop/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.jpg' },
   { id: 'yugioh', label: 'Yu-Gi-Oh!', icon: '👁️', img: 'https://images.unsplash.com/photo-1620336655055-088d06e36bf0?q=80&w=800&auto=format&fit=crop' },
 ];
 
@@ -34,7 +35,15 @@ export const OnboardingQuestionnaire: React.FC<OnboardingProps> = ({ onNavigate 
   
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
-  const [loadingText, setLoadingText] = useState('Analyzing collection data...');
+  // State for Magic onboarding image
+  const [magicImg, setMagicImg] = useState<string | null>('https://cards.scryfall.io/art_crop/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.jpg');
+
+  // Fetch Magic sample image on mount and when category changes
+  useEffect(() => {
+    liveCollectibleService.fetchMagicSampleImage().then(url => {
+      if (url) setMagicImg(url);
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 60);
@@ -245,7 +254,7 @@ export const OnboardingQuestionnaire: React.FC<OnboardingProps> = ({ onNavigate 
                         : 'border-[#2C2C2E] hover:border-white/20'
                     }`}
                   >
-                    <img referrerPolicy="no-referrer" src={cat.img} alt={cat.label} className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-screen" />
+                    <img referrerPolicy="no-referrer" src={cat.id === 'mtg' ? (magicImg || cat.img) : cat.img} alt={cat.label} className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-screen" loading="lazy" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
                     
                     {selectedCategory === cat.id && (

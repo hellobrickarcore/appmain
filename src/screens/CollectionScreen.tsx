@@ -52,17 +52,10 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
           try { items = JSON.parse(stored); } catch {}
         }
       }
-      if (!items) items = [];
-      setCollection(items);
-      const fetchedSets = mockSets;
-      const valuations = new Map(Object.entries(mockValuations));
-      setSets(fetchedSets);
-      setValuationsMap(valuations);
-    } catch (e) {
+      setCollection(items || []);
+    } catch {
       const stored = localStorage.getItem('hellobrick_collection_sets');
       try { setCollection(stored ? JSON.parse(stored) : []); } catch { setCollection([]); }
-      setSets(mockSets);
-      setValuationsMap(new Map(Object.entries(mockValuations)));
     }
   };
 
@@ -79,29 +72,46 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
       const dbItem = legoDatabase.findById(item.setNum);
       const explicitName = (item as any).name;
       const explicitImage = (item as any).imageUrl;
-      const explicitPrice = item.purchasePrice || (item as any).currentPrice || 0;
+      const explicitCurrentPrice = (item as any).currentPrice;
+
+      // Category-aware fallback image — never show a generic LEGO photo for card items
+      const itemCat = (item as any).category || (item as any).itemType || '';
+      const catFallback = 
+        (itemCat === 'pokemon' || itemCat === 'card') ? 'https://images.pokemontcg.io/sv3pt5/166_hires.png' :
+        itemCat === 'mtg' ? 'https://cards.scryfall.io/large/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.jpg' :
+        itemCat === 'yugioh' ? 'https://images.ygoprodeck.com/images/cards/89631139.jpg' :
+        itemCat === 'sports' ? 'https://images.weserv.nl/?url=i.ebayimg.com/images/g/hCEAAOSwjPVht4f~/s-l1600.jpg&w=400&output=jpg' :
+        itemCat === 'minifig' || itemCat === 'minifigure' ? 'https://img.bricklink.com/ItemImage/MN/0/col160.png' :
+        'https://img.bricklink.com/ItemImage/SN/0/75192-1.png';
 
       const set = {
         id: (item as any).id || dbItem?.id || `custom-${item.setNum}`,
         name: explicitName || dbItem?.name || `Collectible #${item.setNum}`,
         setNum: item.setNum || dbItem?.code || 'N/A',
-        retailPrice: explicitPrice || dbItem?.retailPrice || 25,
-        imageUrl: explicitImage || dbItem?.imageUrl || 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop',
+        retailPrice: dbItem?.retailPrice || (item as any).retailPrice || item.purchasePrice || 25,
+        imageUrl: explicitImage || dbItem?.imageUrl || catFallback,
         theme: (item as any).theme || dbItem?.theme || ((item as any).itemType === 'card' ? 'TCG' : 'Custom'),
         year: (item as any).year || dbItem?.year || 2024,
+        pieces: (dbItem as any)?.pieces || (item as any).pieces || 0,
         isRetired: dbItem?.isRetired || false
       };
 
+      // CRITICAL: Always prefer the explicitly saved price from the scanner.
+      // Only fall back to the database if we have no saved price at all.
+      const savedPrice = explicitCurrentPrice || item.purchasePrice;
+      const sealedMarketVal = savedPrice ?? dbItem?.sealedPrice ?? 25;
+      const usedMarketVal = Math.round(sealedMarketVal * 0.75);
+
       const val = {
-        sealedValue: explicitPrice || dbItem?.sealedPrice || 0,
-        usedValue: Math.round((explicitPrice || dbItem?.usedPrice || 0) * 0.8),
+        sealedValue: sealedMarketVal,
+        usedValue: usedMarketVal,
         sealedChange30d: dbItem?.growth30D || 0,
         usedChange30d: (dbItem?.growth30D || 0) * 0.8
       };
 
       const quantity = (item as any).quantity ?? 1;
       const currentValue = (item.condition === 'sealed' ? val.sealedValue : val.usedValue) * quantity;
-      const purchaseCost = (item.purchasePrice || (set.retailPrice || 100) * 0.8) * quantity;
+      const purchaseCost = (item.purchasePrice || set.retailPrice || 100) * quantity;
       const returnVal = currentValue - purchaseCost;
       const returnPct = purchaseCost > 0 ? (returnVal / purchaseCost) * 100 : 0;
       return { ...item, set, val, currentValue, purchaseCost, returnVal, returnPct };
@@ -146,12 +156,13 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
     const updated = collection.filter(item => item.id !== id);
     localStorage.setItem('hellobrick_collection_sets', JSON.stringify(updated));
     setCollection(updated);
+    window.dispatchEvent(new CustomEvent('hellobrick:collection-updated'));
   };
 
   const fmt = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
   const totalPieces = useMemo(() =>
-    hydratedCollection.reduce((s, i) => s + ((i.set?.numParts || 0) * ((i as any).quantity ?? 1)), 0),
+    hydratedCollection.reduce((s, i) => s + (((i.set as any)?.pieces || 0) * ((i as any).quantity ?? 1)), 0),
   [hydratedCollection]);
 
   const statsRow = [
@@ -359,14 +370,20 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                     {/* Image */}
                     <div className="w-full h-[90px] bg-[#F5F5F7] rounded-[14px] flex items-center justify-center overflow-hidden mb-3">
                       <img
-                        src={item.set?.imageUrl || "https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop"}
+                        src={item.set?.imageUrl || (
+                          item.rawItem?.category === 'pokemon' || item.rawItem?.itemType === 'card' ? 'https://images.pokemontcg.io/sv3pt5/166_hires.png' :
+                          item.rawItem?.category === 'mtg' ? 'https://cards.scryfall.io/large/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.jpg' :
+                          item.rawItem?.category === 'yugioh' ? 'https://images.ygoprodeck.com/images/cards/89631139.jpg' :
+                          item.rawItem?.category === 'minifig' || item.rawItem?.itemType === 'minifig' ? 'https://img.bricklink.com/ItemImage/MN/0/col160.png' :
+                          'https://img.bricklink.com/ItemImage/SN/0/75192-1.png'
+                        )}
                         alt={item.set.name}
                         className="w-full h-full object-contain p-2"
                         onError={e => {
                           const el = e.currentTarget;
                           if (!el.dataset.fallback) { 
                             el.dataset.fallback = '1'; 
-                            el.src = 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop'; 
+                            el.src = 'https://img.bricklink.com/ItemImage/SN/0/75192-1.png'; 
                           }
                         }}
                       />
@@ -414,14 +431,20 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
                   >
                     <div className="w-12 h-12 bg-[#F5F5F7] rounded-xl overflow-hidden shrink-0 p-1">
                       <img
-                        src={item.set?.imageUrl || "https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop"}
+                        src={item.set?.imageUrl || (
+                          item.rawItem?.category === 'pokemon' || item.rawItem?.itemType === 'card' ? 'https://images.pokemontcg.io/sv3pt5/166_hires.png' :
+                          item.rawItem?.category === 'mtg' ? 'https://cards.scryfall.io/large/front/b/d/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd.jpg' :
+                          item.rawItem?.category === 'yugioh' ? 'https://images.ygoprodeck.com/images/cards/89631139.jpg' :
+                          item.rawItem?.category === 'minifig' || item.rawItem?.itemType === 'minifig' ? 'https://img.bricklink.com/ItemImage/MN/0/col160.png' :
+                          'https://img.bricklink.com/ItemImage/SN/0/75192-1.png'
+                        )}
                         alt={item.set.name}
                         className="w-full h-full object-contain"
                         onError={e => {
                           const el = e.currentTarget;
                           if (!el.dataset.fallback) {
                             el.dataset.fallback = '1';
-                            el.src = 'https://images.unsplash.com/photo-1585366119957-e9730b6d0f60?q=80&w=400&auto=format&fit=crop';
+                            el.src = 'https://img.bricklink.com/ItemImage/SN/0/75192-1.png';
                           }
                         }}
                       />
@@ -495,22 +518,28 @@ export const CollectionScreen: React.FC<CollectionScreenProps> = ({ onNavigate }
               <button
                 onClick={() => {
                   if (!manualSetNum.trim()) return;
+                  const dbMatch = legoDatabase.findById(manualSetNum.trim());
                   const parsedPrice = parseFloat(manualPrice);
                   const newItem: CollectionItem = {
                     id: `manual_${Date.now()}`,
                     userId: localStorage.getItem('hellobrick_userId') || 'anonymous',
                     setNum: manualSetNum.trim(),
                     condition: manualCondition,
-                    purchasePrice: isNaN(parsedPrice) ? 100 : parsedPrice,
+                    purchasePrice: isNaN(parsedPrice) ? (dbMatch?.sealedPrice || 100) : parsedPrice,
                     purchaseDate: new Date().toISOString().split('T')[0],
                     addedAt: new Date().toISOString(),
                     notes: 'Manually logged',
-                    itemType: 'set',
+                    itemType: dbMatch?.category === 'minifigure' ? 'minifig' : (dbMatch?.category === 'set' ? 'set' : 'card'),
+                    name: dbMatch?.name,
+                    imageUrl: dbMatch?.imageUrl,
+                    theme: dbMatch?.theme,
+                    year: dbMatch?.year,
                     quantity: 1,
                   } as any;
                   const updated = [newItem, ...collection];
                   localStorage.setItem('hellobrick_collection_sets', JSON.stringify(updated));
                   setCollection(updated);
+                  window.dispatchEvent(new CustomEvent('hellobrick:collection-updated'));
                   setShowAddModal(false);
                   setManualSetNum('');
                   setManualPrice('');
